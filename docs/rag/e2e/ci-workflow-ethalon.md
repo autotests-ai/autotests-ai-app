@@ -101,7 +101,7 @@ Service repo после deploy → `repository_dispatch` type `deploy-smoke` →
 |------|------|------------|
 | `ALLURE_TOKEN` | secret | TestOps upload |
 | `ALLURE_PROJECT_ID` | var | opt-in allurectl |
-| `ALLURE_ENDPOINT` | var | default `https://allure.autotests.cloud` |
+| `ALLURE_ENDPOINT` | var | default `https://allure.qa.guru` |
 
 ## Shared report steps (app + orchestrator)
 

@@ -277,7 +277,7 @@ Per-test override: `@EnableAllureSelenideListener` на методе.
 
 | Env | Пример |
 |-----|--------|
-| `ALLURE_ENDPOINT` | `https://allure.autotests.cloud` |
+| `ALLURE_ENDPOINT` | `https://allure.qa.guru` |
 | `ALLURE_PROJECT_ID` | per project (напр. `5263`) |
 | `ALLURE_TOKEN` | secret, не в git |
 | `ALLURE_RESULTS` | `build/allure-results` |
