@@ -25,7 +25,7 @@ buildscript {
         allurePluginVersion = '4.1.0'
         allureVersion       = '3.13.0'
         allureBomVersion    = '2.35.2'
-        selenideVersion     = '7.16.2'
+        selenideVersion     = '7.17.0'
         restAssuredVersion  = '5.5.7'
         ownerVersion        = '1.0.12'
         junitVersion        = '5.11.4'
