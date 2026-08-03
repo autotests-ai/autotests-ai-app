@@ -4,7 +4,7 @@ import com.codeborne.selenide.WebDriverRunner;
 import io.qameta.allure.Step;
 
 import static com.codeborne.selenide.Selenide.clearBrowserCookies;
-import static com.codeborne.selenide.Selenide.clearBrowserLocalStorage;
+import static com.codeborne.selenide.Selenide.localStorage;
 import static com.codeborne.selenide.Selenide.sessionStorage;
 import static com.codeborne.selenide.Selenide.switchTo;
 
@@ -36,7 +36,7 @@ public final class BrowserSessionHelper {
 
     @Step("Clear browser local storage")
     public static void clearLocalStorage() {
-        clearBrowserLocalStorage();
+        localStorage().clear();
     }
 
     @Step("Clear browser session storage")
