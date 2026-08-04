@@ -86,7 +86,6 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-def pyramidStand = System.getProperty('pyramidStand', 'autotests_local')
 def healthCheckEnvRef = [env: System.getProperty('env', defaultEnv)]
 
 def resolveConfiguredBaseUrl = { String env ->
@@ -241,8 +240,20 @@ if (allureReportMode == 'none') {
     }
 }
 
-def pyramidLayerEnv = { String layer ->
-    "${System.getProperty('pyramidStand', pyramidStand)}_${layer}"
+def knownPyramidLayers = ['unit', 'component', 'integration', 'api', 'e2e', 'visual', 'manual'] as Set
+def layerEnvName = { String layer ->
+    def env = System.getProperty('env')
+    if (!env) {
+        return "autotests_local_${layer}"
+    }
+    def idx = env.lastIndexOf('_')
+    if (idx > 0) {
+        def suffix = env.substring(idx + 1)
+        if (knownPyramidLayers.contains(suffix)) {
+            return suffix == layer ? env : "${env.substring(0, idx)}_${layer}"
+        }
+    }
+    return "${env}_${layer}"
 }
 
 // Pyramid CI slices — ADR 005; `./gradlew test` = full suite, not these
@@ -277,15 +288,15 @@ gradle.taskGraph.whenReady { graph ->
     layerTestSlices.find { slice ->
         graph.hasTask(tasks.named(slice.name).get())
     }?.with { slice ->
-        healthCheckEnvRef.env = pyramidLayerEnv(slice.layer)
+        healthCheckEnvRef.env = layerEnvName(slice.layer)
     }
 }
 
 layerTestSlices.each { slice ->
-    def envName = pyramidLayerEnv(slice.layer)
+    def envName = layerEnvName(slice.layer)
     tasks.register(slice.name, Test) {
         group = 'verification'
-        description = "${slice.description} (env=${envName}; override stand: -DpyramidStand=one-page-form_prod)"
+        description = "${slice.description} (env=${envName}; override: -Denv=<stand> or -Denv=<stand>_${slice.layer})"
         testClassesDirs = sourceSets.test.output.classesDirs
         classpath = sourceSets.test.runtimeClasspath
         useJUnitPlatform {

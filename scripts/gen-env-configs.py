@@ -10,13 +10,13 @@ LAYERS = ("unit", "component", "integration", "api", "e2e", "visual", "manual")
 KEEP = frozenset({"default.properties", "_ethalon.properties"})
 
 GRADLE_HINT = {
-    "unit": "./gradlew testUnit -DpyramidStand={stand}",
-    "component": "./gradlew testComponent -DpyramidStand={stand}",
-    "integration": "./gradlew testIntegration -DpyramidStand={stand}",
-    "api": "./gradlew testApi -DpyramidStand={stand}",
+    "unit": "./gradlew testUnit -Denv={env}",
+    "component": "./gradlew testComponent -Denv={env}",
+    "integration": "./gradlew testIntegration -Denv={env}",
+    "api": "./gradlew testApi -Denv={env}",
     "e2e": "./gradlew testE2e -Denv={env}",
-    "visual": "./gradlew testVisual -DpyramidStand={stand}",
-    "manual": "./gradlew testManual -DpyramidStand={stand}",
+    "visual": "./gradlew testVisual -Denv={env}",
+    "manual": "./gradlew testManual -Denv={env}",
 }
 
 LAYER_DESC = {
@@ -73,8 +73,8 @@ STANDS = {
     "autotests_prod": {
         "baseUrl": "https://autotests.ai/",
         "apiBaseUrl": "https://autotests.ai/",
-        "remoteUrl": "https://user1:1234@selenoid.autotests.cloud/wd/hub",
-        "videoFolder": "https://selenoid.autotests.cloud/video/",
+        "remoteUrl": "https://user1:1234@selenoid.qa.guru/wd/hub",
+        "videoFolder": "https://selenoid.qa.guru/video/",
         "browserSize": "1740x1080",
         "logToConsole": "false",
         "selenideLogToConsole": "false",

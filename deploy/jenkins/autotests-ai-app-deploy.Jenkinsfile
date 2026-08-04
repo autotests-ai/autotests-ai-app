@@ -43,7 +43,7 @@ pipeline {
         stage('E2E') {
             steps {
                 dir("${env.APP_DIR}/tests-java") {
-                    sh './gradlew testE2e -DpyramidStand=autotests_jenkins -Dheadless=true'
+                    sh './gradlew testE2e -Denv=autotests_jenkins -Dheadless=true'
                 }
             }
         }

@@ -39,15 +39,15 @@
 
 | Task | Default env | Фильтр |
 |------|-------------|--------|
-| `testUnit` | `{pyramidStand}_unit` (default `local_unit`) | glob; auto skip health check |
-| `testComponent` | `{pyramidStand}_component` | `@Tag("component")` |
-| `testIntegration` | `{pyramidStand}_integration` | `@Tag("layout")`, `@Tag("mount")` |
-| `testApi` | `{pyramidStand}_api` | `@Tag("api")`; auto skip health check |
-| `testE2e` | `{pyramidStand}_e2e` | `@Tag("smoke")`, exclude `visual` |
-| `testVisual` | `{pyramidStand}_visual` | `@Tag("visual")` |
-| `testManual` | `{pyramidStand}_manual` | `@Tag("manual")` |
+| `testUnit` | `{stand}_unit` (default `local_unit`) | glob; auto skip health check |
+| `testComponent` | `{stand}_component` | `@Tag("component")` |
+| `testIntegration` | `{stand}_integration` | `@Tag("layout")`, `@Tag("mount")` |
+| `testApi` | `{stand}_api` | `@Tag("api")`; auto skip health check |
+| `testE2e` | `{stand}_e2e` | `@Tag("smoke")`, exclude `visual` |
+| `testVisual` | `{stand}_visual` | `@Tag("visual")` |
+| `testManual` | `{stand}_manual` | `@Tag("manual")` |
 
-Stand override: `-DpyramidStand=selenoid_local` → `testApi` = `selenoid_local_api.properties`.
+Env override: `-Denv=selenoid_local` (stand prefix) or `-Denv=selenoid_local_api` → `selenoid_local_api.properties`.
 
 ### 3. Auto `healthCheck` skip
 

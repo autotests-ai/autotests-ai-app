@@ -91,7 +91,7 @@ Stand-only файлы **не используются**. Один файл = с�
 | `visual` | `./gradlew testVisual` | CI slice: `-DincludeTags=visual` (не `@Layer`) |
 | `manual` | `./gradlew testManual` | `-DincludeTags=manual`; `@Layer("manual")` на методе |
 
-Convenience tasks: ADR 005, `build.gradle` (`verification` group). Stand default `local`; override `-DpyramidStand=one-page-form_prod` → env `one-page-form_prod_e2e`. Эквивалент через `./gradlew test -Denv=…` сохранён.
+Convenience tasks: ADR 005, `build.gradle` (`verification` group). Slice default stand baked in `layerEnvName`; override `-Denv=one-page-form_prod` → `one-page-form_prod_<layer>`. Эквивалент через `./gradlew test -Denv=…` сохранён.
 
 ### `healthCheck` (auto skip)
 
