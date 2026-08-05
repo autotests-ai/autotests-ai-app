@@ -7,6 +7,9 @@ plugins {
 group = 'ai.autotests'
 version = '0.1.0'
 
+// Shared pins — SSOT: generators/ethalon/tests-java/_ethalon/versions.yaml
+ext['slf4j.version'] = '2.0.17'
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
