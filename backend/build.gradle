@@ -1,18 +1,28 @@
+buildscript {
+    // Shared pins — SSOT: generators/ethalon/tests-java/_ethalon/versions.yaml
+    ext {
+        javaVersion                       = 21
+        springBootVersion                 = '3.4.1'
+        springDependencyManagementVersion = '1.1.7'
+        slf4jVersion                      = '2.0.17'
+    }
+}
+
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.1'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version "${springBootVersion}"
+    id 'io.spring.dependency-management' version "${springDependencyManagementVersion}"
 }
 
 group = 'ai.autotests'
 version = '0.1.0'
 
-// Shared pins — SSOT: generators/ethalon/tests-java/_ethalon/versions.yaml
-ext['slf4j.version'] = '2.0.17'
+// Spring Boot BOM property name is fixed
+ext['slf4j.version'] = slf4jVersion
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(javaVersion)
     }
 }
 
