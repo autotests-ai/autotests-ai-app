@@ -1,5 +1,4 @@
 buildscript {
-    // Shared pins — SSOT: generators/ethalon/tests-java/_ethalon/versions.yaml
     ext {
         javaVersion                       = 21
         springBootVersion                 = '3.4.1'
@@ -17,7 +16,6 @@ plugins {
 group = 'ai.autotests'
 version = '0.1.0'
 
-// Spring Boot BOM property name is fixed
 ext['slf4j.version'] = slf4jVersion
 
 java {
