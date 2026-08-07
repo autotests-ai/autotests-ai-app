@@ -2,8 +2,10 @@
 /**
  * Validate Allure ethalon / consumer allurerc.mjs:
  * - import succeeds
- * - testingPyramid at index 1 after currentStatus (awesome + dashboard)
- * - layers === PYRAMID_LAYERS (no visual)
+ * - locked 2×2 at indices 0–3 (awesome + dashboard):
+ *     [0] currentStatus  [1] durationDynamics
+ *     [2] testingPyramid [3] durations (groupBy: layer)
+ * - testingPyramid.layers === PYRAMID_LAYERS (no visual)
  *
  * Usage:
  *   node scripts/validate-allurerc.mjs [path/to/allurerc.mjs]
@@ -50,24 +52,32 @@ async function loadPyramidLayers(configDir) {
   return FALLBACK_LAYERS;
 }
 
-function assertPyramid(charts, label, layers) {
-  if (!Array.isArray(charts) || charts.length < 2) {
-    fail(`${label}: expected array with at least 2 tiles`);
+function assertLockedQuad(charts, label, layers) {
+  if (!Array.isArray(charts) || charts.length < 4) {
+    fail(`${label}: expected array with at least 4 tiles (locked 2×2)`);
   }
   if (charts[0]?.type !== "currentStatus") {
     fail(`${label}[0]: expected type currentStatus, got ${charts[0]?.type}`);
   }
-  if (charts[1]?.type !== "testingPyramid") {
-    fail(`${label}[1]: expected type testingPyramid, got ${charts[1]?.type}`);
+  if (charts[1]?.type !== "durationDynamics") {
+    fail(`${label}[1]: expected type durationDynamics, got ${charts[1]?.type}`);
   }
-  const actual = charts[1].layers ?? [];
+  if (charts[2]?.type !== "testingPyramid") {
+    fail(`${label}[2]: expected type testingPyramid, got ${charts[2]?.type}`);
+  }
+  if (charts[3]?.type !== "durations" || charts[3]?.groupBy !== "layer") {
+    fail(
+      `${label}[3]: expected type durations with groupBy "layer", got type=${charts[3]?.type} groupBy=${charts[3]?.groupBy}`,
+    );
+  }
+  const actual = charts[2].layers ?? [];
   if (JSON.stringify(actual) !== JSON.stringify(layers)) {
     fail(
-      `${label}[1].layers: expected ${JSON.stringify(layers)}, got ${JSON.stringify(actual)}`,
+      `${label}[2].layers: expected ${JSON.stringify(layers)}, got ${JSON.stringify(actual)}`,
     );
   }
   if (actual.includes("visual")) {
-    fail(`${label}[1].layers: must not include visual`);
+    fail(`${label}[2].layers: must not include visual`);
   }
 }
 
@@ -96,8 +106,8 @@ async function main() {
   const charts = config.plugins?.awesome?.options?.charts;
   const layout = config.plugins?.dashboard?.options?.layout;
 
-  assertPyramid(charts, "plugins.awesome.options.charts", layers);
-  assertPyramid(layout, "plugins.dashboard.options.layout", layers);
+  assertLockedQuad(charts, "plugins.awesome.options.charts", layers);
+  assertLockedQuad(layout, "plugins.dashboard.options.layout", layers);
 
   if (!config.name || typeof config.name !== "string") {
     fail("name: required string");
@@ -127,7 +137,10 @@ async function main() {
   console.log(`validate-allurerc: OK — ${configPath}`);
   console.log(`  name=${config.name}`);
   console.log(`  awesome.charts=${charts.length}, dashboard.layout=${layout.length}`);
-  console.log(`  pyramid@1 layers=[${layers.join(", ")}]`);
+  console.log(
+    `  locked 2×2: currentStatus | durationDynamics / testingPyramid | durations(layer)`,
+  );
+  console.log(`  pyramid@2 layers=[${layers.join(", ")}]`);
 }
 
 main().catch((err) => {

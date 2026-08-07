@@ -7,7 +7,9 @@ import {
 
 /**
  * Dashboard plugin layout.
- * Invariant: index 0 = currentStatus, index 1 = testingPyramid.
+ * Locked 2×2 (indices 0–3):
+ *   [0] currentStatus     [1] durationDynamics
+ *   [2] testingPyramid    [3] durations (groupBy: layer)
  */
 export function buildDashboardLayout({ epicCharts = [] } = {}) {
   const epicStatusDynamics = epicCharts.map((epic) => ({
@@ -24,9 +26,28 @@ export function buildDashboardLayout({ epicCharts = [] } = {}) {
       title: TITLES.currentStatus,
     },
     {
+      type: "durationDynamics",
+      title: TITLES.durationDynamics,
+      limit: 20,
+    },
+    {
       type: "testingPyramid",
       title: TITLES.testingPyramid,
       layers: [...PYRAMID_LAYERS],
+    },
+    {
+      type: "durations",
+      title: TITLES.durationsByLayer,
+      groupBy: "layer",
+    },
+    {
+      type: "statusDynamics",
+      title: TITLES.statusDynamics,
+      limit: 20,
+    },
+    {
+      type: "successRateDistribution",
+      title: TITLES.successRateDistribution,
     },
     {
       type: "stabilityDistribution",
@@ -36,15 +57,6 @@ export function buildDashboardLayout({ epicCharts = [] } = {}) {
       groupBy: "label-name:component",
     },
     {
-      type: "successRateDistribution",
-      title: TITLES.successRateDistribution,
-    },
-    {
-      type: "statusDynamics",
-      title: TITLES.statusDynamics,
-      limit: 20,
-    },
-    {
       type: "statusTransitions",
       title: TITLES.statusTransitions,
       limit: 20,
@@ -52,11 +64,6 @@ export function buildDashboardLayout({ epicCharts = [] } = {}) {
     {
       type: "testBaseGrowthDynamics",
       title: TITLES.testBaseGrowthDynamics,
-      limit: 20,
-    },
-    {
-      type: "durationDynamics",
-      title: TITLES.durationDynamics,
       limit: 20,
     },
     {
@@ -97,11 +104,6 @@ export function buildDashboardLayout({ epicCharts = [] } = {}) {
       type: "durations",
       title: TITLES.durations,
       groupBy: "none",
-    },
-    {
-      type: "durations",
-      title: TITLES.durationsByLayer,
-      groupBy: "layer",
     },
     {
       type: "statusAgePyramid",
