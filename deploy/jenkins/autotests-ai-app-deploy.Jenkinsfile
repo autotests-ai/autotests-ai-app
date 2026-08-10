@@ -40,6 +40,20 @@ pipeline {
             }
         }
 
+        stage('Nginx') {
+            steps {
+                dir(env.APP_DIR) {
+                    sh '''
+                        if [[ -f deploy/nginx/autotests.ai.conf ]]; then
+                          sudo cp deploy/nginx/autotests.ai.conf /etc/nginx/conf.d/autotests.ai.conf
+                          sudo nginx -t
+                          sudo systemctl reload nginx
+                        fi
+                    '''
+                }
+            }
+        }
+
         stage('E2E') {
             steps {
                 dir("${env.APP_DIR}/tests-java") {
