@@ -1,0 +1,26 @@
+/* Poll toggle — составной примитив (icon-btn + interval label overlay).
+   Same geometry as lang-toggle; label shows interval (default 5s). */
+
+.poll-toggle {
+  position: relative;
+  display: inline-block;
+}
+
+.poll-toggle__label {
+  position: absolute;
+  bottom: var(--lang-label-inset);
+  right: var(--lang-label-inset);
+  font-size: var(--lang-label-font-size);
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.poll-toggle--on .icon-btn {
+  color: var(--color-primary);
+}
+
+.poll-toggle:not(.poll-toggle--on) {
+  opacity: 0.72;
+}
