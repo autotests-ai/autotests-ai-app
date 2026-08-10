@@ -1,0 +1,22 @@
+/* Page shell — shared max-width + padding; compose modifiers on <main> */
+.page-shell {
+  max-width: min(var(--content-max-width), calc(100% - 2 * var(--page-padding-x)));
+  margin: 0 auto;
+  padding: var(--space-6) var(--page-padding-x) var(--space-6);
+}
+
+.page-shell--below-header {
+  padding-top: calc(var(--header-height) + var(--space-6));
+}
+
+p {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+}
+
+code {
+  font-size: var(--font-size-sm);
+  background: var(--color-surface-soft);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}

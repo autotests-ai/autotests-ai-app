@@ -2,6 +2,8 @@
 
 .stack-page {
   max-width: 1100px;
+  margin-inline: auto;
+  padding-bottom: var(--space-8, 32px);
 }
 
 .stack-page .text {
@@ -105,7 +107,8 @@
 
 .stack-page__board-body {
   padding: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .stack-page__table {

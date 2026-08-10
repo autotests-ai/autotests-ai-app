@@ -14,6 +14,14 @@ APP_ROOT = Path(__file__).resolve().parents[1]
 REF_ROOT = APP_ROOT.parents[1] / "reference-home" / "reference-app-copy"
 STATIC = APP_ROOT / "backend" / "src" / "main" / "resources" / "static" / "stack"
 SHARED = REF_ROOT / "frontend" / "_shared" / "frontend-javascript-app"
+PAGE_CSS = (
+    REF_ROOT
+    / "frontend"
+    / "typescript"
+    / "frontend-typescript-react"
+    / "css"
+    / "page.css"
+)
 
 
 def main() -> int:
@@ -33,10 +41,15 @@ def main() -> int:
     for name in ("stack-matrix.js", "poll-toggle.js"):
         shutil.copy2(SHARED / "js" / name, STATIC / "js" / name)
 
-    for name in ("stack-page.css", "poll-toggle.css", "badge.css"):
+    for name in ("stack-page.css", "poll-toggle.css", "badge.css", "panel.css", "sticky.css"):
         src = SHARED / "css" / name
         if src.is_file():
             shutil.copy2(src, STATIC / "css" / name)
+
+    if PAGE_CSS.is_file():
+        shutil.copy2(PAGE_CSS, STATIC / "css" / "page.css")
+
+    # stack-tokens.css is hand-maintained in repo (landing token patch)
 
     print(f"OK: stack static → {STATIC.relative_to(APP_ROOT)}")
     return 0
