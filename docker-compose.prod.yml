@@ -1,4 +1,4 @@
 # Production overlay (box3) — no host postgres port (5432 often taken).
 services:
   postgres:
-    ports: []
+    ports: !reset []
