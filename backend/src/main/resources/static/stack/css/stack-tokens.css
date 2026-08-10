@@ -18,6 +18,8 @@
   --plaque-divider-inset: calc(
     (var(--plaque-control-height) - 2px - var(--plaque-divider-height)) / 2
   );
+  --lang-label-font-size: 8px;
+  --lang-label-inset: 5px;
 }
 
 html.theme-light {
