@@ -24,6 +24,15 @@ PAGE_CSS = (
 )
 
 
+def copy_plaque_divider(src: Path, dest: Path) -> None:
+    """Drop @import tokens.css — stack uses landing tokens + stack-tokens overlay."""
+    text = src.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    if lines and lines[0].lstrip().startswith("@import"):
+        text = "".join(lines[1:])
+    dest.write_text(text, encoding="utf-8")
+
+
 def main() -> int:
     if not REF_ROOT.is_dir():
         print(f"Missing reference-app-copy at {REF_ROOT}", file=sys.stderr)
@@ -35,19 +44,28 @@ def main() -> int:
     STATIC.mkdir(parents=True, exist_ok=True)
     (STATIC / "js").mkdir(exist_ok=True)
     (STATIC / "css").mkdir(exist_ok=True)
+    (STATIC / "templates").mkdir(exist_ok=True)
 
     shutil.copy2(SHARED / "stack" / "matrix.json", STATIC / "matrix.json")
 
-    for name in ("stack-matrix.js", "poll-toggle.js"):
+    for name in ("stack-matrix.js", "poll-toggle.js", "header.js", "theme-icons.js", "dom-utils.js", "header-metrics-wrap.js"):
         shutil.copy2(SHARED / "js" / name, STATIC / "js" / name)
 
-    for name in ("stack-page.css", "poll-toggle.css", "badge.css", "panel.css", "sticky.css"):
+    for name in ("stack-page.css", "poll-toggle.css", "badge.css", "panel.css", "sticky.css", "header.css", "input.css"):
         src = SHARED / "css" / name
         if src.is_file():
             shutil.copy2(src, STATIC / "css" / name)
 
+    plaque_src = SHARED / "css" / "plaque-divider.css"
+    if plaque_src.is_file():
+        copy_plaque_divider(plaque_src, STATIC / "css" / "plaque-divider.css")
+
     if PAGE_CSS.is_file():
         shutil.copy2(PAGE_CSS, STATIC / "css" / "page.css")
+
+    header_tpl = SHARED / "templates" / "header.html"
+    if header_tpl.is_file():
+        shutil.copy2(header_tpl, STATIC / "templates" / "header.html")
 
     # stack-tokens.css is hand-maintained in repo (landing token patch)
 

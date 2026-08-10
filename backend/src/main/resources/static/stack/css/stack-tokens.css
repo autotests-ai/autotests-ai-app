@@ -2,6 +2,7 @@
 :root {
   --color-header-surface: var(--color-surface);
   --color-info: #61b6fb;
+  --header-height: 40px;
   --header-occupied-height: var(--header-height);
   --space-8: 32px;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -12,6 +13,11 @@
   --indicator-close: #ff5f57;
   --indicator-minimize: #febc2e;
   --indicator-maximize: #28c840;
+  --plaque-control-height: 32px;
+  --plaque-divider-height: calc(var(--font-size-sm) * 1.35);
+  --plaque-divider-inset: calc(
+    (var(--plaque-control-height) - 2px - var(--plaque-divider-height)) / 2
+  );
 }
 
 html.theme-light {

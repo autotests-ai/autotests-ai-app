@@ -12,9 +12,10 @@
   <link rel="stylesheet" href="/stack/css/panel.css">
   <link rel="stylesheet" href="/css/icon.css">
   <link rel="stylesheet" href="/css/icon-btn.css">
+  <link rel="stylesheet" href="/stack/css/input.css">
   <link rel="stylesheet" href="/css/lang-toggle.css">
   <link rel="stylesheet" href="/stack/css/poll-toggle.css">
-  <link rel="stylesheet" href="/css/header.css">
+  <link rel="stylesheet" href="/stack/css/header.css">
   <link rel="stylesheet" href="/stack/css/page.css">
   <link rel="stylesheet" href="/stack/css/stack-page.css">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32.png">
@@ -23,16 +24,18 @@
   <div id="app-header"></div>
   <script>
     window.headerConfig = {
-      brand: { href: 'https://autotests.ai/', label: 'autotests.ai' },
+      brand: { href: '/stack/', label: 'Reference' },
       nav: [
-        { href: 'https://autotests.ai/', label: 'Home', testid: 'header-nav-home' },
+        { href: '#', label: 'Home', testid: 'header-nav-home' },
+        { href: '#', label: 'Login', testid: 'header-nav-login' },
+        { href: '#', label: 'Register', testid: 'header-nav-register' },
         { href: '/stack/', label: 'Stack', active: true, testid: 'header-nav-stack' },
       ],
       lang: { default: 'en' },
       theme: { default: 'dark' },
     };
   </script>
-  <script type="module" src="/js/header.js"></script>
+  <script type="module" src="/stack/js/header.js"></script>
 
   <main class="page-shell page-shell--below-header stack-page" data-testid="stack-page">
     <div class="stack-page__error" id="stack-err" hidden></div>
