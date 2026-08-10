@@ -13,7 +13,7 @@ if [[ "$(id -un)" == "root" ]]; then
   exit 1
 fi
 
-if [[ ! -d "$REF_DIR/.git" ]]; then
+if ! sudo -u reference_app_copy test -d "$REF_DIR/.git"; then
   echo "Missing reference-app-copy at $REF_DIR" >&2
   exit 1
 fi
