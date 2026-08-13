@@ -120,7 +120,7 @@ html:not(.theme-light)
   grid-column: 2;
   grid-row: 1;
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.018em;
   line-height: 1;
@@ -148,7 +148,7 @@ html:not(.theme-light)
 .header__brand:has(.header__brand-link--leading:not([hidden])) .header__brand-byline {
   display: inline;
   font-family: var(--font-sans);
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 500;
   letter-spacing: 0.06em;
   line-height: 1;
@@ -159,8 +159,8 @@ html:not(.theme-light)
 
 /* Mini logo beside “by” — scaled with the 8px byline. */
 .header__brand:has(.header__brand-link--leading:not([hidden])) .header__brand-logo {
-  height: 7px;
-  max-height: 7px;
+  height: 8px;
+  max-height: 8px;
   opacity: 0.55;
 }
 
@@ -187,13 +187,18 @@ html:not(.theme-light)
   margin-left: calc(var(--space-3) - var(--space-4));
 }
 
+/* Beat `.link--nav` if Vite injects react-ui styles.css after this file. */
+.header .link--nav {
+  font-size: 12px;
+}
+
 .header__nav .link--nav {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 10rem;
-  /* room for underline inside the ellipsis box (10px + offset) */
-  padding-block-end: 3px;
+  /* room for underline inside the ellipsis box (12px + offset) */
+  padding-block-end: 4px;
 }
 
 /* Step 4: search */
@@ -283,6 +288,7 @@ html:not(.theme-light)
   z-index: var(--z-header);
   max-height: min(70vh, 24rem);
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 /* Default header: drop search first, then fold to burger at 768
