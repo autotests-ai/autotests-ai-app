@@ -28,7 +28,7 @@ cp "$CONF_SRC" "$TMP"
 
 if [[ -z "$STACK_UPSTREAMS" ]]; then
   for candidate in \
-    "/home/reference_app_copy/reference-app-copy/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
+    "/home/reference_app_copy/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
     "${SCRIPT_DIR}/generated/autotests.ai-stack-upstreams.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_UPSTREAMS="$candidate"
@@ -38,7 +38,7 @@ if [[ -z "$STACK_UPSTREAMS" ]]; then
 fi
 if [[ -z "$STACK_ROUTES" ]]; then
   for candidate in \
-    "/home/reference_app_copy/reference-app-copy/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
+    "/home/reference_app_copy/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
     "${SCRIPT_DIR}/generated/autotests.ai-stack-routes.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_ROUTES="$candidate"
@@ -47,11 +47,11 @@ if [[ -z "$STACK_ROUTES" ]]; then
   done
 fi
 if [[ -z "$STACK_UPSTREAMS" || ! -f "$STACK_UPSTREAMS" ]]; then
-  echo "Missing stack upstreams (run reference-app-copy deploy/nginx/render_vhosts.py)" >&2
+  echo "Missing stack upstreams (run autotests-ai-multistack-app deploy/nginx/render_vhosts.py)" >&2
   exit 1
 fi
 if [[ -z "$STACK_ROUTES" || ! -f "$STACK_ROUTES" ]]; then
-  echo "Missing stack routes (run reference-app-copy deploy/nginx/render_vhosts.py)" >&2
+  echo "Missing stack routes (run autotests-ai-multistack-app deploy/nginx/render_vhosts.py)" >&2
   exit 1
 fi
 sed \

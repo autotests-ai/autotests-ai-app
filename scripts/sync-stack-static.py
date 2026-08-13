@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Sync stack matrix index static assets into autotests-ai-app backend static.
 
-SSOT: reference-app-copy deploy/matrix.yaml → sync-stack-matrix.py → matrix.json
+SSOT: autotests-ai-multistack-app deploy/matrix.yaml → sync-stack-matrix.py → matrix.json
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[1]
-REF_ROOT = APP_ROOT.parents[1] / "reference-home" / "reference-app-copy"
+REF_ROOT = APP_ROOT.parents[1] / "autotests-ai-multistack-home" / "autotests-ai-multistack-app"
 STATIC = APP_ROOT / "backend" / "src" / "main" / "resources" / "static" / "stack"
 SHARED = REF_ROOT / "frontend" / "_shared" / "frontend-javascript-app"
 PAGE_CSS = (
@@ -35,7 +35,7 @@ def copy_plaque_divider(src: Path, dest: Path) -> None:
 
 def main() -> int:
     if not REF_ROOT.is_dir():
-        print(f"Missing reference-app-copy at {REF_ROOT}", file=sys.stderr)
+        print(f"Missing autotests-ai-multistack-app at {REF_ROOT}", file=sys.stderr)
         return 1
 
     sync = REF_ROOT / "frontend" / "scripts" / "sync-stack-matrix.py"

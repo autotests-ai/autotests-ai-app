@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Box3 deploy: autotests.ai landing + nginx stack routes from reference-app-copy.
+# Box3 deploy: autotests.ai landing + nginx stack routes from autotests-ai-multistack-app.
 # Run as qaguru on 212.92.101.15 — git/docker without sudo; nginx via sudo.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
-REF_DIR="${REF_DIR:-/home/reference_app_copy/reference-app-copy}"
+REF_DIR="${REF_DIR:-/home/reference_app_copy/autotests-ai-multistack-app}"
 REPO_URL="${REPO_URL:-https://github.com/autotests-ai/autotests-ai-app.git}"
 COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
@@ -14,7 +14,7 @@ if [[ "$(id -un)" == "root" ]]; then
 fi
 
 if ! sudo -u reference_app_copy test -d "$REF_DIR/.git"; then
-  echo "Missing reference-app-copy at $REF_DIR" >&2
+  echo "Missing autotests-ai-multistack-app at $REF_DIR" >&2
   exit 1
 fi
 
@@ -25,7 +25,7 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
   rm -rf "$APP_DIR.tmp"
 fi
 
-echo "=== reference-app-copy ==="
+echo "=== autotests-ai-multistack-app ==="
 sudo -u reference_app_copy bash -lc "cd \"$REF_DIR\" && git fetch --all && git reset --hard origin/main && python deploy/nginx/render_vhosts.py"
 
 echo "=== autotests-ai-app ==="

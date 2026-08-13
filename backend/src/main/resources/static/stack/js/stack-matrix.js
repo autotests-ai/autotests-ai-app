@@ -11,7 +11,7 @@ const PATH_RE = /^\/stack\/(backend-[^/]+)\/(frontend-[^/]+)/;
 
 /** Nested product repo on GitHub — tree URLs for matrix `module` paths. */
 export const GITHUB_TREE_BASE =
-  'https://github.com/autotests-ai/reference-app-copy/tree/main';
+  'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main';
 
 /** Octocat mark path (viewBox 0 0 24 24) — same as product header. */
 export const GITHUB_MARK_PATH =
