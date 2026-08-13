@@ -63,6 +63,38 @@ body {
   background: var(--color-surface);
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Focus SSOT. Pointer / leftover click: no UA box. Keyboard: designed
+   ring after Tab/Arrow (`html[data-keyboard-intent]` from js/header.js).
+   Default-off so a click never flashes a white ring before the script. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none !important;
+}
+
+html[data-keyboard-intent] :focus-visible {
+  outline: 2px solid var(--color-primary) !important;
+}
+
+button::-moz-focus-inner {
+  border: 0;
+}
+
+button,
+[type="button"],
+[type="submit"],
+[type="reset"],
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 html.theme-light {
   --color-surface: #f0ede8;
   --color-surface-soft: #e8e4dd;
