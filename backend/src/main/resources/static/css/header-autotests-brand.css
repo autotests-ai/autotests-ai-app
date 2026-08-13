@@ -1,0 +1,62 @@
+/* Product brand on top of DS header.css — landing wordmark, not a header-layout fork. */
+
+.header__brands {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: nowrap;
+}
+
+.header__brand-wordmark {
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.header__brand-wordmark:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.header__brand-accent {
+  color: var(--color-success);
+}
+
+.header__brand-by {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-text-muted);
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.header__brands .header__brand-logo {
+  transform: translateY(5px);
+}
+
+.header__brand-mark-link {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.header__brand-mark-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.header__brand-mark {
+  display: block;
+  width: auto;
+  height: var(--header-brand-logo-height);
+  max-height: var(--header-brand-logo-height);
+}
