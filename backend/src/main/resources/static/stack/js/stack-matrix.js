@@ -395,7 +395,7 @@ async function loadStackPage(root, options = {}) {
         'Не удалось загрузить matrix.json — sync: python frontend/scripts/sync-stack-matrix.py. ' +
         e;
     } else if (root) {
-      root.innerHTML = `<p class="text reference-app__error" data-testid="stack-error">Не удалось загрузить matrix.json — ${escapeHtml(String(e))}</p>`;
+      root.innerHTML = `<p class="text" data-testid="stack-error">Не удалось загрузить matrix.json — ${escapeHtml(String(e))}</p>`;
     }
   }
 }
