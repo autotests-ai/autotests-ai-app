@@ -4,7 +4,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
-REF_DIR="${REF_DIR:-/home/reference_app_copy/autotests-ai-multistack-app}"
+STACK_DIR="${STACK_DIR:-/home/autotests_ai_multistack/autotests-ai-multistack-app}"
 REPO_URL="${REPO_URL:-https://github.com/autotests-ai/autotests-ai-app.git}"
 COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 
@@ -13,8 +13,8 @@ if [[ "$(id -un)" == "root" ]]; then
   exit 1
 fi
 
-if ! sudo -u reference_app_copy test -d "$REF_DIR/.git"; then
-  echo "Missing autotests-ai-multistack-app at $REF_DIR" >&2
+if ! sudo -u autotests_ai_multistack test -d "$STACK_DIR/.git"; then
+  echo "Missing autotests-ai-multistack-app at $STACK_DIR" >&2
   exit 1
 fi
 
@@ -26,7 +26,7 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
 fi
 
 echo "=== autotests-ai-multistack-app ==="
-sudo -u reference_app_copy bash -lc "cd \"$REF_DIR\" && git fetch --all && git reset --hard origin/main && python deploy/nginx/render_vhosts.py"
+sudo -u autotests_ai_multistack bash -lc "cd \"$STACK_DIR\" && git fetch --all && git reset --hard origin/main && python deploy/nginx/render_vhosts.py"
 
 echo "=== autotests-ai-app ==="
 git -C "$APP_DIR" fetch --all
@@ -51,8 +51,8 @@ sudo rm -f /etc/nginx/sites-enabled/reference-app-copy.autotests.ai \
   /etc/nginx/sites-enabled/reference-app.autotests.ai
 
 sudo env \
-  STACK_UPSTREAMS="$REF_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
-  STACK_ROUTES="$REF_DIR/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
+  STACK_UPSTREAMS="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
+  STACK_ROUTES="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
   NGINX_CONF_SRC="$APP_DIR/deploy/nginx/autotests.ai.conf" \
   bash "$APP_DIR/deploy/nginx/sync-nginx.sh"
 

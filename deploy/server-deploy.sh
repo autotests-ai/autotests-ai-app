@@ -21,11 +21,11 @@ curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql
 bash deploy/smoke-remote.sh https://autotests.ai
 
 if [[ -f deploy/nginx/autotests.ai.conf ]]; then
-  REF_DIR="${REF_DIR:-/home/reference_app_copy/autotests-ai-multistack-app}"
-  if [[ -f "$REF_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" ]]; then
+  STACK_DIR="${STACK_DIR:-/home/autotests_ai_multistack/autotests-ai-multistack-app}"
+  if [[ -f "$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" ]]; then
     sudo env \
-      STACK_UPSTREAMS="$REF_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
-      STACK_ROUTES="$REF_DIR/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
+      STACK_UPSTREAMS="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
+      STACK_ROUTES="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
       bash deploy/nginx/sync-nginx.sh
   else
     sudo bash deploy/nginx/sync-nginx.sh

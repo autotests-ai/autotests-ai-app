@@ -28,7 +28,7 @@ cp "$CONF_SRC" "$TMP"
 
 if [[ -z "$STACK_UPSTREAMS" ]]; then
   for candidate in \
-    "/home/reference_app_copy/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
+    "/home/autotests_ai_multistack/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
     "${SCRIPT_DIR}/generated/autotests.ai-stack-upstreams.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_UPSTREAMS="$candidate"
@@ -38,7 +38,7 @@ if [[ -z "$STACK_UPSTREAMS" ]]; then
 fi
 if [[ -z "$STACK_ROUTES" ]]; then
   for candidate in \
-    "/home/reference_app_copy/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
+    "/home/autotests_ai_multistack/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
     "${SCRIPT_DIR}/generated/autotests.ai-stack-routes.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_ROUTES="$candidate"
@@ -62,7 +62,7 @@ mv "${TMP}.stack" "$TMP"
 
 : >"$SSL_SNIPPET"
 if [[ ! -s "$SSL_SNIPPET" ]]; then
-  for domain in autotests.ai autotests.ai-0001 autotests.cloud-0001; do
+  for domain in autotests.ai autotests.ai-0001; do
     if [[ -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ]]; then
       {
         echo "    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;"
