@@ -46,10 +46,9 @@ curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql
 curl -fsS http://127.0.0.1:8081/stack/matrix.json | grep -q '"backends"'
 
 echo "=== nginx ==="
-sudo cp "$REF_DIR/deploy/nginx/generated/reference-app-copy.autotests.ai.conf" \
-  /etc/nginx/sites-available/reference-app-copy.autotests.ai
-sudo ln -sf /etc/nginx/sites-available/reference-app-copy.autotests.ai \
-  /etc/nginx/sites-enabled/reference-app-copy.autotests.ai
+sudo rm -f /etc/nginx/sites-enabled/reference-app-copy.autotests.ai \
+  /etc/nginx/sites-enabled/reference-app \
+  /etc/nginx/sites-enabled/reference-app.autotests.ai
 
 sudo env \
   STACK_UPSTREAMS="$REF_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
