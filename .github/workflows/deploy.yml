@@ -32,21 +32,7 @@ jobs:
           command_timeout: 15m
           script: |
             set -euo pipefail
-            APP_DIR="${APP_DIR:-/home/selenoid/autotests-ai-app}"
-            cd "$APP_DIR"
-            git fetch --all
-            git reset --hard origin/main
-            docker compose build backend
-            docker compose up -d --remove-orphans
-            for i in $(seq 1 30); do
-              if curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql; then
-                break
-              fi
-              sleep 2
-            done
-            curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql
-            bash deploy/smoke-remote.sh https://autotests.ai
-            if [[ -f deploy/nginx/autotests.ai.conf ]]; then
-              bash deploy/nginx/sync-nginx.sh
-            fi
-            echo "Deploy OK: https://autotests.ai ($(git rev-parse --short HEAD))"
+            APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
+            git -C "$APP_DIR" fetch --all
+            git -C "$APP_DIR" reset --hard origin/main
+            bash "$APP_DIR/deploy/box3-deploy.sh"

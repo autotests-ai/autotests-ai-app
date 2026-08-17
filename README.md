@@ -32,28 +32,25 @@ cd tests-java
 
 Regenerate configs: `python scripts/gen-env-configs.py`
 
-## Server deploy (136.243.89.21 — selenoid user)
+## Server deploy (box3 — `qaguru@212.92.101.15`)
 
 ```bash
-mkdir -p ~/autotests-ai-app
-git clone https://github.com/autotests-ai/autotests-ai-app.git ~/autotests-ai-app
-cd ~/autotests-ai-app
-docker compose up -d --build
+ssh qaguru@212.92.101.15 bash /opt/autotests-ai-app/deploy/box3-deploy.sh
 ```
 
-Legacy path `/opt/autotests-ai-landing` и `/home/selenoid/autotests-ai-landing` не используются на prod.
+Каталог на хосте: `/opt/autotests-ai-app`. Legacy `/home/selenoid/autotests-ai-app` на этом боксе нет.
 
 ## Autodeploy (GitHub Actions → production)
 
-Push в `main` (и `repository_dispatch: deploy`) запускает [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): SSH на `136.243.89.21` (user `selenoid`), `git pull`, `docker compose up --build`, smoke `https://autotests.ai`.
+Push в `main` (и `repository_dispatch: deploy`) запускает [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): SSH на `212.92.101.15` (user `qaguru`), затем `deploy/box3-deploy.sh`.
 
 **Secrets / variables** (Settings → Secrets and variables → Actions):
 
 | Name | Kind | Value |
 |------|------|-------|
-| `DEPLOY_SSH_KEY` | secret | `~/.ssh/selenoid_prod_ed25519` (private) |
-| `DEPLOY_HOST` | variable (optional) | `136.243.89.21` |
-| `DEPLOY_USER` | variable (optional) | `selenoid` |
+| `DEPLOY_SSH_KEY` | secret | private ed25519 whose pub is in `qaguru` `authorized_keys` (`gha-autotests-ai-app`) |
+| `DEPLOY_HOST` | variable (optional) | `212.92.101.15` |
+| `DEPLOY_USER` | variable (optional) | `qaguru` |
 
 Logo-generator после propagate шлёт `repository_dispatch` → этот workflow.
 
