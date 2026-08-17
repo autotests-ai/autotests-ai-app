@@ -1,9 +1,14 @@
 /* Product /stack/ boards — DS tokens + panel chrome (not services-status cream). */
 
 .stack-page {
-  max-width: 1100px;
+  max-width: 1600px;
   margin-inline: auto;
   padding-bottom: var(--space-8, 32px);
+}
+
+/* Beat .page-shell { max-width: --content-max-width } so three boards fit. */
+.page-shell.stack-page {
+  max-width: min(1600px, calc(100% - 2 * var(--page-padding-x, 24px)));
 }
 
 .stack-page .text {
@@ -66,12 +71,12 @@
 
 .stack-page__boards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr);
   gap: var(--space-4);
   align-items: stretch;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .stack-page__boards {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -98,11 +103,6 @@
 
 .stack-page__board {
   min-width: 0;
-}
-
-.stack-page__board--tests {
-  margin-top: var(--space-4);
-  width: 100%;
 }
 
 .stack-page__board-body {
@@ -200,9 +200,22 @@
   background: color-mix(in srgb, var(--color-info) 12%, transparent);
 }
 
+.stack-page__table tbody tr.stack-page__row--selectable {
+  cursor: pointer;
+}
+
+.stack-page__table tbody tr.stack-page__row--selectable:hover td {
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
+}
+
+.stack-page__table tbody tr.stack-page__row--selectable.stack-page__row--active:hover td {
+  background: color-mix(in srgb, var(--color-info) 16%, transparent);
+}
+
 .stack-page__id {
   font-family: var(--font-mono, ui-monospace, Menlo, monospace);
   font-size: 0.84rem;
+  overflow-wrap: anywhere;
 }
 
 .stack-page__id--disabled {

@@ -7,6 +7,18 @@ import { mountHeaderPollToggle, POLL_DEFAULT_MS } from './poll-toggle.js';
 
 const STACK_PREFIX = '/stack';
 
+/** CI / deploy defaults — used when the URL has no pair yet (open links still work). */
+export const DEFAULT_STACK_BACKEND = 'backend-java-spring';
+export const DEFAULT_STACK_FRONTEND = 'frontend-typescript-react';
+
+/** Effective pair for stack hrefs when only one side is selected in the URL. */
+export function effectiveStackPair(backendId, frontendId) {
+  return {
+    backendId: backendId || DEFAULT_STACK_BACKEND,
+    frontendId: frontendId || DEFAULT_STACK_FRONTEND,
+  };
+}
+
 const PATH_RE = /^\/stack\/(backend-[^/]+)\/(frontend-[^/]+)/;
 
 /** Nested product repo on GitHub — tree URLs for matrix `module` paths. */
@@ -44,18 +56,57 @@ export function isOpenable(status) {
 export function comboHref(backendId, frontendId, path = '/') {
   let p = path == null || path === '' ? '/' : String(path);
   if (p.charAt(0) !== '/') p = `/${p}`;
-  if (!backendId || !frontendId) {
-    if (frontendId) return `${STACK_PREFIX}/${frontendId}${p === '/' ? '/' : p}`;
-    if (p === '/' || p === '') return `${STACK_PREFIX}/`;
-    return p.startsWith(STACK_PREFIX) ? p : `${STACK_PREFIX}${p}`;
-  }
-  return `${STACK_PREFIX}/${backendId}/${frontendId}${p === '/' ? '/' : p}`;
+  const pair = effectiveStackPair(backendId, frontendId);
+  return `${STACK_PREFIX}/${pair.backendId}/${pair.frontendId}${p === '/' ? '/' : p}`;
 }
 
 export function stackHref(backendId, frontendId, testsId = null) {
   const base = comboHref(backendId, frontendId, '/');
   if (!testsId) return base;
   return `${base}?tests=${encodeURIComponent(testsId)}`;
+}
+
+function queryId(params, key, prefix) {
+  const value = params.get(key);
+  return value && value.startsWith(prefix) ? value : null;
+}
+
+/** `?backend=` / `?frontend=` on the bare `/stack/` board (does not collide with app URLs). */
+export function parseStackQuery(search = '') {
+  try {
+    const params = new URLSearchParams(String(search || '').replace(/^\?/, '') ? String(search) : '');
+    return {
+      backendId: queryId(params, 'backend', 'backend-'),
+      frontendId: queryId(params, 'frontend', 'frontend-'),
+    };
+  } catch {
+    return { backendId: null, frontendId: null };
+  }
+}
+
+/**
+ * Hub (`/stack/`) has no pair in the path — select via query, defaulting to the CI pair.
+ * In-app `/stack/{backend}/{frontend}/…` keeps the path pair.
+ */
+export function resolveSelection(pathname, search = '') {
+  const fromPath = parseMount(pathname);
+  const hub = !fromPath.backendId && !fromPath.frontendId;
+  if (hub) {
+    const fromQuery = parseStackQuery(search);
+    const pair = effectiveStackPair(fromQuery.backendId, fromQuery.frontendId);
+    return { hub: true, backendId: pair.backendId, frontendId: pair.frontendId };
+  }
+  return { hub: false, backendId: fromPath.backendId, frontendId: fromPath.frontendId };
+}
+
+/** Stay on the `/stack/` board while picking a pair (and optional tests module). */
+export function stackBoardHref(backendId, frontendId, testsId = null) {
+  const pair = effectiveStackPair(backendId, frontendId);
+  const params = new URLSearchParams();
+  params.set('backend', pair.backendId);
+  params.set('frontend', pair.frontendId);
+  if (testsId) params.set('tests', testsId);
+  return `${STACK_PREFIX}/?${params.toString()}`;
 }
 
 /** GitHub folder for a matrix module path (`backend/python/...`). */
@@ -76,6 +127,9 @@ export function findById(items, id) {
   if (!id || !Array.isArray(items)) return null;
   return items.find((item) => item && item.id === id) || null;
 }
+
+/** Pyramid layers hosted in the backend test tree (not tests/<lang>/). */
+export const UNIT_ROW_LAYERS = ['unit', 'integration'];
 
 /** Unit tests live inside the selected backend module (not under tests/). */
 export function unitTestsPath(backend) {
@@ -180,7 +234,7 @@ function githubIconHtml(modulePath, kind, id) {
   return `<a class="icon-btn stack-page__gh-icon" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="GitHub ${escapeHtml(id)}" title="${escapeHtml(modulePath)}" data-testid="stack-gh-${escapeHtml(kind)}-${escapeHtml(id)}"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="${GITHUB_MARK_PATH}"/></svg></span></a>`;
 }
 
-function rowHtml(item, kind, currentBackend, currentFrontend) {
+function rowHtml(item, kind, currentBackend, currentFrontend, hub, testsId) {
   const id = item.id;
   const status = item.status || 'active';
   const meta =
@@ -188,19 +242,30 @@ function rowHtml(item, kind, currentBackend, currentFrontend) {
       ? `${escapeHtml(item.language || 'backend')} · ${escapeHtml(status)}`
       : `${escapeHtml(item.kind || 'frontend')} · ${escapeHtml(status)}`;
   const isCurrent = kind === 'backend' ? id === currentBackend : id === currentFrontend;
-  const targetBackend = kind === 'backend' ? id : currentBackend;
-  const targetFrontend = kind === 'frontend' ? id : currentFrontend;
-  const href = stackHref(targetBackend, targetFrontend);
-  const openable = isOpenable(status) && targetBackend && targetFrontend;
+  const { backendId: targetBackend, frontendId: targetFrontend } = effectiveStackPair(
+    kind === 'backend' ? id : currentBackend,
+    kind === 'frontend' ? id : currentFrontend,
+  );
+  const selectHref = hub
+    ? stackBoardHref(targetBackend, targetFrontend, testsId)
+    : stackHref(targetBackend, targetFrontend);
+  const openHref = stackHref(targetBackend, targetFrontend);
+  const openable = isOpenable(status);
 
   const nameCell = openable
-    ? `<a class="link stack-page__id${isCurrent ? ' is-active' : ''}" href="${escapeHtml(href)}" data-testid="stack-${kind}-${escapeHtml(id)}">${escapeHtml(id)}</a>`
+    ? `<a class="link stack-page__id${isCurrent ? ' is-active' : ''}" href="${escapeHtml(selectHref)}" data-testid="stack-${kind}-${escapeHtml(id)}">${escapeHtml(id)}</a>`
     : `<span class="stack-page__id stack-page__id--disabled${isCurrent ? ' is-active' : ''}" data-testid="stack-${kind}-${escapeHtml(id)}">${escapeHtml(id)}</span>`;
   const ghCell =
     githubIconHtml(item.module, kind, id) ||
     '<span class="text text--sm text--muted">—</span>';
+  const rowClass = [
+    isCurrent ? 'stack-page__row--active' : '',
+    openable && hub ? 'stack-page__row--selectable' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  return `<tr class="${isCurrent ? 'stack-page__row--active' : ''}">
+  return `<tr class="${rowClass}"${openable && hub ? ` data-stack-select="${escapeHtml(selectHref)}"` : ''}>
     <td>
       ${nameCell}
       <div class="text text--sm text--muted stack-page__meta">${meta}</div>
@@ -209,7 +274,7 @@ function rowHtml(item, kind, currentBackend, currentFrontend) {
     <td>${statusBadge(status)}</td>
     <td>${
       openable
-        ? `<a class="link stack-page__open${isCurrent ? ' is-active' : ''}" href="${escapeHtml(href)}">open →</a>`
+        ? `<a class="link stack-page__open${isCurrent ? ' is-active' : ''}" href="${escapeHtml(openHref)}" data-testid="stack-open-${kind}-${escapeHtml(id)}">open →</a>`
         : '<span class="text text--sm text--muted">—</span>'
     }</td>
   </tr>`;
@@ -223,7 +288,7 @@ function layersCell(layers) {
   return `<td class="stack-page__layers-cell"><span class="stack-page__layers" data-testid="stack-tests-layers">${escapeHtml(list.join(' · '))}</span></td>`;
 }
 
-function derivedLayerRow(layer, boundId, modulePath, meta, present, label = null) {
+function derivedLayerRow(layer, boundId, modulePath, meta, present, label = null, layers = null) {
   const status = present ? 'derived' : 'slot';
   const isActive = Boolean(boundId);
   const display = label || layer;
@@ -239,29 +304,41 @@ function derivedLayerRow(layer, boundId, modulePath, meta, present, label = null
       ${name}
       <div class="text text--sm text--muted stack-page__meta">${escapeHtml(meta)}</div>
     </td>
-    ${layersCell([layer])}
+    ${layersCell(layers || [layer])}
     <td class="stack-page__gh-cell">${ghCell}</td>
     <td>${statusBadge(status)}</td>
     <td><span class="text text--sm text--muted">—</span></td>
   </tr>`;
 }
 
-function testsModuleRow(item, currentBackend, currentFrontend, currentTests) {
+function testsModuleRow(item, currentBackend, currentFrontend, currentTests, hub) {
   const id = item.id;
   const status = item.status || 'active';
   const layers = Array.isArray(item.layers) ? item.layers : [];
   const meta = `${escapeHtml(item.language || 'tests')} · ${escapeHtml(status)}`;
   const isCurrent = id === currentTests;
-  const selectable = isOpenable(status) && currentBackend && currentFrontend;
-  const href = stackHref(currentBackend, currentFrontend, id);
+  const { backendId: pairBackend, frontendId: pairFrontend } = effectiveStackPair(
+    currentBackend,
+    currentFrontend,
+  );
+  const selectable = isOpenable(status);
+  const href = hub
+    ? stackBoardHref(pairBackend, pairFrontend, id)
+    : stackHref(pairBackend, pairFrontend, id);
   const nameCell = selectable
     ? `<a class="link stack-page__id${isCurrent ? ' is-active' : ''}" href="${escapeHtml(href)}" data-testid="stack-tests-${escapeHtml(id)}">${escapeHtml(id)}</a>`
     : `<span class="stack-page__id stack-page__id--disabled${isCurrent ? ' is-active' : ''}" data-testid="stack-tests-${escapeHtml(id)}">${escapeHtml(id)}</span>`;
   const ghCell =
     githubIconHtml(item.module, 'tests', id) ||
     '<span class="text text--sm text--muted">—</span>';
+  const rowClass = [
+    isCurrent ? 'stack-page__row--active' : '',
+    selectable && hub ? 'stack-page__row--selectable' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  return `<tr class="${isCurrent ? 'stack-page__row--active' : ''}">
+  return `<tr class="${rowClass}"${selectable && hub ? ` data-stack-select="${escapeHtml(href)}"` : ''}>
     <td>
       ${nameCell}
       <div class="text text--sm text--muted stack-page__meta">${meta}</div>
@@ -277,12 +354,22 @@ function testsModuleRow(item, currentBackend, currentFrontend, currentTests) {
   </tr>`;
 }
 
-/**
- * Mount product stack boards into `root` (vanilla). Expects empty container.
- */
+function bindHubRowSelect(root) {
+  root.querySelectorAll('tr[data-stack-select]').forEach((row) => {
+    row.addEventListener('click', (event) => {
+      if (event.target.closest('a, button')) return;
+      const href = row.getAttribute('data-stack-select');
+      if (href) window.location.assign(href);
+    });
+  });
+}
+
+/** Mount product stack boards into `root` (vanilla). Expects empty container. */
 export function mountStackPage(root, data, pathname = window.location.pathname, search = window.location.search) {
   if (!root) return;
-  const { backendId, frontendId } = parseMount(pathname);
+  const selection = resolveSelection(pathname, search);
+  const backendId = selection.backendId;
+  const frontendId = selection.frontendId;
   const summary = summarizeMatrix(data);
   const currentTests = resolveTestsId(data, parseTestsId(search));
   const backend = findById(summary.backends, backendId);
@@ -291,12 +378,15 @@ export function mountStackPage(root, data, pathname = window.location.pathname, 
   const componentPath = componentTestsPath(frontend);
 
   const labelParts = [];
-  if (backendId && frontendId) labelParts.push(`${backendId} · ${frontendId}`);
+  if (selection.hub || (backendId && frontendId)) labelParts.push(`${backendId} · ${frontendId}`);
   else if (frontendId) labelParts.push(`(no backend prefix) · ${frontendId}`);
   else labelParts.push('path without /{backend}/{frontend}/');
   if (currentTests) labelParts.push(currentTests);
   const label = labelParts.join(' · ');
-  const homeHref = comboHref(backendId, frontendId, '/');
+  const homeHref =
+    selection.hub || (backendId && frontendId)
+      ? stackHref(backendId, frontendId)
+      : comboHref(backendId, frontendId, '/');
 
   const unitMeta = unitTestsMeta(backend);
   const componentMeta = componentTestsMeta(componentPath);
@@ -317,7 +407,7 @@ export function mountStackPage(root, data, pathname = window.location.pathname, 
           <table class="stack-page__table">
             <thead><tr><th>Module</th><th class="stack-page__gh-cell">GH</th><th>Status</th><th>Open</th></tr></thead>
             <tbody>
-              ${summary.backends.map((b) => rowHtml(b, 'backend', backendId, frontendId)).join('')}
+              ${summary.backends.map((b) => rowHtml(b, 'backend', backendId, frontendId, selection.hub, currentTests)).join('')}
             </tbody>
           </table>
         </div>
@@ -333,12 +423,11 @@ export function mountStackPage(root, data, pathname = window.location.pathname, 
           <table class="stack-page__table">
             <thead><tr><th>Module</th><th class="stack-page__gh-cell">GH</th><th>Status</th><th>Open</th></tr></thead>
             <tbody>
-              ${summary.frontends.map((f) => rowHtml(f, 'frontend', backendId, frontendId)).join('')}
+              ${summary.frontends.map((f) => rowHtml(f, 'frontend', backendId, frontendId, selection.hub, currentTests)).join('')}
             </tbody>
           </table>
         </div>
       </section>
-    </div>
     <section class="panel panel--content stack-page__board stack-page__board--tests" data-testid="stack-tests-board">
       <div class="panel__bar">
         <div class="panel__dots" aria-hidden="true">
@@ -357,6 +446,7 @@ export function mountStackPage(root, data, pathname = window.location.pathname, 
               unitMeta,
               Boolean(unitPath),
               shortModuleLabel(unitPath) || 'unit',
+              UNIT_ROW_LAYERS,
             )}
             ${derivedLayerRow(
               'component',
@@ -366,12 +456,14 @@ export function mountStackPage(root, data, pathname = window.location.pathname, 
               Boolean(componentPath),
               shortModuleLabel(componentPath),
             )}
-            ${summary.tests.map((t) => testsModuleRow(t, backendId, frontendId, currentTests)).join('')}
+            ${summary.tests.map((t) => testsModuleRow(t, backendId, frontendId, currentTests, selection.hub)).join('')}
           </tbody>
         </table>
       </div>
     </section>
+    </div>
   `;
+  bindHubRowSelect(root);
 }
 
 async function loadStackPage(root, options = {}) {
@@ -395,7 +487,7 @@ async function loadStackPage(root, options = {}) {
         'Не удалось загрузить matrix.json — sync: python frontend/scripts/sync-stack-matrix.py. ' +
         e;
     } else if (root) {
-      root.innerHTML = `<p class="text" data-testid="stack-error">Не удалось загрузить matrix.json — ${escapeHtml(String(e))}</p>`;
+      root.innerHTML = `<p class="text multistack__error" data-testid="stack-error">Не удалось загрузить matrix.json — ${escapeHtml(String(e))}</p>`;
     }
   }
 }
