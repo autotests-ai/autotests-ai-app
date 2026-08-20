@@ -1,7 +1,9 @@
 :root {
   /* Colors — dark default; light via html.theme-light */
-  --color-surface: #2c2a26;
-  --color-surface-soft: #383530;
+  --color-surface: #151414;
+  --color-header-surface: #21201f;
+  --color-surface-soft: #262523;
+  --color-panel-bar: #413f3c;
   --color-text: #f1f5f9;
   --color-text-muted: rgba(255, 255, 255, 0.45);
   --color-primary: #20aee3;
@@ -96,13 +98,14 @@ button,
 }
 
 html.theme-light {
-  --color-surface: #f0ede8;
-  --color-surface-soft: #e8e4dd;
-  --color-header-surface: #faf9f7;
-  --color-text: #1c1917;
-  --color-text-muted: rgba(28, 25, 23, 0.55);
-  --color-border: rgba(28, 25, 23, 0.12);
+  --color-surface: #ffffff;
+  --color-surface-soft: #eef0f3;
+  --color-header-surface: #f4f5f7;
+  --color-panel-bar: #ffffff;
+  --color-text: #1f2937;
+  --color-text-muted: rgba(15, 23, 42, 0.55);
+  --color-border: rgba(15, 23, 42, 0.12);
   --color-warning: #b45309;
   --color-brand-logo: #1c1917;
-  --hover-bg: rgba(28, 25, 23, 0.06);
+  --hover-bg: rgba(15, 23, 42, 0.06);
 }

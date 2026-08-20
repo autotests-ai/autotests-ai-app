@@ -5,7 +5,7 @@
 .panel {
   --panel-bg: var(--color-surface-soft);
   --panel-border: var(--color-border);
-  --panel-bar-bg: color-mix(in srgb, var(--color-surface) 40%, transparent);
+  --panel-bar-bg: var(--color-panel-bar);
   --panel-title-color: var(--color-text-muted);
   --panel-code-color: var(--color-text);
   display: flex;
