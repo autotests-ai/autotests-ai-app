@@ -11,12 +11,15 @@ function renderApp(initialPath: string) {
 }
 
 describe('App', { tags: ['smoke'] }, () => {
-  it('mounts the header slot and an empty page-shell on /', () => {
+  it('mounts the header slot and configurator on /', () => {
     renderApp('/');
 
     expect(screen.getByTestId('app-header-mount')).toBeInTheDocument();
-    expect(screen.getByTestId('page-shell')).toBeInTheDocument();
-    expect(screen.getByTestId('page-shell')).toHaveClass('page-shell');
+    expect(screen.getByTestId('page-shell')).toHaveClass('page-shell', 'configurator');
+    expect(screen.getByTestId('landing-configurator')).toHaveClass(
+      'configurator__layout--terminal',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
   });
 
   it('mounts the stack board on /stack/', async () => {

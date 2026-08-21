@@ -4,7 +4,7 @@ Landing compose for [autotests.ai](https://autotests.ai) and [stage.autotests.ai
 
 - **Gateway:** `127.0.0.1:${GATEWAY_PORT:-8081}` — `/` → frontend, `/api/` → backend
 - **Backend:** `backend/java/backend-java-spring/` — etalon `/api/health` (`HealthResponse`). No `Terminal*` / `/api/terminal`
-- **Frontend:** `frontend/typescript/frontend-typescript-react/` — Vite `base: '/'`, Home = empty DS `page-shell`, `/stack/` = matrix board, header Home + Stack + Stage/Prod
+- **Frontend:** `frontend/typescript/frontend-typescript-react/` — Vite `base: '/'`, Home = configurator + sticky terminal, `/stack/` = matrix board, header Home + Stack + Stage/Prod
 - **Images:** `ghcr.io/autotests-ai/autotests-ai-app-backend-java-spring` and `…-frontend-typescript-react` (`:${IMAGE_TAG:-latest}`). Gateway stays `nginx:1.27-alpine`. Local `docker compose up --build` still builds from `build:`.
 - **E2E pyramid:** `tests-java/` — Gradle + Selenide + Allure (terminal-panel tests removed)
 - **Stage:** `deploy/stage.env` (`GATEWAY_PORT=18081`), compose project `autotests-ai-app-stage`
