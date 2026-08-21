@@ -12,7 +12,7 @@ bash frontend/scripts/sync-ds-runtime.sh
 Product overlay (not copied from design-system): `js/app-base.js`,
 `js/env-hosts.js` (from `sync-stack-matrix.py`).
 
-The `/stack/` board is not in this snapshot — inbox
-`projects/autotests-ai-home/stack-matrix/overlay/`.
+The `/stack/` board lives on autotests.ai (landing React `/stack/`),
+not in this snapshot.
 
 Packed into each frontend nginx image as `vendor/ds` (module `Dockerfile`).
