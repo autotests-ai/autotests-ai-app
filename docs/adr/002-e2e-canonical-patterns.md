@@ -7,7 +7,7 @@
 
 Фаза 4 template-project: переносимый эталон e2e для портирования на другие языки/стеки.
 
-Паттерны для retrieval вынесены в **`docs/rag/e2e/`** (`manifest.jsonl`). ADR фиксирует решение и scope; чанки — как реализовать.
+Паттерны для retrieval вынесены в **`docs/rag/testing/`** (`manifest.jsonl`). ADR фиксирует решение и scope; чанки — как реализовать.
 
 Roadmap (`docs/CONTEXT.md`, `layout-standard.md`) упоминает **header smoke / visual tests**. Текущий `tests-java/` после очистки содержит **login-сценарии** на reference app [one-page-form](https://github.com/qa-guru/one-page-form), не header.
 
@@ -62,13 +62,13 @@ Local HTTP: сервер из **`frontend/`**, `baseUrl=http://localhost:3000/`.
 | `enableAllureSelenideListener` | `false` | Auto-steps из Selenide в Allure |
 | `attachBrowserConsoleLogs`, `attachPageSource`, `attachLastScreenshot`, `attachHarLogs`, `attachVideo` | `false` | Артефакты в `@AfterEach` |
 
-**TestOps** (`ALLURE_ENDPOINT`, `ALLURE_TOKEN`, …) — env CI/runner и `allurectl`; в Java-тесты и `-D` не попадает; e2e-builder генерирует shell-блок `export ALLURE_*`.
+**TestOps** (`ALLURE_ENDPOINT`, `ALLURE_TOKEN`, …) — env CI/runner и `allurectl`; в Java-тесты и `-D` не попадает; autotests-builder генерирует shell-блок `export ALLURE_*`.
 
 Override: `-Dkey=value` или `-Denv=selenoid_local_e2e`.
 
 ## Паттерны (RAG)
 
-Индекс: [`docs/rag/README.md`](../rag/README.md). Чанки: `docs/rag/e2e/<id>.md`.
+Индекс: [`docs/rag/README.md`](../rag/README.md). Чанки: `docs/rag/testing/<id>.md`.
 
 | id | chunk |
 |----|-------|
@@ -96,7 +96,7 @@ Override: `-Dkey=value` или `-Denv=selenoid_local_e2e`.
 
 | | `tests-java/` (канон) | `_ethalon/ladder/` + RAG |
 |---|----------------------|--------------------------|
-| Назначение | CI, bootstrap, pyramid | учебные паттерны для e2e-builder |
+| Назначение | CI, bootstrap, pyramid | учебные паттерны для autotests-builder |
 | `LoginTests` | 1 smoke PO + `@Manual` exploratory | full style ladder + negative — `src/test/java/_ethalon/ladder/LoginTests.java` |
 | `LogoutTests` | — | form + localStorage fluent — `src/test/java/_ethalon/ladder/LogoutTests.java` |
 | Manual | `@Manual` на методе в `LoginTests` exploratory | `shortLoginAuthorizationTest` TestOps — ethalon + чанк `test-manual` |

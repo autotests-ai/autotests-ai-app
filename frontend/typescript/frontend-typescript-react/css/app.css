@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  line-height: normal;
+}
+
+/* Shell: page-shell + page-shell--below-header on <main>; narrow max-width only */
+.multistack {
+  max-width: 960px;
+}
+
+.multistack__welcome-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.multistack__error {
+  color: var(--color-danger);
+}

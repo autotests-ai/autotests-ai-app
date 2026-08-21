@@ -23,7 +23,7 @@ LAYER_DESC = {
     "unit": "pure Java — helpers/*Test, config/*Test",
     "component": "@Tag(component) — not used in landing bootstrap",
     "integration": "@Tag(layout,mount) — mount probes",
-    "api": "@Layer(api) @Tag(api) — Rest Assured /api/terminal",
+    "api": "@Layer(api) @Tag(api) — Rest Assured /api/health",
     "e2e": "@Layer(e2e) — smoke via testE2e",
     "visual": "CI slice: @Layer(e2e) + @Tag(visual)",
     "manual": "@Tag(manual) — exploratory stubs",

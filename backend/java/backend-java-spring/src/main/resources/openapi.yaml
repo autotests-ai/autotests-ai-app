@@ -1,0 +1,222 @@
+openapi: 3.1.0
+info:
+  title: autotests-ai-multistack-app API
+  version: 0.1.0
+  description: |
+    Shared contract for all stacks (`projects/autotests-ai-multistack-home/autotests-ai-multistack-app/_contract/flows/login.md`).
+    SSOT implementation: `projects/autotests-ai-multistack-home/autotests-ai-multistack-app/backend/java/backend-java-spring`.
+    Auth endpoints: login, register, logout, profile, self-delete — see `flows/login.md`.
+
+servers:
+  - url: http://localhost:8080
+    description: Local Spring Boot (default SERVER_PORT)
+
+paths:
+  /api/health:
+    get:
+      operationId: apiHealth
+      summary: Application health (used by tests healthCheck)
+      tags: [system]
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: backend-java-spring
+
+  /api/items:
+    get:
+      operationId: listItems
+      summary: List seeded items from PostgreSQL
+      tags: [items]
+      responses:
+        "200":
+          description: Items loaded from database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemsResponse"
+
+  /api/auth/register:
+    post:
+      operationId: register
+      summary: Create account and return JWT
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: Username already taken
+
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Form login — returns JWT for localStorage authToken
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: End session (client clears authToken)
+      tags: [auth]
+      responses:
+        "204":
+          description: Logged out
+
+  /api/auth/me:
+    get:
+      operationId: getProfile
+      summary: Current user profile (Bearer JWT)
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: deleteAccount
+      summary: Delete the authenticated account (Bearer JWT)
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Account removed
+        "401":
+          description: Unauthorized
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          example: ok
+        service:
+          type: string
+          example: backend-java-spring
+
+    ItemDto:
+      type: object
+      required: [id, name, description]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Alpha
+        description:
+          type: string
+          example: First seeded item from PostgreSQL
+
+    ItemsResponse:
+      type: object
+      required: [items, source]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ItemDto"
+        source:
+          type: string
+          example: postgresql
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: newuser
+        password:
+          type: string
+          format: password
+          example: password123
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: user1
+        password:
+          type: string
+          format: password
+          example: password1
+
+    AuthResponse:
+      type: object
+      required: [token, username, redirectUrl]
+      properties:
+        token:
+          type: string
+          description: JWT stored in localStorage authToken
+        username:
+          type: string
+          example: user1
+        redirectUrl:
+          type: string
+          example: /
+
+    UserProfileResponse:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          example: user1
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: system
+    description: Health and ops
+  - name: items
+    description: Demo CRUD/read API
+  - name: auth
+    description: Authentication per flows/login.md

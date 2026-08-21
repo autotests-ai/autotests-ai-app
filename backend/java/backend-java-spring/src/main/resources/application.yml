@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: backend-java-spring
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:autotests_ai}
+    username: ${DB_USER:autotests}
+    password: ${DB_PASSWORD:autotests}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET:multistack-dev-secret-change-in-production-min-32-chars}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  seed:
+    username: ${SEED_USERNAME:user1}
+    password: ${SEED_PASSWORD:password1}
+  cors:
+    allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*]}

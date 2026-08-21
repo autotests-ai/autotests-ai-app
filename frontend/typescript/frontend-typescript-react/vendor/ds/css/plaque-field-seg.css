@@ -1,0 +1,198 @@
+@import url("tokens.css");
+
+/* Plaque field seg — core sub-primitive (skill configurator-boolean)
+   Markup: always .plaque-field-seg-track--many inside .plaque-field--divided
+   (2-opt true|false and 3+ pills — one track class).
+   Layout integration → plaque-field-seg-layout.css
+   End inset SSOT: component-sizes.md → Plaque field seg */
+
+/* End inset — shell + track; --many adds track-end.
+   Shell is full-width like select/input rows; chips hug + flex-end.
+   --pair cells override width to max-content (remote hub side-by-side). */
+
+.plaque-field--divided:has(> .plaque-field-seg-track) {
+  width: 100%;
+  max-width: 100%;
+  gap: var(--plaque-seg-gap);
+  padding-left: var(--plaque-shell-pad-x);
+  padding-right: var(--plaque-seg-shell-end);
+}
+
+/* Track */
+
+.plaque-field-seg-track {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  min-width: 0;
+  gap: var(--plaque-seg-gap);
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+}
+
+.plaque-field-seg-track.plaque-field__control {
+  min-height: 0;
+}
+
+.plaque-field--divided .plaque-field-seg-track.plaque-field__control {
+  flex: 0 0 auto;
+  width: auto;
+  height: calc(var(--plaque-control-height) - 2 * var(--plaque-seg-inset));
+  align-self: center;
+}
+
+/* Seg group */
+
+.plaque-field-seg {
+  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  gap: var(--plaque-seg-gap);
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.plaque-field-seg.plaque-field__control {
+  padding: var(--plaque-seg-gap);
+  align-items: stretch;
+  min-height: 0;
+}
+
+.plaque-field--divided .plaque-field-seg-track .plaque-field-seg {
+  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  gap: var(--plaque-seg-gap);
+}
+
+.plaque-field--divided > .plaque-field-seg.plaque-field__control {
+  display: flex;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: calc(var(--plaque-control-height) - 2 * var(--plaque-seg-inset));
+  align-self: center;
+  padding: 0;
+  gap: var(--plaque-seg-gap);
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+}
+
+/* Buttons */
+
+.plaque-field-seg .plaque-field-seg__btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: var(--plaque-seg-chip-height);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  /* Canon: compact xs — never sm (drive-by sm blew up content-hug CONCURRENT). */
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.plaque-field--divided .plaque-field-seg-track .plaque-field-seg .plaque-field-seg__btn,
+.plaque-field--divided > .plaque-field-seg.plaque-field__control .plaque-field-seg__btn {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.plaque-field-seg .plaque-field-seg__btn--on {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Track modifier — --many only. End air = shell-end (= chip-air) only. */
+
+.plaque-field-seg-track--many {
+  padding-right: 0;
+}
+
+/* --many: ONE path for any chip count (true|false, tags, …).
+   Dissolve track/seg — chips participate in shell inline flow (float label +
+   text-align:right). ALWAYS right-aligned; wrap under the label. */
+.plaque-field--divided > .plaque-field-seg-track--many.plaque-field__control {
+  display: contents;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  flex: unset;
+  align-self: unset;
+  margin-block: 0;
+  padding-block: 0;
+}
+
+.plaque-field--divided > .plaque-field-seg-track--many .plaque-field-seg {
+  display: contents;
+}
+
+.plaque-field--divided > .plaque-field-seg-track--many .plaque-field-seg__btn {
+  display: inline-flex;
+  vertical-align: middle;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: min-content;
+  /* Glyph ~20 — never height:band. Line box = band + row-gap so the shell
+     gradient (period band+gap) stays locked to chip air on every wrap row.
+     Last-row extra gap is pulled back by ::after in plaque-field.css. */
+  min-height: var(--plaque-seg-chip-height);
+  height: auto;
+  box-sizing: border-box;
+  margin-block-start: var(--plaque-seg-chip-air);
+  margin-block-end: calc(var(--plaque-seg-chip-air) + var(--plaque-seg-row-gap));
+  margin-left: var(--plaque-seg-gap);
+  margin-right: 0;
+}
+
+/* --stretch never stretches seg buttons — only select/input (plaque-field.css).
+   Chips stay content-hug + flex-end; shell is full-width (see rule above). */
+
+/* Seg shell — compact without divided grid (chips hug, not 50/50 fill) */
+
+.plaque-field--seg-shell {
+  height: calc(var(--plaque-control-height) - 2 * var(--plaque-seg-inset));
+  min-height: calc(var(--plaque-control-height) - 2 * var(--plaque-seg-inset));
+  padding: 0;
+  gap: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.plaque-field--seg-shell .plaque-field-seg.plaque-field__control {
+  flex: 0 0 auto;
+  width: auto;
+  align-self: center;
+}
+
+.plaque-field--seg-shell .plaque-field-seg {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.plaque-field--seg-shell .plaque-field-seg__btn {
+  flex: 0 0 auto;
+  min-height: 0;
+  align-self: center;
+}

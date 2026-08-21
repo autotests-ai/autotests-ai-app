@@ -1,39 +1,39 @@
-{"id": "e2e-layers", "path": "docs/rag/e2e/e2e-layers.md", "domain": "e2e", "phase": "4a", "tags": ["structure"]}
-{"id": "e2e-config-keys", "path": "docs/rag/e2e/e2e-config-keys.md", "domain": "e2e", "phase": "4a", "tags": ["config"]}
-{"id": "cfg-env-profile", "path": "docs/rag/e2e/cfg-env-profile.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "cfg-base-url", "path": "docs/rag/e2e/cfg-base-url.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "base-lifecycle", "path": "docs/rag/e2e/base-lifecycle.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "po-locators", "path": "docs/rag/e2e/po-locators.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "po-fluent", "path": "docs/rag/e2e/po-fluent.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "po-step", "path": "docs/rag/e2e/po-step.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "test-style-ladder", "path": "docs/rag/e2e/test-style-ladder.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "test-taxonomy", "path": "docs/rag/e2e/test-taxonomy.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "test-negative", "path": "docs/rag/e2e/test-negative.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "test-storage-shortcut", "path": "docs/rag/e2e/test-storage-shortcut.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "allure-attach", "path": "docs/rag/e2e/allure-attach.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "allure-selenide-listener", "path": "docs/rag/e2e/allure-selenide-listener.md", "domain": "e2e", "phase": "4a", "tags": ["pattern", "allure"]}
-{"id": "remote-selenoid", "path": "docs/rag/e2e/remote-selenoid.md", "domain": "e2e", "phase": "4a", "tags": ["pattern"]}
-{"id": "visual-baseline", "path": "docs/rag/e2e/visual-baseline.md", "domain": "e2e", "phase": "4.visual", "tags": ["visual", "baseline"]}
-{"id": "test-pyramid", "path": "docs/rag/e2e/test-pyramid.md", "domain": "e2e", "phase": "4.pyramid", "tags": ["structure", "layer", "pyramid"]}
-{"id": "test-layers", "path": "docs/rag/e2e/test-layers.md", "domain": "e2e", "phase": "4.pyramid", "tags": ["layer", "pyramid", "testops", "allure"]}
-{"id": "test-api-layer", "path": "docs/rag/e2e/test-api-layer.md", "domain": "e2e", "phase": "4.pyramid", "tags": ["structure", "layer", "api", "rest-assured"]}
-{"id": "test-components", "path": "docs/rag/e2e/test-components.md", "domain": "e2e", "phase": "4.pyramid", "tags": ["component", "testops", "allure", "selenoid"]}
-{"id": "test-manual", "path": "docs/rag/e2e/test-manual.md", "domain": "e2e", "phase": "4.pyramid", "tags": ["manual", "testops", "allure"]}
-{"id": "test-logout-flow", "path": "docs/rag/e2e/test-logout-flow.md", "domain": "e2e", "phase": "4a", "tags": ["page_object", "logout"]}
-{"id": "gen-python-policy", "path": "docs/rag/e2e/gen-python-policy.md", "domain": "e2e", "phase": "4a", "tags": ["generator", "python", "config"]}
-{"id": "ci-workflow-ethalon", "path": "docs/rag/e2e/ci-workflow-ethalon.md", "domain": "e2e", "phase": "4a", "tags": ["config", "ci", "github-actions", "workflow"]}
-{"id": "ci-gradle-args", "path": "docs/rag/e2e/ci-gradle-args.md", "domain": "e2e", "phase": "4a", "tags": ["config", "ci", "github-actions", "gradle"]}
-{"id": "hdr-scope-4b", "path": "docs/rag/e2e-header/hdr-scope-4b.md", "domain": "e2e-header", "phase": "4b", "tags": ["scope"]}
-{"id": "hdr-selectors", "path": "docs/rag/e2e-header/hdr-selectors.md", "domain": "e2e-header", "phase": "4b", "tags": ["selectors"]}
-{"id": "hdr-legacy-audit", "path": "docs/rag/e2e-header/hdr-legacy-audit.md", "domain": "e2e-header", "phase": "4b", "tags": ["legacy"]}
-{"id": "hdr-target", "path": "docs/rag/e2e-header/hdr-target.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-behavior", "path": "docs/rag/e2e-header/hdr-behavior.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-layout-gap", "path": "docs/rag/e2e-header/hdr-layout-gap.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-layout-bp", "path": "docs/rag/e2e-header/hdr-layout-bp.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-layout-height", "path": "docs/rag/e2e-header/hdr-layout-height.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-viewport", "path": "docs/rag/e2e-header/hdr-viewport.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "hdr-visual-opt", "path": "docs/rag/e2e-header/hdr-visual-opt.md", "domain": "e2e-header", "phase": "4.visual", "tags": ["pattern", "visual"]}
-{"id": "hdr-legacy-reject", "path": "docs/rag/e2e-header/hdr-legacy-reject.md", "domain": "e2e-header", "phase": "4b", "tags": ["pattern"]}
-{"id": "alr-quality-gate", "path": "docs/rag/e2e/alr-quality-gate.md", "domain": "e2e-analytics", "phase": "7.analytics", "tags": ["allure", "quality-gate", "ci"]}
-{"id": "alr-agent-mode", "path": "docs/rag/e2e/alr-agent-mode.md", "domain": "e2e-analytics", "phase": "7.analytics", "tags": ["allure", "agent", "inspect", "analytics"]}
-{"id": "alr-hook-shell", "path": "docs/rag/e2e/alr-hook-shell.md", "domain": "e2e-analytics", "phase": "8.dashboard", "tags": ["allure", "dashboard", "shell", "iframe"]}
+{"id": "e2e-layers", "path": "docs/rag/testing/layers.md", "domain": "testing", "phase": "4a", "tags": ["structure"]}
+{"id": "e2e-config-keys", "path": "docs/rag/config/config-keys.md", "domain": "config", "phase": "4a", "tags": ["config"]}
+{"id": "cfg-env-profile", "path": "docs/rag/config/cfg-env-profile.md", "domain": "config", "phase": "4a", "tags": ["pattern"]}
+{"id": "cfg-base-url", "path": "docs/rag/config/cfg-base-url.md", "domain": "config", "phase": "4a", "tags": ["pattern"]}
+{"id": "base-lifecycle", "path": "docs/rag/testing/base-lifecycle.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "po-locators", "path": "docs/rag/testing/po-locators.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "po-fluent", "path": "docs/rag/testing/po-fluent.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "po-step", "path": "docs/rag/testing/po-step.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "test-style-ladder", "path": "docs/rag/testing/test-style-ladder.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "test-taxonomy", "path": "docs/rag/testing/test-taxonomy.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "test-negative", "path": "docs/rag/testing/test-negative.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "test-storage-shortcut", "path": "docs/rag/testing/test-storage-shortcut.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "allure-attach", "path": "docs/rag/testing/allure-attach.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "allure-selenide-listener", "path": "docs/rag/testing/allure-selenide-listener.md", "domain": "testing", "phase": "4a", "tags": ["pattern", "allure"]}
+{"id": "remote-selenoid", "path": "docs/rag/testing/remote-selenoid.md", "domain": "testing", "phase": "4a", "tags": ["pattern"]}
+{"id": "visual-baseline", "path": "docs/rag/testing/visual-baseline.md", "domain": "testing", "phase": "4.visual", "tags": ["visual", "baseline"]}
+{"id": "test-pyramid", "path": "docs/rag/testing/test-pyramid.md", "domain": "testing", "phase": "4.pyramid", "tags": ["structure", "layer", "pyramid"]}
+{"id": "test-layers", "path": "docs/rag/testing/test-layers.md", "domain": "testing", "phase": "4.pyramid", "tags": ["layer", "pyramid", "testops", "allure"]}
+{"id": "test-api-layer", "path": "docs/rag/testing/test-api-layer.md", "domain": "testing", "phase": "4.pyramid", "tags": ["structure", "layer", "api", "rest-assured"]}
+{"id": "test-components", "path": "docs/rag/testing/test-components.md", "domain": "testing", "phase": "4.pyramid", "tags": ["component", "testops", "allure", "selenoid"]}
+{"id": "test-manual", "path": "docs/rag/testing/test-manual.md", "domain": "testing", "phase": "4.pyramid", "tags": ["manual", "testops", "allure"]}
+{"id": "test-logout-flow", "path": "docs/rag/testing/test-logout-flow.md", "domain": "testing", "phase": "4a", "tags": ["page_object", "logout"]}
+{"id": "gen-python-policy", "path": "docs/rag/config/gen-python-policy.md", "domain": "config", "phase": "4a", "tags": ["generator", "python", "config"]}
+{"id": "ci-workflow-ethalon", "path": "docs/rag/config/ci-workflow-ethalon.md", "domain": "config", "phase": "4a", "tags": ["config", "ci", "github-actions", "workflow"]}
+{"id": "ci-gradle-args", "path": "docs/rag/config/ci-gradle-args.md", "domain": "config", "phase": "4a", "tags": ["config", "ci", "github-actions", "gradle"]}
+{"id": "hdr-scope-4b", "path": "docs/rag/testing-header/hdr-scope-4b.md", "domain": "testing-header", "phase": "4b", "tags": ["scope"]}
+{"id": "hdr-selectors", "path": "docs/rag/testing-header/hdr-selectors.md", "domain": "testing-header", "phase": "4b", "tags": ["selectors"]}
+{"id": "hdr-legacy-audit", "path": "docs/rag/testing-header/hdr-legacy-audit.md", "domain": "testing-header", "phase": "4b", "tags": ["legacy"]}
+{"id": "hdr-target", "path": "docs/rag/testing-header/hdr-target.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-behavior", "path": "docs/rag/testing-header/hdr-behavior.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-layout-gap", "path": "docs/rag/testing-header/hdr-layout-gap.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-layout-bp", "path": "docs/rag/testing-header/hdr-layout-bp.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-layout-height", "path": "docs/rag/testing-header/hdr-layout-height.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-viewport", "path": "docs/rag/testing-header/hdr-viewport.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "hdr-visual-opt", "path": "docs/rag/testing-header/hdr-visual-opt.md", "domain": "testing-header", "phase": "4.visual", "tags": ["pattern", "visual"]}
+{"id": "hdr-legacy-reject", "path": "docs/rag/testing-header/hdr-legacy-reject.md", "domain": "testing-header", "phase": "4b", "tags": ["pattern"]}
+{"id": "alr-quality-gate", "path": "docs/rag/analytics/alr-quality-gate.md", "domain": "analytics", "phase": "7.analytics", "tags": ["allure", "quality-gate", "ci"]}
+{"id": "alr-agent-mode", "path": "docs/rag/analytics/alr-agent-mode.md", "domain": "analytics", "phase": "7.analytics", "tags": ["allure", "agent", "inspect", "analytics"]}
+{"id": "alr-hook-shell", "path": "docs/rag/analytics/alr-hook-shell.md", "domain": "analytics", "phase": "8.dashboard", "tags": ["allure", "dashboard", "shell", "iframe"]}

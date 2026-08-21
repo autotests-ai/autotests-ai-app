@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+coverage
+.scannerwork
+allure-results
+dev-dist
+.git
+*.tsbuildinfo
+src/test

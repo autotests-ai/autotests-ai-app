@@ -19,7 +19,7 @@
 
 В `tests-java/legacy-code/` лежат AI-generated тесты против **consumer** one-page-form: поведение header, layout probes, screenshot diff, landing/dashboard. Селекторы и DOM **не совпадают** с каноном template-project (`templates/header.html`).
 
-Нужно зафиксировать scope и assertions до реализации. Паттерны для retrieval: **`docs/rag/e2e-header/`**.
+Нужно зафиксировать scope и assertions до реализации. Паттерны для retrieval: **`docs/rag/testing-header/`**.
 
 ## Решение
 
@@ -114,7 +114,7 @@ Screenshot helper (visual): `helpers/ScreenshotBaseline.java` — **общий**
 
 ## Паттерны (RAG)
 
-Индекс: [`docs/rag/README.md`](../rag/README.md). Чанки: `docs/rag/e2e-header/<id>.md`.
+Индекс: [`docs/rag/README.md`](../rag/README.md). Чанки: `docs/rag/testing-header/<id>.md`.
 
 | id | chunk |
 |----|-------|

@@ -1,3 +1,5 @@
+name: autotests-ai-app
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,18 +11,16 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - autotests_internal
+      - autotests_ai_app_internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U autotests -d autotests_ai"]
       interval: 5s
       timeout: 5s
       retries: 10
-    ports:
-      - "127.0.0.1:5432:5432"
 
-  backend:
+  backend-java-spring:
     build:
-      context: ./backend
+      context: ./backend/java/backend-java-spring
     restart: unless-stopped
     environment:
       DB_HOST: postgres
@@ -28,17 +28,39 @@ services:
       DB_NAME: autotests_ai
       DB_USER: autotests
       DB_PASSWORD: autotests
-      SERVER_PORT: 8081
+      SERVER_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-autotests-ai-app-dev-secret-change-in-production-min-32-chars}
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8081:8081"
     networks:
-      - autotests_internal
+      - autotests_ai_app_internal
+
+  frontend-typescript-react:
+    build:
+      context: ./frontend/typescript/frontend-typescript-react
+    restart: unless-stopped
+    networks:
+      - autotests_ai_app_internal
+
+  # Same-origin / + /api/ — twin of teaching stand-gateway-ci (real BE, not WireMock).
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./deploy/ci/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend-typescript-react:
+        condition: service_started
+      backend-java-spring:
+        condition: service_started
+    networks:
+      - autotests_ai_app_internal
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8081}:80"
 
 networks:
-  autotests_internal:
+  autotests_ai_app_internal:
     driver: bridge
 
 volumes:

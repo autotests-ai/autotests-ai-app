@@ -1,0 +1,41 @@
+{
+  "name": "frontend-typescript-react",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "NODE_OPTIONS=--no-experimental-webstorage ALLURE_LABEL_epic=autotests-ai-app ALLURE_LABEL_layer=component ALLURE_LABEL_scope=frontend-typescript-react ALLURE_LABEL_framework=react_testing_library vitest run",
+    "test:coverage": "npm test -- --coverage",
+    "test:smoke": "npm test -- --tagsFilter smoke",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
+    "@types/node": "26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@vitest/coverage-v8": "^4.1.10",
+    "allure-js-commons": "^3.10.2",
+    "allure-vitest": "^3.10.2",
+    "jsdom": "^30.0.1",
+    "typescript": "7.0.2",
+    "vite": "^8.2.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@zero-design-system/react",
+  "version": "0.1.0-pilot",
+  "private": true,
+  "type": "module",
+  "description": "Vendored react-ui wrappers for standalone autotests-ai-multistack-app builds (sync via frontend/scripts/sync-react-ui.sh; TSX only, no CSS)",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

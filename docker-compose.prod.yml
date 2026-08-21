@@ -1,4 +1,14 @@
-# Production overlay (box3) — no host postgres port (5432 often taken).
+# Prod overlay — merge: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Canon: docs/docker/DOCKER-CANON.md · reboot: docs/docker/prod-reboot.md
+# Postgres never published on the host (5432 often taken). Gateway bind is 127.0.0.1 in the base file.
+
 services:
   postgres:
+    restart: unless-stopped
     ports: !reset []
+  backend-java-spring:
+    restart: unless-stopped
+  frontend-typescript-react:
+    restart: unless-stopped
+  gateway:
+    restart: unless-stopped

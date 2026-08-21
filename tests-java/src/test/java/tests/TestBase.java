@@ -9,7 +9,6 @@ import allure.Attachments;
 import config.ConfigReader;
 import config.TestConfig;
 import helpers.BrowserSessionHelper;
-import pages.LandingPage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,8 +23,6 @@ import static com.codeborne.selenide.Selenide.closeWebDriver;
 
 
 public class TestBase {
-
-    protected LandingPage landingPage = new LandingPage();
 
     protected static final TestConfig config = ConfigReader.testConfig;
     private static final SimpleReport selenideReport = new SimpleReport();
