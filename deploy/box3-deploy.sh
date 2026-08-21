@@ -134,6 +134,8 @@ if [[ -n "${GHCR_TOKEN:-}" ]]; then
 fi
 
 if [[ "$SMOKE" == "1" ]]; then
+  # Graceful nginx reload can still serve the previous 301 for a beat.
+  sleep 2
   bash "$APP_DIR/deploy/smoke-remote.sh" "$SMOKE_URL"
 fi
 

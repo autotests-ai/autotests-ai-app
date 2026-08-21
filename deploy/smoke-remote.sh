@@ -6,8 +6,13 @@ BASE_URL="${1:-https://autotests.ai}"
 BASE_URL="${BASE_URL%/}"
 
 echo "=== TLS + GET ${BASE_URL}/ ==="
-code="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/")"
-echo "HTTP ${code}"
+code=""
+for _ in $(seq 1 10); do
+  code="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/")"
+  echo "HTTP ${code}"
+  [[ "$code" == "200" ]] && break
+  sleep 1
+done
 [[ "$code" == "200" ]] || { echo "FAIL: expected 200 (not 301-only to /stack/)" >&2; exit 1; }
 home_body="$(curl -fsSL "${BASE_URL}/")"
 echo "$home_body" | grep -q 'id="root"' || { echo "FAIL: / is not the landing SPA" >&2; exit 1; }
