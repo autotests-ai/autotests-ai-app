@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { headerConfig, STACK_INDEX_HREF } from '../lib/headerConfig';
 import { routes } from '../routes';
 
@@ -17,6 +17,26 @@ describe('App', { tags: ['smoke'] }, () => {
     expect(screen.getByTestId('app-header-mount')).toBeInTheDocument();
     expect(screen.getByTestId('page-shell')).toBeInTheDocument();
     expect(screen.getByTestId('page-shell')).toHaveClass('page-shell');
+  });
+
+  it('mounts the stack board on /stack/', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ backends: [], frontends: [], tests: [] }),
+        } as Response),
+      ),
+    );
+    renderApp('/stack/');
+    expect(screen.getByTestId('app-header-mount')).toBeInTheDocument();
+    expect(screen.getByTestId('stack-page')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
+    });
+    vi.unstubAllGlobals();
   });
 
   it('exposes Home + Stack + Stage/Prod without login on apex', () => {

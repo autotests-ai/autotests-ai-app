@@ -2,7 +2,7 @@ import type { HeaderConfig } from '@zero-design-system/react';
 import { envNavItems } from '../../vendor/ds/js/env-hosts.js';
 import { appPath } from './appBase';
 
-/** Stack matrix board — origin `/stack/` (phase 2). May 404 in this scaffold. */
+/** Stack matrix board — origin `/stack/`. */
 export const STACK_INDEX_HREF = '/stack/';
 
 /**

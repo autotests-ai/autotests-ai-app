@@ -7,6 +7,7 @@ Built on `@zero-design-system/react`, aliased to committed [`vendor/react-ui`](v
 | Route | Screen |
 |-------|--------|
 | `/` | empty DS `page-shell` (`data-testid="page-shell"`) |
+| `/stack/` | matrix board (`data-testid="stack-page"`) — `public/stack/matrix.json` |
 
 Header nav: Home + Stack (`/stack/`) + Stage/Prod (`env-hosts`). No login/register on apex.
 

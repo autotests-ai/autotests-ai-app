@@ -1,0 +1,266 @@
+{
+  "public_host": "autotests.ai",
+  "backends": [
+    {
+      "id": "backend-java-spring",
+      "status": "active",
+      "language": "java",
+      "module": "backend/java/backend-java-spring"
+    },
+    {
+      "id": "backend-kotlin-spring",
+      "status": "active",
+      "language": "kotlin",
+      "module": "backend/kotlin/backend-kotlin-spring"
+    },
+    {
+      "id": "backend-python-flask",
+      "status": "active",
+      "language": "python",
+      "module": "backend/python/backend-python-flask"
+    },
+    {
+      "id": "backend-python-fastapi",
+      "status": "active",
+      "language": "python",
+      "module": "backend/python/backend-python-fastapi"
+    },
+    {
+      "id": "backend-python-django",
+      "status": "active",
+      "language": "python",
+      "module": "backend/python/backend-python-django"
+    },
+    {
+      "id": "backend-go-gin",
+      "status": "active",
+      "language": "go",
+      "module": "backend/go/backend-go-gin"
+    },
+    {
+      "id": "backend-go-stdlib",
+      "status": "active",
+      "language": "go",
+      "module": "backend/go/backend-go-stdlib"
+    },
+    {
+      "id": "backend-javascript-express",
+      "status": "active",
+      "language": "javascript",
+      "module": "backend/javascript/backend-javascript-express"
+    },
+    {
+      "id": "backend-javascript-nest",
+      "status": "active",
+      "language": "javascript",
+      "module": "backend/javascript/backend-javascript-nest"
+    },
+    {
+      "id": "backend-typescript-express",
+      "status": "active",
+      "language": "typescript",
+      "module": "backend/typescript/backend-typescript-express"
+    },
+    {
+      "id": "backend-typescript-nest",
+      "status": "active",
+      "language": "typescript",
+      "module": "backend/typescript/backend-typescript-nest"
+    }
+  ],
+  "frontends": [
+    {
+      "id": "frontend-javascript-vanilla",
+      "status": "active",
+      "kind": "static",
+      "module": "frontend/javascript/frontend-javascript-vanilla"
+    },
+    {
+      "id": "frontend-javascript-react",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-react"
+    },
+    {
+      "id": "frontend-javascript-angular",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-angular"
+    },
+    {
+      "id": "frontend-javascript-vue",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-vue"
+    },
+    {
+      "id": "frontend-javascript-jquery",
+      "status": "active",
+      "kind": "static",
+      "module": "frontend/javascript/frontend-javascript-jquery"
+    },
+    {
+      "id": "frontend-typescript-vanilla",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-vanilla"
+    },
+    {
+      "id": "frontend-typescript-react",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-react"
+    },
+    {
+      "id": "frontend-typescript-angular",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-angular"
+    },
+    {
+      "id": "frontend-typescript-vue",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-vue"
+    },
+    {
+      "id": "frontend-typescript-jquery",
+      "status": "active",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-jquery"
+    }
+  ],
+  "tests": [
+    {
+      "id": "tests-java-gradle-junit5-allure3-selenide",
+      "status": "active",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-junit5-allure3-selenide",
+      "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-gradle-junit5-allure3-selenium",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-gradle-junit5-allure2-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-junit5-allure2-selenide",
+      "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-gradle-junit5-no_allure-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-junit5-no_allure-selenide",
+      "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-gradle-junit4-allure2-selenium",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-junit4-allure2-selenium",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-gradle-testng-allure3-selenium",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-testng-allure3-selenium",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-java-maven-junit5-allure3-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-maven-junit5-allure3-selenide",
+      "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-kotlin-gradle-junit5-allure3-selenide",
+      "status": "slot",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-selenide",
+      "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-javascript-playwright",
+      "status": "active",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-playwright",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-javascript-cypress",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-cypress",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-typescript-playwright",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-playwright",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-python-selenium",
+      "status": "active",
+      "language": "python",
+      "module": "tests/python/tests-python-selenium",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-python-playwright",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-playwright",
+      "layers": [
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-go-testing-allure3",
+      "status": "slot",
+      "language": "go",
+      "module": "tests/go/tests-go-testing-allure3",
+      "layers": [
+        "e2e"
+      ]
+    }
+  ]
+}

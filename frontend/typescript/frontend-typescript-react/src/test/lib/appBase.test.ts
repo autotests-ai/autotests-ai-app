@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiUrl, APP_BASE, appPath, API_BASE } from '../../lib/appBase';
+import { API_BASE, APP_BASE, apiUrl, appPath } from '../../lib/appBase';
 
 describe('appBase — apex document root', () => {
   it('keeps the SPA and API at origin paths', () => {

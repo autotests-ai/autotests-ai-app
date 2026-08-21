@@ -1,0 +1,301 @@
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { StackMatrix } from '../../lib/stack-matrix';
+import * as stackMatrix from '../../lib/stack-matrix';
+import { StackPage } from '../../pages/StackPage';
+
+const { bindStackHeaderPoll } = vi.hoisted(() => ({
+  bindStackHeaderPoll: vi.fn<(onTick: () => void) => () => void>(() => () => {}),
+}));
+
+vi.mock('../../lib/header-poll', () => ({
+  bindStackHeaderPoll,
+}));
+
+const MATRIX: StackMatrix = {
+  public_host: 'autotests.ai',
+  backends: [
+    {
+      id: 'backend-java-spring',
+      status: 'active',
+      language: 'java',
+      module: 'backend/java/backend-java-spring',
+    },
+    {
+      id: 'backend-python-flask',
+      status: 'active',
+      language: 'python',
+      module: 'backend/python/backend-python-flask',
+    },
+    { id: 'backend-go-slot', status: 'slot' },
+    { id: 'backend-no-meta' },
+  ],
+  frontends: [
+    {
+      id: 'frontend-typescript-react',
+      status: 'active',
+      kind: 'spa',
+      module: 'frontend/typescript/frontend-typescript-react',
+    },
+    {
+      id: 'frontend-javascript-vue',
+      status: 'active',
+      module: 'frontend/javascript/frontend-javascript-vue',
+    },
+    { id: 'frontend-slot', status: 'slot' },
+  ],
+  tests: [
+    {
+      id: 'tests-java-gradle-junit5-allure3-selenide',
+      status: 'active',
+      language: 'java',
+      module: 'tests/java/tests-java-gradle-junit5-allure3-selenide',
+      layers: ['api', 'e2e'],
+    },
+    { id: 'tests-no-layers', status: 'stub' },
+    { id: 'tests-bare' },
+    { id: 'tests-slot', status: 'slot' },
+  ],
+};
+
+function jsonOk(data: unknown): Promise<Response> {
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(data),
+  } as Response);
+}
+
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <StackPage />
+    </MemoryRouter>,
+  );
+}
+
+describe('StackPage', () => {
+  beforeEach(() => {
+    bindStackHeaderPoll.mockReturnValue(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => jsonOk(MATRIX)),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('shows the loading state then the live board', async () => {
+    renderAt('/stack/');
+    expect(screen.getByTestId('stack-loading')).toHaveTextContent('Loading matrix');
+    expect(screen.getByTestId('stack-page')).toHaveClass('stack-page');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-current-pair')).toHaveTextContent(
+        'backend-java-spring · frontend-typescript-react',
+      );
+    });
+    expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveAttribute(
+      'href',
+      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+    );
+    expect(screen.getByTestId('stack-tests-board')).toBeInTheDocument();
+    expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent(
+      'backend-java-spring/src/test',
+    );
+    expect(screen.getByTestId('stack-tests-component')).toHaveTextContent(
+      'frontend-typescript-react/src/test',
+    );
+    expect(screen.getByTestId('stack-gh-backend-backend-java-spring')).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/backend/java/backend-java-spring',
+    );
+    expect(bindStackHeaderPoll).toHaveBeenCalled();
+  });
+
+  it('renders an error when matrix.json cannot be loaded', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          Promise.resolve({ ok: false, status: 404, json: async () => ({}) }) as Promise<Response>,
+      ),
+    );
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-error')).toHaveTextContent('HTTP 404');
+    });
+  });
+
+  it('does not apply a late fetch after unmount', async () => {
+    let resolveFetch: (value: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve;
+          }),
+      ),
+    );
+    const view = renderAt('/stack/');
+    view.unmount();
+    resolveFetch(await jsonOk(MATRIX));
+    await Promise.resolve();
+  });
+
+  it('does not apply a late error after unmount', async () => {
+    let rejectFetch: (reason: Error) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            rejectFetch = reject;
+          }),
+      ),
+    );
+    const view = renderAt('/stack/');
+    view.unmount();
+    rejectFetch(new Error('HTTP 500'));
+    await Promise.resolve();
+  });
+
+  it('keeps hub selection on query params and fills open hrefs', async () => {
+    renderAt(
+      '/stack/?backend=backend-python-flask&frontend=frontend-javascript-vue&tests=tests-no-layers',
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-current-pair')).toHaveTextContent(
+        'backend-python-flask · frontend-javascript-vue · tests-no-layers',
+      );
+    });
+    expect(screen.getByTestId('stack-frontend-frontend-javascript-vue')).toHaveAttribute(
+      'href',
+      '/stack/?backend=backend-python-flask&frontend=frontend-javascript-vue&tests=tests-no-layers',
+    );
+    expect(screen.getByTestId('stack-tests-tests-no-layers').closest('tr')).toHaveClass(
+      'stack-page__row--active',
+    );
+    expect(screen.getByTestId('stack-backend-backend-go-slot').tagName).toBe('SPAN');
+    expect(screen.getByTestId('stack-frontend-frontend-slot').tagName).toBe('SPAN');
+    expect(screen.getByTestId('stack-tests-tests-slot').tagName).toBe('SPAN');
+  });
+
+  it('shows a slot unit row when the selected backend has no module', async () => {
+    renderAt('/stack/?backend=backend-go-slot&frontend=frontend-slot&tests=tests-slot');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-tests-unit').tagName).toBe('SPAN');
+    });
+    expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('unit');
+    expect(screen.getByTestId('stack-tests-tests-slot')).toHaveClass('is-active');
+    expect(screen.getByTestId('stack-backend-backend-go-slot')).toHaveClass('is-active');
+    expect(screen.getByTestId('stack-frontend-frontend-slot')).toHaveClass('is-active');
+  });
+
+  it('assigns a tests hub row outside the select link', async () => {
+    const assign = vi.spyOn(stackMatrix, 'assignLocation').mockImplementation(() => {});
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-tests-tests-no-layers')).toBeInTheDocument();
+    });
+    screen.getByTestId('stack-tests-tests-no-layers').closest('tr')?.click();
+    expect(assign).toHaveBeenCalledWith(
+      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-no-layers',
+    );
+    assign.mockRestore();
+  });
+
+  it('assigns a frontend hub row outside the module link', async () => {
+    const assign = vi.spyOn(stackMatrix, 'assignLocation').mockImplementation(() => {});
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-frontend-frontend-javascript-vue')).toBeInTheDocument();
+    });
+    screen.getByTestId('stack-frontend-frontend-javascript-vue').closest('tr')?.click();
+    expect(assign).toHaveBeenCalledWith(
+      '/stack/?backend=backend-java-spring&frontend=frontend-javascript-vue&tests=tests-java-gradle-junit5-allure3-selenide',
+    );
+    screen.getByTestId('stack-frontend-frontend-javascript-vue').click();
+    expect(assign).toHaveBeenCalledTimes(1);
+    assign.mockRestore();
+  });
+
+  it('uses cell hrefs off the hub and labels a frontend-only path', async () => {
+    renderAt('/stack/frontend-javascript-vue/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-current-pair')).toHaveTextContent(
+        '(no backend prefix) · frontend-javascript-vue',
+      );
+    });
+    expect(screen.getByTestId('stack-frontend-frontend-javascript-vue')).toHaveAttribute(
+      'href',
+      '/stack/backend-java-spring/frontend-javascript-vue/',
+    );
+    expect(
+      screen.getByTestId('stack-tests-tests-java-gradle-junit5-allure3-selenide'),
+    ).toHaveAttribute(
+      'href',
+      '/stack/backend-java-spring/frontend-javascript-vue/?tests=tests-java-gradle-junit5-allure3-selenide',
+    );
+  });
+
+  it('uses path pair hrefs off the hub', async () => {
+    renderAt('/stack/backend-python-flask/frontend-typescript-react/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-current-pair')).toHaveTextContent(
+        'backend-python-flask · frontend-typescript-react',
+      );
+    });
+    expect(screen.getByTestId('stack-backend-backend-python-flask')).toHaveAttribute(
+      'href',
+      '/stack/backend-python-flask/frontend-typescript-react/',
+    );
+    expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('backend-python-flask/tests');
+  });
+
+  it('assigns the hub row when the row is clicked outside a link', async () => {
+    const assign = vi.spyOn(stackMatrix, 'assignLocation').mockImplementation(() => {});
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-backend-python-flask')).toBeInTheDocument();
+    });
+    screen.getByTestId('stack-backend-backend-python-flask').closest('tr')?.click();
+    expect(assign).toHaveBeenCalledWith(
+      '/stack/?backend=backend-python-flask&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+    );
+    assign.mockRestore();
+  });
+
+  it('ignores hub row clicks that target a link', async () => {
+    const assign = vi.spyOn(stackMatrix, 'assignLocation').mockImplementation(() => {});
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-backend-python-flask')).toBeInTheDocument();
+    });
+    screen.getByTestId('stack-backend-backend-python-flask').click();
+    expect(assign).not.toHaveBeenCalled();
+    assign.mockRestore();
+  });
+
+  it('polls by reusing the header tick callback', async () => {
+    let onTick: (() => void) | undefined;
+    bindStackHeaderPoll.mockImplementation((tick: () => void) => {
+      onTick = tick;
+      return () => {};
+    });
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-current-pair')).toBeInTheDocument();
+    });
+    expect(typeof onTick).toBe('function');
+    await act(async () => {
+      onTick?.();
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});

@@ -1,0 +1,253 @@
+/* Product /stack/ boards — DS tokens + panel chrome (not services-status cream). */
+
+.stack-page {
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-bottom: var(--space-8, 32px);
+}
+
+/* Beat .page-shell { max-width: --content-max-width } so three boards fit. */
+.page-shell.stack-page {
+  max-width: min(1600px, calc(100% - 2 * var(--page-padding-x, 24px)));
+}
+
+.stack-page .text {
+  margin: 0;
+  font-size: var(--font-size-base, 1rem);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.stack-page .text--muted {
+  color: var(--color-text-muted);
+}
+
+.stack-page .text--sm {
+  font-size: var(--font-size-sm);
+}
+
+.stack-page__header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+}
+
+/* Override .badge { white-space: nowrap } so long pair labels wrap on mobile. */
+.badge.stack-page__current {
+  display: inline-block;
+  text-decoration: none;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+}
+
+.badge.stack-page__current:hover {
+  filter: brightness(1.08);
+}
+
+.stack-page__gh-cell {
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.stack-page__gh-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0 auto;
+  color: var(--color-text-muted);
+}
+
+.stack-page__gh-icon:hover {
+  color: var(--color-text);
+}
+
+.stack-page__gh-icon .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.stack-page__boards {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .stack-page__boards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stack-page__header {
+    min-width: 0;
+    padding-inline: var(--space-2, 0.5rem);
+  }
+
+  .badge.stack-page__current {
+    white-space: normal;
+  }
+
+  .stack-page__board-body {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stack-page__table {
+    min-width: 28rem;
+    table-layout: auto;
+  }
+}
+
+.stack-page__board {
+  min-width: 0;
+}
+
+.stack-page__board-body {
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.stack-page__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.stack-page__table th,
+.stack-page__table td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+  font-size: var(--font-size-sm, 0.9rem);
+}
+
+/* Same Module / GH / Status / Open track weights in both boards */
+.stack-page__table:not(.stack-page__table--tests) th:nth-child(1),
+.stack-page__table:not(.stack-page__table--tests) td:nth-child(1) {
+  width: 52%;
+}
+
+.stack-page__table:not(.stack-page__table--tests) th:nth-child(2),
+.stack-page__table:not(.stack-page__table--tests) td:nth-child(2) {
+  width: 3rem;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.stack-page__table:not(.stack-page__table--tests) th:nth-child(3),
+.stack-page__table:not(.stack-page__table--tests) td:nth-child(3) {
+  width: 22%;
+}
+
+.stack-page__table:not(.stack-page__table--tests) th:nth-child(4),
+.stack-page__table:not(.stack-page__table--tests) td:nth-child(4) {
+  width: 20%;
+}
+
+/* Tests: Module / Layers / GH / Status / Select */
+.stack-page__table--tests th:nth-child(1),
+.stack-page__table--tests td:nth-child(1) {
+  width: 38%;
+}
+
+.stack-page__table--tests th:nth-child(2),
+.stack-page__table--tests td:nth-child(2) {
+  width: 28%;
+}
+
+.stack-page__table--tests th:nth-child(3),
+.stack-page__table--tests td:nth-child(3) {
+  width: 3rem;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.stack-page__table--tests th:nth-child(4),
+.stack-page__table--tests td:nth-child(4) {
+  width: 16%;
+}
+
+.stack-page__table--tests th:nth-child(5),
+.stack-page__table--tests td:nth-child(5) {
+  width: 15%;
+}
+
+.stack-page__layers {
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.stack-page__table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+}
+
+.stack-page__table tr:last-child td {
+  border-bottom: 0;
+}
+
+.stack-page__row--active td {
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
+}
+
+.stack-page__table tbody tr.stack-page__row--selectable {
+  cursor: pointer;
+}
+
+.stack-page__table tbody tr.stack-page__row--selectable:hover td {
+  background: color-mix(in srgb, var(--color-info) 8%, transparent);
+}
+
+.stack-page__table tbody tr.stack-page__row--selectable.stack-page__row--active:hover td {
+  background: color-mix(in srgb, var(--color-info) 16%, transparent);
+}
+
+.stack-page__id {
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.stack-page__id--disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.stack-page__id.is-active,
+.stack-page__open.is-active {
+  color: var(--color-info);
+  font-weight: 650;
+}
+
+.stack-page__meta {
+  margin-top: var(--space-1);
+}
+
+.stack-page__open {
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 0.78rem;
+}
+
+.stack-page__foot {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+}
+
+.stack-page__error {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm, 8px);
+  background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+}

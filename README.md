@@ -4,11 +4,11 @@ Landing compose for [autotests.ai](https://autotests.ai): postgres + java-spring
 
 - **Gateway:** `127.0.0.1:${GATEWAY_PORT:-8081}` — `/` → frontend, `/api/` → backend
 - **Backend:** `backend/java/backend-java-spring/` — etalon `/api/health` (`HealthResponse`). No `Terminal*` / `/api/terminal`
-- **Frontend:** `frontend/typescript/frontend-typescript-react/` — Vite `base: '/'`, Home = empty DS `page-shell`, header Home + Stack + Stage/Prod
+- **Frontend:** `frontend/typescript/frontend-typescript-react/` — Vite `base: '/'`, Home = empty DS `page-shell`, `/stack/` = matrix board, header Home + Stack + Stage/Prod
 - **E2E pyramid:** `tests-java/` — Gradle + Selenide + Allure (terminal-panel tests removed)
 - **Stage ports (not wired to Box3 in this phase):** `deploy/stage.env` (`GATEWAY_PORT=18081`)
 
-`/stack/` board is a later phase. Teaching matrix cells stay in autotests-ai-multistack-app.
+`/stack/` is the React matrix board (`public/stack/matrix.json`). Teaching matrix cells stay in autotests-ai-multistack-app.
 
 ## Local
 
@@ -16,6 +16,8 @@ Landing compose for [autotests.ai](https://autotests.ai): postgres + java-spring
 docker compose up -d --build
 curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8081/
 curl -sf http://127.0.0.1:8081/api/health
+curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8081/stack/
+curl -sf http://127.0.0.1:8081/stack/matrix.json
 ```
 
 From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`.
