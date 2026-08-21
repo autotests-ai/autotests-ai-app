@@ -1,38 +1,169 @@
-name: Deploy production
+name: CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
-  repository_dispatch:
-    types: [deploy]
 
 concurrency:
-  group: deploy-production
-  cancel-in-progress: false
+  group: ${{ github.ref == 'refs/heads/main' && 'landing-cd-main' || 'landing-cd-develop' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+  APP_DIR: /opt/autotests-ai-app
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  build:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - service: backend-java-spring
+            context: ./backend/java/backend-java-spring
+          - service: frontend-typescript-react
+            context: ./frontend/typescript/frontend-typescript-react
+    env:
+      DOCKER_CACHE_SCOPE: autotests-ai-app-docker-${{ matrix.service }}
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/autotests-ai-app-${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ github.ref == 'refs/heads/main' && 'latest' || 'stage' }}
+          labels: |
+            org.opencontainers.image.title=autotests-ai-app-${{ matrix.service }}
+            org.opencontainers.image.description=autotests-ai-app · ${{ matrix.service }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://autotests.ai/
+            org.opencontainers.image.vendor=autotests-ai
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ env.DOCKER_CACHE_SCOPE }}
+          cache-to: type=gha,mode=max,scope=${{ env.DOCKER_CACHE_SCOPE }}
+
+  deploy-stage:
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
+    environment:
+      name: stage
+      url: https://stage.autotests.ai/
+    concurrency:
+      group: deploy-autotests-ai-app-stage
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_TARGET: stage
+      GHCR_USER: ${{ github.actor }}
     steps:
       - name: Require deploy secrets
         run: |
           test -n "${{ secrets.DEPLOY_SSH_KEY }}" || {
-            echo "::error::Missing secret DEPLOY_SSH_KEY — see README § Autodeploy"
+            echo "::error::Missing secret DEPLOY_SSH_KEY"
             exit 1
           }
 
-      - name: Deploy on production host
+      - name: Deploy stage
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ vars.DEPLOY_HOST || '212.92.101.15' }}
           username: ${{ vars.DEPLOY_USER || 'qaguru' }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           command_timeout: 15m
+          envs: IMAGE_TAG,GHCR_TOKEN,GHCR_USER,DEPLOY_TARGET,APP_DIR
           script: |
             set -euo pipefail
             APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
-            git -C "$APP_DIR" fetch --all
-            git -C "$APP_DIR" reset --hard origin/main
-            bash "$APP_DIR/deploy/box3-deploy.sh"
+            cd "$APP_DIR"
+            if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+              git fetch --depth=1 origin "$IMAGE_TAG"
+            else
+              git fetch origin "$IMAGE_TAG"
+            fi
+            if git cat-file -e "${IMAGE_TAG}^{commit}" 2>/dev/null; then
+              git -c advice.detachedHead=false checkout --force "$IMAGE_TAG"
+            else
+              git -c advice.detachedHead=false checkout --force FETCH_HEAD
+            fi
+            SKIP_CHECKOUT=1 bash deploy/box3-deploy.sh
+
+  deploy-prod:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://autotests.ai/
+    concurrency:
+      group: deploy-autotests-ai-app
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_TARGET: prod
+      GHCR_USER: ${{ github.actor }}
+    steps:
+      - name: Require deploy secrets
+        run: |
+          test -n "${{ secrets.DEPLOY_SSH_KEY }}" || {
+            echo "::error::Missing secret DEPLOY_SSH_KEY"
+            exit 1
+          }
+
+      - name: Deploy production
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          host: ${{ vars.DEPLOY_HOST || '212.92.101.15' }}
+          username: ${{ vars.DEPLOY_USER || 'qaguru' }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 15m
+          envs: IMAGE_TAG,GHCR_TOKEN,GHCR_USER,DEPLOY_TARGET,APP_DIR
+          script: |
+            set -euo pipefail
+            APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
+            cd "$APP_DIR"
+            if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+              git fetch --depth=1 origin "$IMAGE_TAG"
+            else
+              git fetch origin "$IMAGE_TAG"
+            fi
+            if git cat-file -e "${IMAGE_TAG}^{commit}" 2>/dev/null; then
+              git -c advice.detachedHead=false checkout --force "$IMAGE_TAG"
+            else
+              git -c advice.detachedHead=false checkout --force FETCH_HEAD
+            fi
+            SKIP_CHECKOUT=1 bash deploy/box3-deploy.sh

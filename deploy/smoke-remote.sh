@@ -8,7 +8,9 @@ BASE_URL="${BASE_URL%/}"
 echo "=== TLS + GET ${BASE_URL}/ ==="
 code="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/")"
 echo "HTTP ${code}"
-[[ "$code" == "200" ]] || { echo "FAIL: expected 200" >&2; exit 1; }
+[[ "$code" == "200" ]] || { echo "FAIL: expected 200 (not 301-only to /stack/)" >&2; exit 1; }
+home_body="$(curl -fsSL "${BASE_URL}/")"
+echo "$home_body" | grep -q 'id="root"' || { echo "FAIL: / is not the landing SPA" >&2; exit 1; }
 
 echo "=== GET ${BASE_URL}/api/health ==="
 body="$(curl -fsSL "${BASE_URL}/api/health")"
@@ -48,5 +50,16 @@ echo "redirect: ${legacy_loc}"
   echo "FAIL: legacy path should 301 to ${STACK_PRODUCT}" >&2
   exit 1
 }
+
+echo "=== GET ${BASE_URL}/api/terminal (must not be the old product) ==="
+term_code="$(curl -s -o /dev/null -w '%{http_code}' "${BASE_URL}/api/terminal")"
+echo "HTTP ${term_code}"
+[[ "$term_code" != "200" ]] || { echo "FAIL: /api/terminal still 200" >&2; exit 1; }
+
+PAIR_STACK="${BASE_URL}/stack/${DEFAULT_BE}/${DEFAULT_FE}/stack"
+echo "=== GET ${PAIR_STACK} (404) ==="
+pair_stack_code="$(curl -s -o /dev/null -w '%{http_code}' "${PAIR_STACK}")"
+echo "HTTP ${pair_stack_code}"
+[[ "$pair_stack_code" == "404" ]] || { echo "FAIL: expected 404 for /{pair}/stack" >&2; exit 1; }
 
 echo "Smoke OK: ${BASE_URL}"

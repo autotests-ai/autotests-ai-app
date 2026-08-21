@@ -1,35 +1,6 @@
 #!/usr/bin/env bash
+# Manual prod wrapper. CD path is GitHub Actions (develop→stage, main→prod).
 set -euo pipefail
-
-APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
-REPO_URL="${REPO_URL:-https://github.com/autotests-ai/autotests-ai-app.git}"
-COMPOSE_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
-
-if [[ ! -d "$APP_DIR/.git" ]]; then
-  git clone "$REPO_URL" "$APP_DIR"
-fi
-
-cd "$APP_DIR"
-git fetch --all
-git reset --hard origin/main
-
-docker compose $COMPOSE_FILES build backend
-docker compose $COMPOSE_FILES up -d --remove-orphans
-
-curl -fsS http://127.0.0.1:8081/api/health | grep -q '"status":"ok"'
-
-bash deploy/smoke-remote.sh https://autotests.ai
-
-if [[ -f deploy/nginx/autotests.ai.conf ]]; then
-  STACK_DIR="${STACK_DIR:-/home/autotests_ai_multistack/autotests-ai-multistack-app}"
-  if [[ -f "$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" ]]; then
-    sudo env \
-      STACK_UPSTREAMS="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
-      STACK_ROUTES="$STACK_DIR/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
-      bash deploy/nginx/sync-nginx.sh
-  else
-    sudo bash deploy/nginx/sync-nginx.sh
-  fi
-fi
-
-echo "Deploy OK: https://autotests.ai"
+export APP_DIR="${APP_DIR:-/opt/autotests-ai-app}"
+export DEPLOY_TARGET="${DEPLOY_TARGET:-prod}"
+exec bash "$APP_DIR/deploy/box3-deploy.sh"

@@ -9,7 +9,8 @@ services:
       POSTGRES_USER: autotests
       POSTGRES_PASSWORD: autotests
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # v2: old autotests-ai-app_pgdata is terminal Flyway; do not reuse it.
+      - pgdata_v2:/var/lib/postgresql/data
     networks:
       - autotests_ai_app_internal
     healthcheck:
@@ -19,7 +20,14 @@ services:
       retries: 10
 
   backend-java-spring:
+    image: ghcr.io/autotests-ai/autotests-ai-app-backend-java-spring:${IMAGE_TAG:-latest}
     build:
+      labels:
+        org.opencontainers.image.title: autotests-ai-app-backend-java-spring
+        org.opencontainers.image.description: autotests-ai-app · backend-java-spring
+        org.opencontainers.image.source: https://github.com/autotests-ai/autotests-ai-app
+        org.opencontainers.image.url: https://autotests.ai/
+        org.opencontainers.image.vendor: autotests-ai
       context: ./backend/java/backend-java-spring
     restart: unless-stopped
     environment:
@@ -37,7 +45,14 @@ services:
       - autotests_ai_app_internal
 
   frontend-typescript-react:
+    image: ghcr.io/autotests-ai/autotests-ai-app-frontend-typescript-react:${IMAGE_TAG:-latest}
     build:
+      labels:
+        org.opencontainers.image.title: autotests-ai-app-frontend-typescript-react
+        org.opencontainers.image.description: autotests-ai-app · frontend-typescript-react
+        org.opencontainers.image.source: https://github.com/autotests-ai/autotests-ai-app
+        org.opencontainers.image.url: https://autotests.ai/
+        org.opencontainers.image.vendor: autotests-ai
       context: ./frontend/typescript/frontend-typescript-react
     restart: unless-stopped
     networks:
@@ -64,4 +79,4 @@ networks:
     driver: bridge
 
 volumes:
-  pgdata:
+  pgdata_v2:

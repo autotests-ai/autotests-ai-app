@@ -1,4 +1,4 @@
-# Prod overlay — merge: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Prod overlay — merge: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # Canon: docs/docker/DOCKER-CANON.md · reboot: docs/docker/prod-reboot.md
 # Postgres never published on the host (5432 often taken). Gateway bind is 127.0.0.1 in the base file.
 
