@@ -37,12 +37,12 @@ docker compose $COMPOSE_FILES build backend
 docker compose $COMPOSE_FILES up -d --remove-orphans
 
 for i in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:8081/api/terminal >/dev/null 2>&1; then
+  if curl -fsS http://127.0.0.1:8081/api/health >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
-curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql
+curl -fsS http://127.0.0.1:8081/api/health | grep -q '"status":"ok"'
 curl -fsS http://127.0.0.1:8081/stack/matrix.json | grep -q '"backends"'
 
 echo "=== nginx ==="

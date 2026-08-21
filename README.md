@@ -36,7 +36,7 @@ Regenerate configs: `python scripts/gen-env-configs.py`
 
 ## Server deploy (box3)
 
-Unchanged in this phase. Host nginx / GHCR / stage CD are later.
+Host vhosts: `deploy/nginx/autotests.ai.conf` and `stage.autotests.ai.conf` (not applied until cutover). GHCR / stage CD are later.
 
 ```bash
 ssh qaguru@212.92.101.15 bash /opt/autotests-ai-app/deploy/box3-deploy.sh

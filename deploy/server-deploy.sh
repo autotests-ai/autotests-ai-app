@@ -16,7 +16,7 @@ git reset --hard origin/main
 docker compose $COMPOSE_FILES build backend
 docker compose $COMPOSE_FILES up -d --remove-orphans
 
-curl -fsS http://127.0.0.1:8081/api/terminal | grep -q postgresql
+curl -fsS http://127.0.0.1:8081/api/health | grep -q '"status":"ok"'
 
 bash deploy/smoke-remote.sh https://autotests.ai
 

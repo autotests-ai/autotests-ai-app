@@ -1,26 +1,52 @@
 #!/usr/bin/env bash
-# Apply autotests.ai nginx vhost (requires passwordless sudo for this script path).
+# Render (and optionally install) host vhost for autotests.ai or stage.autotests.ai.
+# Board is inline in the vhost → landing gateway. Cells = *-stack-routes.conf only.
+# NGINX_APPLY=0 writes /tmp/nginx-${SITE_NAME}.generated and exits (no install, no reload).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_SRC="${NGINX_CONF_SRC:-${SCRIPT_DIR}/autotests.ai.conf}"
+SITE_NAME="${NGINX_SITE_NAME:-autotests.ai}"
+APPLY="${NGINX_APPLY:-1}"
+
+if [[ -n "${NGINX_CONF_SRC:-}" ]]; then
+  CONF_SRC="$NGINX_CONF_SRC"
+elif [[ "$SITE_NAME" == "stage.autotests.ai" ]]; then
+  CONF_SRC="${SCRIPT_DIR}/stage.autotests.ai.conf"
+else
+  CONF_SRC="${SCRIPT_DIR}/autotests.ai.conf"
+fi
+
 STACK_UPSTREAMS="${STACK_UPSTREAMS:-${STACK_UPSTREAMS_PATH:-}}"
 STACK_ROUTES="${STACK_ROUTES:-${STACK_ROUTES_PATH:-}}"
-SITE_NAME="${NGINX_SITE_NAME:-autotests.ai}"
 SITE_PATH="/etc/nginx/sites-available/${SITE_NAME}"
 TMP="/tmp/nginx-${SITE_NAME}.generated"
 SSL_SNIPPET="/tmp/nginx-${SITE_NAME}.ssl-snippet"
+STACK_DIR_DEFAULT="/home/autotests_ai_multistack/autotests-ai-multistack-app/deploy/nginx/generated"
+
+if [[ "$SITE_NAME" == "stage.autotests.ai" ]]; then
+  FRAG_PREFIX="stage.autotests.ai"
+  SSL_DOMAINS=(stage.autotests.ai)
+else
+  FRAG_PREFIX="autotests.ai"
+  SSL_DOMAINS=(autotests.ai autotests.ai-0001)
+fi
 
 if [[ ! -f "$CONF_SRC" ]]; then
   echo "Missing $CONF_SRC" >&2
   exit 1
 fi
 
-if [[ "$(id -u)" -ne 0 ]]; then
+if [[ "$APPLY" != "0" && "$(id -u)" -ne 0 ]]; then
   if sudo -n true 2>/dev/null; then
-    exec sudo env NGINX_CONF_SRC="$CONF_SRC" NGINX_SITE_NAME="$SITE_NAME" "$0" "$@"
+    exec sudo env \
+      NGINX_CONF_SRC="$CONF_SRC" \
+      NGINX_SITE_NAME="$SITE_NAME" \
+      NGINX_APPLY="$APPLY" \
+      STACK_UPSTREAMS="$STACK_UPSTREAMS" \
+      STACK_ROUTES="$STACK_ROUTES" \
+      "$0" "$@"
   fi
-  echo "Run as root or with passwordless sudo for sync-nginx.sh" >&2
+  echo "Run as root or with passwordless sudo, or NGINX_APPLY=0 to render /tmp only" >&2
   exit 1
 fi
 
@@ -28,8 +54,8 @@ cp "$CONF_SRC" "$TMP"
 
 if [[ -z "$STACK_UPSTREAMS" ]]; then
   for candidate in \
-    "/home/autotests_ai_multistack/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-upstreams.conf" \
-    "${SCRIPT_DIR}/generated/autotests.ai-stack-upstreams.conf"; do
+    "${STACK_DIR_DEFAULT}/${FRAG_PREFIX}-stack-upstreams.conf" \
+    "${SCRIPT_DIR}/generated/${FRAG_PREFIX}-stack-upstreams.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_UPSTREAMS="$candidate"
       break
@@ -38,8 +64,8 @@ if [[ -z "$STACK_UPSTREAMS" ]]; then
 fi
 if [[ -z "$STACK_ROUTES" ]]; then
   for candidate in \
-    "/home/autotests_ai_multistack/autotests-ai-multistack-app/deploy/nginx/generated/autotests.ai-stack-routes.conf" \
-    "${SCRIPT_DIR}/generated/autotests.ai-stack-routes.conf"; do
+    "${STACK_DIR_DEFAULT}/${FRAG_PREFIX}-stack-routes.conf" \
+    "${SCRIPT_DIR}/generated/${FRAG_PREFIX}-stack-routes.conf"; do
     if [[ -f "$candidate" ]]; then
       STACK_ROUTES="$candidate"
       break
@@ -62,7 +88,7 @@ mv "${TMP}.stack" "$TMP"
 
 : >"$SSL_SNIPPET"
 if [[ ! -s "$SSL_SNIPPET" ]]; then
-  for domain in autotests.ai autotests.ai-0001; do
+  for domain in "${SSL_DOMAINS[@]}"; do
     if [[ -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ]]; then
       {
         echo "    ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;"
@@ -88,6 +114,11 @@ if [[ -s "$SSL_SNIPPET" ]]; then
   mv "${TMP}.patched" "$TMP"
 else
   echo "WARN: no ssl_certificate lines found for ${SITE_NAME}" >&2
+fi
+
+if [[ "$APPLY" == "0" ]]; then
+  echo "OK: rendered $TMP (NGINX_APPLY=0, not installed)"
+  exit 0
 fi
 
 cp "$TMP" "$SITE_PATH"
