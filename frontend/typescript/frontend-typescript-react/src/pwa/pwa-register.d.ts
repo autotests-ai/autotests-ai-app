@@ -1,3 +1,11 @@
+export interface RegisterServiceWorkerOptions {
+  swUrl?: string;
+  immediate?: boolean;
+  reloadOnControllerChange?: boolean;
+  onRegistered?: (reg: ServiceWorkerRegistration) => void;
+  onRegisterError?: (err: unknown) => void;
+}
+
 export const DEFAULT_SW_URL: string;
 export const PWA_ICON_PATHS: readonly string[];
 export const PWA_SW_CONTRACT: Readonly<{
@@ -8,10 +16,4 @@ export const PWA_SW_CONTRACT: Readonly<{
   navigateFallback: 'index.html';
 }>;
 
-export function registerServiceWorker(options?: {
-  swUrl?: string;
-  immediate?: boolean;
-  reloadOnControllerChange?: boolean;
-  onRegistered?: (reg: ServiceWorkerRegistration) => void;
-  onRegisterError?: (err: unknown) => void;
-}): void;
+export function registerServiceWorker(options?: RegisterServiceWorkerOptions): void;
