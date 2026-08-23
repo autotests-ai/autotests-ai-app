@@ -16,6 +16,7 @@ import {
 import { type ChangeEvent, useState } from 'react';
 import {
   applyCodeHost,
+  BACKENDS,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -30,6 +31,7 @@ import {
   copyText,
   DEFAULTS,
   downloadText,
+  FRONTENDS,
   fingerprint,
   IMAGES,
   LANGUAGE_VERSIONS,
@@ -40,6 +42,7 @@ import {
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
+  TESTS,
   toJson,
   toYaml,
 } from '../lib/landing-config';
@@ -99,6 +102,42 @@ export function HomePage() {
       >
         <div className="configurator__main">
           <div className="stack stack--lg">
+            <Panel title="Stack" testId="landing-stack-panel" titleTestId="landing-stack-title">
+              <div
+                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
+                data-testid="landing-stack-stack"
+              >
+                <PlaqueFieldGrid layout="solo" aria-label="backend">
+                  <PlaqueSelect
+                    label="backend"
+                    paramId="backend"
+                    value={config.backend}
+                    options={BACKENDS}
+                    onChange={setField('backend')}
+                    data-testid="landing-select-backend"
+                  />
+                </PlaqueFieldGrid>
+                <PlaqueFieldGrid layout="duo" aria-label="frontend and tests">
+                  <PlaqueSelect
+                    label="frontend"
+                    paramId="frontend"
+                    value={config.frontend}
+                    options={FRONTENDS}
+                    onChange={setField('frontend')}
+                    data-testid="landing-select-frontend"
+                  />
+                  <PlaqueSelect
+                    label="tests"
+                    paramId="tests"
+                    value={config.tests}
+                    options={TESTS}
+                    onChange={setField('tests')}
+                    data-testid="landing-select-tests"
+                  />
+                </PlaqueFieldGrid>
+              </div>
+            </Panel>
+
             <Panel title="Build" testId="landing-build-panel" titleTestId="landing-build-title">
               <div
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"

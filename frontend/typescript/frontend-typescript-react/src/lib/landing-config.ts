@@ -29,6 +29,12 @@ export type LandingConfig = {
   codeHost: string;
   /** Where CI executes — product axis, not a TestConfig cfg-key. */
   ciRunner: string;
+  /** Matrix module id (`backends[].id`). Not a generate cell / GitHub profile. */
+  backend: string;
+  /** Matrix module id (`frontends[].id`). */
+  frontend: string;
+  /** Matrix module id (`tests.modules[].id`, status=active only). */
+  tests: string;
 };
 
 export type OutputTabId = 'yaml' | 'json';
@@ -78,6 +84,9 @@ export const DEFAULTS: LandingConfig = {
   rootLogLevel: 'info',
   codeHost: 'github.com',
   ciRunner: 'github-hosted',
+  backend: 'backend-java-spring',
+  frontend: 'frontend-typescript-react',
+  tests: 'tests-java-gradle-junit5-allure3-selenide',
 };
 
 export const BUILD_OS = [
@@ -181,6 +190,46 @@ export const DEFAULT_CI_RUNNER: Record<string, string> = {
   'gitlab.com/qa-guru': 'gitlab-hosted',
   'gitlab.qa.guru': 'gitlab-self-hosted',
 };
+
+/**
+ * Hub `matrix.yaml` axes, `status: active` only.
+ * Values = module ids. Independent picks ≠ a generate cell (no cartesian emit).
+ */
+export const BACKENDS = [
+  { value: 'backend-java-spring', label: 'Java Spring' },
+  { value: 'backend-kotlin-spring', label: 'Kotlin Spring' },
+  { value: 'backend-python-flask', label: 'Python Flask' },
+  { value: 'backend-python-fastapi', label: 'Python FastAPI' },
+  { value: 'backend-python-django', label: 'Python Django' },
+  { value: 'backend-go-gin', label: 'Go Gin' },
+  { value: 'backend-go-stdlib', label: 'Go stdlib' },
+  { value: 'backend-javascript-express', label: 'JavaScript Express' },
+  { value: 'backend-javascript-nest', label: 'JavaScript Nest' },
+  { value: 'backend-typescript-express', label: 'TypeScript Express' },
+  { value: 'backend-typescript-nest', label: 'TypeScript Nest' },
+];
+
+export const FRONTENDS = [
+  { value: 'frontend-javascript-vanilla', label: 'JavaScript Vanilla' },
+  { value: 'frontend-javascript-react', label: 'JavaScript React' },
+  { value: 'frontend-javascript-angular', label: 'JavaScript Angular' },
+  { value: 'frontend-javascript-vue', label: 'JavaScript Vue' },
+  { value: 'frontend-javascript-jquery', label: 'JavaScript jQuery' },
+  { value: 'frontend-typescript-vanilla', label: 'TypeScript Vanilla' },
+  { value: 'frontend-typescript-react', label: 'TypeScript React' },
+  { value: 'frontend-typescript-angular', label: 'TypeScript Angular' },
+  { value: 'frontend-typescript-vue', label: 'TypeScript Vue' },
+  { value: 'frontend-typescript-jquery', label: 'TypeScript jQuery' },
+];
+
+export const TESTS = [
+  {
+    value: 'tests-java-gradle-junit5-allure3-selenide',
+    label: 'Java Gradle JUnit5 Allure3 Selenide',
+  },
+  { value: 'tests-javascript-playwright', label: 'JavaScript Playwright' },
+  { value: 'tests-python-selenium', label: 'Python Selenium' },
+];
 
 export const OUTPUT_TABS: ReadonlyArray<{
   id: OutputTabId;

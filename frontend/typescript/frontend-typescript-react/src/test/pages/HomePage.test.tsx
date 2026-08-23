@@ -25,6 +25,7 @@ describe('HomePage', () => {
       'grid--2x1',
       'configurator__layout--terminal',
     );
+    expect(screen.getByTestId('landing-stack-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-ci-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-driver-panel')).toHaveClass('panel--content');
@@ -46,6 +47,15 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'ciRunner: github-hosted',
     );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backend: backend-java-spring',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'frontend: frontend-typescript-react',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'tests: tests-java-gradle-junit5-allure3-selenide',
+    );
   });
 
   it('updates the terminal YAML when a seg is clicked', async () => {
@@ -61,6 +71,35 @@ describe('HomePage', () => {
 
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: true');
     expect(screen.getByTestId('landing-terminal-vector')).not.toHaveTextContent(before);
+  });
+
+  it('writes matrix module ids for backend, frontend, and tests into YAML', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'backend' }),
+      'backend-kotlin-spring',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backend: backend-kotlin-spring',
+    );
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'frontend' }),
+      'frontend-javascript-vue',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'frontend: frontend-javascript-vue',
+    );
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'tests' }),
+      'tests-javascript-playwright',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'tests: tests-javascript-playwright',
+    );
   });
 
   it('writes GitLab host and Jenkins runner into the terminal YAML', async () => {

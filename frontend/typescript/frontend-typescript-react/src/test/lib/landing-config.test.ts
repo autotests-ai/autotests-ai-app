@@ -75,6 +75,9 @@ describe('landing-config', () => {
     expect(yaml).toContain('name: "true"');
     expect(yaml).toContain('images: []');
     expect(yaml).toContain('buildOs: linux');
+    expect(yaml).toContain('backend: backend-java-spring');
+    expect(yaml).toContain('frontend: frontend-typescript-react');
+    expect(yaml).toContain('tests: tests-java-gradle-junit5-allure3-selenide');
   });
 
   it('prints a YAML list when images are selected', () => {
