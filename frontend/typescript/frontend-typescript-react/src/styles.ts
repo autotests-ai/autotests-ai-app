@@ -15,8 +15,10 @@ import '../vendor/ds/css/plaque-field.css';
 import '../vendor/ds/css/sticky.css';
 import '../vendor/ds/css/stack.css';
 import '../vendor/ds/css/code-highlight.css';
-import '../vendor/ds/css/configurator.css';
 import '../css/grid.css';
+// grid.css before configurator.css — same specificity (.grid--2x1 vs
+// .configurator__layout--terminal). Later file would pin 1fr 1fr and kill the 6-col clamp.
+import '../vendor/ds/css/configurator.css';
 import '../css/text.css';
 import '../css/page.css';
 import '../css/stack-page.css';
