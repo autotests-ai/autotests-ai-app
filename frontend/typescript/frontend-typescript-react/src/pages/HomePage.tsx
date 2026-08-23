@@ -41,6 +41,7 @@ import {
   FRONTEND_LANGUAGES,
   fingerprint,
   frontendFrameworks,
+  HOSTING_OPTIONS,
   IMAGES,
   LANGUAGE_VERSIONS,
   type LandingConfig,
@@ -357,6 +358,50 @@ export function HomePage() {
                     options={CI_RUNNERS}
                     onChange={setField('ciRunner')}
                     data-testid="landing-select-ciRunner"
+                  />
+                </PlaqueFieldGrid>
+              </div>
+            </Panel>
+
+            <Panel
+              title="Integrations"
+              testId="landing-integrations-panel"
+              titleTestId="landing-integrations-title"
+            >
+              <div
+                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
+                data-testid="landing-integrations-stack"
+              >
+                <PlaqueFieldGrid layout="duo" aria-label="TestOps and Jira">
+                  <AxisField
+                    label="testops"
+                    paramId="testops"
+                    value={config.testops}
+                    options={HOSTING_OPTIONS}
+                    onChange={setField('testops')}
+                  />
+                  <AxisField
+                    label="jira"
+                    paramId="jira"
+                    value={config.jira}
+                    options={HOSTING_OPTIONS}
+                    onChange={setField('jira')}
+                  />
+                </PlaqueFieldGrid>
+                <PlaqueFieldGrid layout="duo" aria-label="Confluence and Sonar">
+                  <AxisField
+                    label="confluence"
+                    paramId="confluence"
+                    value={config.confluence}
+                    options={HOSTING_OPTIONS}
+                    onChange={setField('confluence')}
+                  />
+                  <AxisField
+                    label="sonar"
+                    paramId="sonar"
+                    value={config.sonar}
+                    options={HOSTING_OPTIONS}
+                    onChange={setField('sonar')}
                   />
                 </PlaqueFieldGrid>
               </div>

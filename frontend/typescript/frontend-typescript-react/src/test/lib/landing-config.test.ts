@@ -84,6 +84,10 @@ describe('landing-config', () => {
     expect(yaml).toContain('name: "true"');
     expect(yaml).toContain('images: []');
     expect(yaml).toContain('buildOs: linux');
+    expect(yaml).toContain('testops: selfhosted');
+    expect(yaml).toContain('jira: selfhosted');
+    expect(yaml).toContain('confluence: selfhosted');
+    expect(yaml).toContain('sonar: selfhosted');
     expect(yaml).toContain('backendLanguage: java');
     expect(yaml).toContain('backendFramework: spring');
     expect(yaml).toContain('frontendLanguage: typescript');

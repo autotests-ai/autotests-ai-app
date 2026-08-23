@@ -29,6 +29,14 @@ export type LandingConfig = {
   codeHost: string;
   /** Where CI executes — product axis, not a TestConfig cfg-key. */
   ciRunner: string;
+  /** Allure TestOps — product axis, not a TestConfig cfg-key. */
+  testops: string;
+  /** Jira — product axis, not a TestConfig cfg-key. */
+  jira: string;
+  /** Confluence — product axis, not a TestConfig cfg-key. */
+  confluence: string;
+  /** SonarQube / SonarCloud — product axis, not a TestConfig cfg-key. */
+  sonar: string;
   backendLanguage: string;
   backendFramework: string;
   frontendLanguage: string;
@@ -93,6 +101,10 @@ export const DEFAULTS: LandingConfig = {
   rootLogLevel: 'info',
   codeHost: 'github.com',
   ciRunner: 'github-hosted',
+  testops: 'selfhosted',
+  jira: 'selfhosted',
+  confluence: 'selfhosted',
+  sonar: 'selfhosted',
   backendLanguage: 'java',
   backendFramework: 'spring',
   frontendLanguage: 'typescript',
@@ -191,6 +203,12 @@ export const CODE_HOSTS = [
   { value: 'github.com', label: 'GitHub' },
   { value: 'gitlab.com/qa-guru', label: 'GitLab.com / qa-guru' },
   { value: 'gitlab.qa.guru', label: 'gitlab.qa.guru' },
+];
+
+/** Hosting mode for TestOps / Jira / Confluence / Sonar — 2-opt product axis. */
+export const HOSTING_OPTIONS = [
+  { value: 'selfhosted', label: 'self-hosted' },
+  { value: 'cloud', label: 'cloud' },
 ];
 
 /** CI executor. Hosted = vendor cloud runners; self-hosted = own machines. */

@@ -28,6 +28,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-stack-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-ci-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-integrations-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-driver-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-remote-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-console-panel')).toHaveClass('panel--content');
@@ -47,6 +48,12 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'ciRunner: github-hosted',
     );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testops: selfhosted');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('jira: selfhosted');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'confluence: selfhosted',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('sonar: selfhosted');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'backendLanguage: java',
     );
@@ -155,6 +162,26 @@ describe('HomePage', () => {
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'ciRunner' }), 'jenkins');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-testops')).getByRole('button', { name: 'cloud' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testops: cloud');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-jira')).getByRole('button', { name: 'cloud' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('jira: cloud');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-confluence')).getByRole('button', { name: 'cloud' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('confluence: cloud');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-sonar')).getByRole('button', { name: 'cloud' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('sonar: cloud');
 
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'codeHost' }),
