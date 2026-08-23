@@ -48,6 +48,23 @@ describe('HomePage', () => {
       'ciRunner: github-hosted',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backendLanguage: java',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backendFramework: spring',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'frontendLanguage: typescript',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'frontendFramework: react',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsLanguage: java');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsBuild: gradle');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsRunner: junit5');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsAllure: allure3');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsUi: selenide');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'backend: backend-java-spring',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
@@ -77,28 +94,50 @@ describe('HomePage', () => {
     const user = userEvent.setup();
     render(<HomePage />);
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'backend' }),
-      'backend-kotlin-spring',
-    );
+    await user.selectOptions(screen.getByRole('combobox', { name: 'backendLanguage' }), 'kotlin');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'backend: backend-kotlin-spring',
     );
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'frontend' }),
-      'frontend-javascript-vue',
+    await user.selectOptions(screen.getByRole('combobox', { name: 'backendLanguage' }), 'python');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'backendFramework' }), 'django');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backend: backend-python-django',
     );
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-frontendLanguage')).getByRole('button', {
+        name: 'JavaScript',
+      }),
+    );
+    await user.selectOptions(screen.getByRole('combobox', { name: 'frontendFramework' }), 'vue');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'frontend: frontend-javascript-vue',
     );
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'tests' }),
-      'tests-javascript-playwright',
+    await user.click(
+      within(screen.getByTestId('landing-seg-testsBuild')).getByRole('button', { name: 'Maven' }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'tests: tests-java-maven-junit5-allure3-selenide',
+    );
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'testsRunner' }), 'junit4');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'tests: tests-java-gradle-junit4-allure2-selenium',
+    );
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'testsLanguage' }), 'javascript');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'tests: tests-javascript-playwright',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('testsBuild:');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-testsUi')).getByRole('button', { name: 'Cypress' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'tests: tests-javascript-cypress',
     );
   });
 

@@ -29,11 +29,20 @@ export type LandingConfig = {
   codeHost: string;
   /** Where CI executes — product axis, not a TestConfig cfg-key. */
   ciRunner: string;
-  /** Matrix module id (`backends[].id`). Not a generate cell / GitHub profile. */
+  backendLanguage: string;
+  backendFramework: string;
+  frontendLanguage: string;
+  frontendFramework: string;
+  testsLanguage: string;
+  testsBuild: string;
+  testsRunner: string;
+  testsAllure: string;
+  testsUi: string;
+  /** Derived matrix module id (`backends[].id`). */
   backend: string;
-  /** Matrix module id (`frontends[].id`). */
+  /** Derived matrix module id (`frontends[].id`). */
   frontend: string;
-  /** Matrix module id (`tests.modules[].id`, status=active only). */
+  /** Derived matrix module id (`tests.modules[].id`). */
   tests: string;
 };
 
@@ -84,6 +93,15 @@ export const DEFAULTS: LandingConfig = {
   rootLogLevel: 'info',
   codeHost: 'github.com',
   ciRunner: 'github-hosted',
+  backendLanguage: 'java',
+  backendFramework: 'spring',
+  frontendLanguage: 'typescript',
+  frontendFramework: 'react',
+  testsLanguage: 'java',
+  testsBuild: 'gradle',
+  testsRunner: 'junit5',
+  testsAllure: 'allure3',
+  testsUi: 'selenide',
   backend: 'backend-java-spring',
   frontend: 'frontend-typescript-react',
   tests: 'tests-java-gradle-junit5-allure3-selenide',
@@ -191,45 +209,389 @@ export const DEFAULT_CI_RUNNER: Record<string, string> = {
   'gitlab.qa.guru': 'gitlab-self-hosted',
 };
 
+type AxisOption = { value: string; label: string };
+
+const AXIS_LABELS: Record<string, string> = {
+  java: 'Java',
+  kotlin: 'Kotlin',
+  python: 'Python',
+  go: 'Go',
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  spring: 'Spring',
+  flask: 'Flask',
+  fastapi: 'FastAPI',
+  django: 'Django',
+  gin: 'Gin',
+  stdlib: 'stdlib',
+  express: 'Express',
+  nest: 'Nest',
+  vanilla: 'Vanilla',
+  react: 'React',
+  angular: 'Angular',
+  vue: 'Vue',
+  jquery: 'jQuery',
+  gradle: 'Gradle',
+  maven: 'Maven',
+  junit5: 'JUnit 5',
+  junit4: 'JUnit 4',
+  testng: 'TestNG',
+  allure3: 'Allure 3',
+  allure2: 'Allure 2',
+  no_allure: 'no Allure',
+  selenide: 'Selenide',
+  selenium: 'Selenium',
+  playwright: 'Playwright',
+  cypress: 'Cypress',
+};
+
+function axisLabel(value: string): string {
+  return AXIS_LABELS[value] ?? value;
+}
+
+function axisOptions(values: readonly string[]): AxisOption[] {
+  return values.map((value) => ({ value, label: axisLabel(value) }));
+}
+
+function unique(values: readonly string[]): string[] {
+  return [...new Set(values)];
+}
+
+/** Hub `matrix.yaml` backends — language × framework, no invented ids. */
+export const BACKEND_MODULES: ReadonlyArray<{
+  id: string;
+  language: string;
+  framework: string;
+}> = [
+  { id: 'backend-java-spring', language: 'java', framework: 'spring' },
+  { id: 'backend-kotlin-spring', language: 'kotlin', framework: 'spring' },
+  { id: 'backend-python-flask', language: 'python', framework: 'flask' },
+  { id: 'backend-python-fastapi', language: 'python', framework: 'fastapi' },
+  { id: 'backend-python-django', language: 'python', framework: 'django' },
+  { id: 'backend-go-gin', language: 'go', framework: 'gin' },
+  { id: 'backend-go-stdlib', language: 'go', framework: 'stdlib' },
+  { id: 'backend-javascript-express', language: 'javascript', framework: 'express' },
+  { id: 'backend-javascript-nest', language: 'javascript', framework: 'nest' },
+  { id: 'backend-typescript-express', language: 'typescript', framework: 'express' },
+  { id: 'backend-typescript-nest', language: 'typescript', framework: 'nest' },
+];
+
+/** Hub `matrix.yaml` frontends — language × UI kit. */
+export const FRONTEND_MODULES: ReadonlyArray<{
+  id: string;
+  language: string;
+  framework: string;
+}> = [
+  { id: 'frontend-javascript-vanilla', language: 'javascript', framework: 'vanilla' },
+  { id: 'frontend-javascript-react', language: 'javascript', framework: 'react' },
+  { id: 'frontend-javascript-angular', language: 'javascript', framework: 'angular' },
+  { id: 'frontend-javascript-vue', language: 'javascript', framework: 'vue' },
+  { id: 'frontend-javascript-jquery', language: 'javascript', framework: 'jquery' },
+  { id: 'frontend-typescript-vanilla', language: 'typescript', framework: 'vanilla' },
+  { id: 'frontend-typescript-react', language: 'typescript', framework: 'react' },
+  { id: 'frontend-typescript-angular', language: 'typescript', framework: 'angular' },
+  { id: 'frontend-typescript-vue', language: 'typescript', framework: 'vue' },
+  { id: 'frontend-typescript-jquery', language: 'typescript', framework: 'jquery' },
+];
+
+type TestModule = {
+  id: string;
+  language: string;
+  build: string;
+  runner: string;
+  allure: string;
+  ui: string;
+  status: 'active' | 'slot';
+};
+
 /**
- * Hub `matrix.yaml` axes, `status: active` only.
- * Values = module ids. Independent picks ≠ a generate cell (no cartesian emit).
+ * Hub `tests.modules` parsed into axes. Slots included so tests have more
+ * fields; ids stay catalog-only (no cartesian invent).
  */
-export const BACKENDS = [
-  { value: 'backend-java-spring', label: 'Java Spring' },
-  { value: 'backend-kotlin-spring', label: 'Kotlin Spring' },
-  { value: 'backend-python-flask', label: 'Python Flask' },
-  { value: 'backend-python-fastapi', label: 'Python FastAPI' },
-  { value: 'backend-python-django', label: 'Python Django' },
-  { value: 'backend-go-gin', label: 'Go Gin' },
-  { value: 'backend-go-stdlib', label: 'Go stdlib' },
-  { value: 'backend-javascript-express', label: 'JavaScript Express' },
-  { value: 'backend-javascript-nest', label: 'JavaScript Nest' },
-  { value: 'backend-typescript-express', label: 'TypeScript Express' },
-  { value: 'backend-typescript-nest', label: 'TypeScript Nest' },
-];
-
-export const FRONTENDS = [
-  { value: 'frontend-javascript-vanilla', label: 'JavaScript Vanilla' },
-  { value: 'frontend-javascript-react', label: 'JavaScript React' },
-  { value: 'frontend-javascript-angular', label: 'JavaScript Angular' },
-  { value: 'frontend-javascript-vue', label: 'JavaScript Vue' },
-  { value: 'frontend-javascript-jquery', label: 'JavaScript jQuery' },
-  { value: 'frontend-typescript-vanilla', label: 'TypeScript Vanilla' },
-  { value: 'frontend-typescript-react', label: 'TypeScript React' },
-  { value: 'frontend-typescript-angular', label: 'TypeScript Angular' },
-  { value: 'frontend-typescript-vue', label: 'TypeScript Vue' },
-  { value: 'frontend-typescript-jquery', label: 'TypeScript jQuery' },
-];
-
-export const TESTS = [
+export const TEST_MODULES: readonly TestModule[] = [
   {
-    value: 'tests-java-gradle-junit5-allure3-selenide',
-    label: 'Java Gradle JUnit5 Allure3 Selenide',
+    id: 'tests-java-gradle-junit5-allure3-selenide',
+    language: 'java',
+    build: 'gradle',
+    runner: 'junit5',
+    allure: 'allure3',
+    ui: 'selenide',
+    status: 'active',
   },
-  { value: 'tests-javascript-playwright', label: 'JavaScript Playwright' },
-  { value: 'tests-python-selenium', label: 'Python Selenium' },
+  {
+    id: 'tests-java-gradle-junit5-allure3-selenium',
+    language: 'java',
+    build: 'gradle',
+    runner: 'junit5',
+    allure: 'allure3',
+    ui: 'selenium',
+    status: 'slot',
+  },
+  {
+    id: 'tests-java-gradle-junit5-allure2-selenide',
+    language: 'java',
+    build: 'gradle',
+    runner: 'junit5',
+    allure: 'allure2',
+    ui: 'selenide',
+    status: 'slot',
+  },
+  {
+    id: 'tests-java-gradle-junit5-no_allure-selenide',
+    language: 'java',
+    build: 'gradle',
+    runner: 'junit5',
+    allure: 'no_allure',
+    ui: 'selenide',
+    status: 'slot',
+  },
+  {
+    id: 'tests-java-gradle-junit4-allure2-selenium',
+    language: 'java',
+    build: 'gradle',
+    runner: 'junit4',
+    allure: 'allure2',
+    ui: 'selenium',
+    status: 'slot',
+  },
+  {
+    id: 'tests-java-gradle-testng-allure3-selenium',
+    language: 'java',
+    build: 'gradle',
+    runner: 'testng',
+    allure: 'allure3',
+    ui: 'selenium',
+    status: 'slot',
+  },
+  {
+    id: 'tests-java-maven-junit5-allure3-selenide',
+    language: 'java',
+    build: 'maven',
+    runner: 'junit5',
+    allure: 'allure3',
+    ui: 'selenide',
+    status: 'slot',
+  },
+  {
+    id: 'tests-kotlin-gradle-junit5-allure3-selenide',
+    language: 'kotlin',
+    build: 'gradle',
+    runner: 'junit5',
+    allure: 'allure3',
+    ui: 'selenide',
+    status: 'slot',
+  },
+  {
+    id: 'tests-javascript-playwright',
+    language: 'javascript',
+    build: '',
+    runner: '',
+    allure: '',
+    ui: 'playwright',
+    status: 'active',
+  },
+  {
+    id: 'tests-javascript-cypress',
+    language: 'javascript',
+    build: '',
+    runner: '',
+    allure: '',
+    ui: 'cypress',
+    status: 'slot',
+  },
+  {
+    id: 'tests-typescript-playwright',
+    language: 'typescript',
+    build: '',
+    runner: '',
+    allure: '',
+    ui: 'playwright',
+    status: 'slot',
+  },
+  {
+    id: 'tests-python-selenium',
+    language: 'python',
+    build: '',
+    runner: '',
+    allure: '',
+    ui: 'selenium',
+    status: 'active',
+  },
+  {
+    id: 'tests-python-playwright',
+    language: 'python',
+    build: '',
+    runner: '',
+    allure: '',
+    ui: 'playwright',
+    status: 'slot',
+  },
+  {
+    id: 'tests-go-testing-allure3',
+    language: 'go',
+    build: '',
+    runner: 'testing',
+    allure: 'allure3',
+    ui: '',
+    status: 'slot',
+  },
 ];
+
+export const BACKEND_LANGUAGES = axisOptions(unique(BACKEND_MODULES.map((m) => m.language)));
+export const FRONTEND_LANGUAGES = axisOptions(unique(FRONTEND_MODULES.map((m) => m.language)));
+export const TEST_LANGUAGES = axisOptions(unique(TEST_MODULES.map((m) => m.language)));
+
+export function backendFrameworks(language: string): AxisOption[] {
+  return axisOptions(
+    unique(BACKEND_MODULES.filter((m) => m.language === language).map((m) => m.framework)),
+  );
+}
+
+export function frontendFrameworks(language: string): AxisOption[] {
+  return axisOptions(
+    unique(FRONTEND_MODULES.filter((m) => m.language === language).map((m) => m.framework)),
+  );
+}
+
+export type TestAxis = 'build' | 'runner' | 'allure' | 'ui';
+
+export function testAxisOptions(language: string, axis: TestAxis): AxisOption[] {
+  return axisOptions(
+    unique(
+      TEST_MODULES.filter((m) => m.language === language)
+        .map((m) => m[axis])
+        .filter((value) => value !== ''),
+    ),
+  );
+}
+
+function composePair(
+  modules: ReadonlyArray<{ id: string; language: string; framework: string }>,
+  language: string,
+  framework: string,
+): string {
+  return (
+    modules.find((m) => m.language === language && m.framework === framework)?.id ??
+    modules.find((m) => m.language === language)?.id ??
+    ''
+  );
+}
+
+function snapFramework(
+  modules: ReadonlyArray<{ language: string; framework: string }>,
+  language: string,
+  framework: string,
+): string {
+  const forLang = modules.filter((m) => m.language === language);
+  return forLang.some((m) => m.framework === framework) ? framework : (forLang[0]?.framework ?? '');
+}
+
+export function applyBackendLanguage(config: LandingConfig, language: string): LandingConfig {
+  const framework = snapFramework(BACKEND_MODULES, language, config.backendFramework);
+  return {
+    ...config,
+    backendLanguage: language,
+    backendFramework: framework,
+    backend: composePair(BACKEND_MODULES, language, framework),
+  };
+}
+
+export function applyBackendFramework(config: LandingConfig, framework: string): LandingConfig {
+  return {
+    ...config,
+    backendFramework: framework,
+    backend: composePair(BACKEND_MODULES, config.backendLanguage, framework),
+  };
+}
+
+export function applyFrontendLanguage(config: LandingConfig, language: string): LandingConfig {
+  const framework = snapFramework(FRONTEND_MODULES, language, config.frontendFramework);
+  return {
+    ...config,
+    frontendLanguage: language,
+    frontendFramework: framework,
+    frontend: composePair(FRONTEND_MODULES, language, framework),
+  };
+}
+
+export function applyFrontendFramework(config: LandingConfig, framework: string): LandingConfig {
+  return {
+    ...config,
+    frontendFramework: framework,
+    frontend: composePair(FRONTEND_MODULES, config.frontendLanguage, framework),
+  };
+}
+
+function testScore(module: TestModule, config: LandingConfig): number {
+  let score = module.status === 'active' ? 1 : 0;
+  if (module.build === config.testsBuild) score += 2;
+  if (module.runner === config.testsRunner) score += 2;
+  if (module.allure === config.testsAllure) score += 2;
+  if (module.ui === config.testsUi) score += 2;
+  return score;
+}
+
+function testAxisConfigKey(
+  axis: TestAxis,
+): 'testsBuild' | 'testsRunner' | 'testsAllure' | 'testsUi' {
+  if (axis === 'build') {
+    return 'testsBuild';
+  }
+  if (axis === 'runner') {
+    return 'testsRunner';
+  }
+  if (axis === 'allure') {
+    return 'testsAllure';
+  }
+  return 'testsUi';
+}
+
+function pickTestModule(config: LandingConfig, pinned?: TestAxis): TestModule {
+  const sameLang = TEST_MODULES.filter((m) => m.language === config.testsLanguage);
+  const matching = pinned
+    ? sameLang.filter((m) => m[pinned] === config[testAxisConfigKey(pinned)])
+    : sameLang;
+  const pool = matching.length > 0 ? matching : sameLang;
+  const exact = pool.find(
+    (m) =>
+      m.build === config.testsBuild &&
+      m.runner === config.testsRunner &&
+      m.allure === config.testsAllure &&
+      m.ui === config.testsUi,
+  );
+  if (exact) {
+    return exact;
+  }
+  return (
+    [...pool].sort((a, b) => testScore(b, config) - testScore(a, config))[0] ?? TEST_MODULES[0]
+  );
+}
+
+function assignTestModule(config: LandingConfig, module: TestModule): LandingConfig {
+  return {
+    ...config,
+    testsLanguage: module.language,
+    testsBuild: module.build,
+    testsRunner: module.runner,
+    testsAllure: module.allure,
+    testsUi: module.ui,
+    tests: module.id,
+  };
+}
+
+export function applyTestsLanguage(config: LandingConfig, language: string): LandingConfig {
+  const next = { ...config, testsLanguage: language };
+  return assignTestModule(next, pickTestModule(next));
+}
+
+export function applyTestsAxis(
+  config: LandingConfig,
+  axis: TestAxis,
+  value: string,
+): LandingConfig {
+  const next = { ...config, [testAxisConfigKey(axis)]: value };
+  return assignTestModule(next, pickTestModule(next, axis));
+}
 
 export const OUTPUT_TABS: ReadonlyArray<{
   id: OutputTabId;
@@ -279,6 +641,12 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
     }
     if (isBoolKey(key)) {
       doc[key] = value === 'true';
+      continue;
+    }
+    if (
+      value === '' &&
+      (key === 'testsBuild' || key === 'testsRunner' || key === 'testsAllure' || key === 'testsUi')
+    ) {
       continue;
     }
     doc[key] = value;

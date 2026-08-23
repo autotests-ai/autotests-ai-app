@@ -15,8 +15,14 @@ import {
 } from '@zero-design-system/react';
 import { type ChangeEvent, useState } from 'react';
 import {
+  applyBackendFramework,
+  applyBackendLanguage,
   applyCodeHost,
-  BACKENDS,
+  applyFrontendFramework,
+  applyFrontendLanguage,
+  applyTestsAxis,
+  applyTestsLanguage,
+  BACKEND_LANGUAGES,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -25,14 +31,16 @@ import {
   BUILD_OS_VERSIONS,
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
+  backendFrameworks,
   CI_RUNNERS,
   CODE_HOSTS,
   cloneConfig,
   copyText,
   DEFAULTS,
   downloadText,
-  FRONTENDS,
+  FRONTEND_LANGUAGES,
   fingerprint,
+  frontendFrameworks,
   IMAGES,
   LANGUAGE_VERSIONS,
   type LandingConfig,
@@ -42,16 +50,77 @@ import {
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
-  TESTS,
+  TEST_LANGUAGES,
+  type TestAxis,
+  testAxisOptions,
   toJson,
   toYaml,
 } from '../lib/landing-config';
+
+type AxisChoice = { value: string; label: string };
+
+const TEST_AXIS_FIELDS: ReadonlyArray<{ axis: TestAxis; paramId: string }> = [
+  { axis: 'build', paramId: 'testsBuild' },
+  { axis: 'runner', paramId: 'testsRunner' },
+  { axis: 'allure', paramId: 'testsAllure' },
+  { axis: 'ui', paramId: 'testsUi' },
+];
+
+function pairRows<T>(items: readonly T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push(items.slice(i, i + 2));
+  }
+  return rows;
+}
+
+function AxisField({
+  label,
+  paramId,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  paramId: string;
+  value: string;
+  options: readonly AxisChoice[];
+  onChange: (value: string) => void;
+}) {
+  if (options.length === 2) {
+    return (
+      <PlaqueFieldSeg
+        label={label}
+        paramId={paramId}
+        value={value}
+        onValueChange={onChange}
+        options={[
+          { value: options[0].value, label: options[0].label },
+          { value: options[1].value, label: options[1].label },
+        ]}
+        data-testid={`landing-seg-${paramId}`}
+      />
+    );
+  }
+  return (
+    <PlaqueSelect
+      label={label}
+      paramId={paramId}
+      value={value}
+      options={options}
+      onChange={onChange}
+      data-testid={`landing-select-${paramId}`}
+    />
+  );
+}
 
 export function HomePage() {
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
 
-  usePlaqueFieldMagnet({ syncKey: `${config.images.length}:${activeTab}` });
+  usePlaqueFieldMagnet({
+    syncKey: `${config.backendLanguage}:${config.frontendLanguage}:${config.testsLanguage}:${config.images.length}:${activeTab}`,
+  });
 
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId);
@@ -87,6 +156,34 @@ export function HomePage() {
     setConfig((prev) => applyCodeHost(prev, value));
   };
 
+  const setBackendLanguage = (value: string) => {
+    setConfig((prev) => applyBackendLanguage(prev, value));
+  };
+
+  const setBackendFramework = (value: string) => {
+    setConfig((prev) => applyBackendFramework(prev, value));
+  };
+
+  const setFrontendLanguage = (value: string) => {
+    setConfig((prev) => applyFrontendLanguage(prev, value));
+  };
+
+  const setFrontendFramework = (value: string) => {
+    setConfig((prev) => applyFrontendFramework(prev, value));
+  };
+
+  const setTestsLanguage = (value: string) => {
+    setConfig((prev) => applyTestsLanguage(prev, value));
+  };
+
+  const setTestsAxis = (axis: TestAxis) => (value: string) => {
+    setConfig((prev) => applyTestsAxis(prev, axis, value));
+  };
+
+  const visibleTestAxes = TEST_AXIS_FIELDS.filter(
+    (field) => testAxisOptions(config.testsLanguage, field.axis).length > 0,
+  );
+
   const resetConfig = () => {
     setConfig(cloneConfig(DEFAULTS));
   };
@@ -107,34 +204,73 @@ export function HomePage() {
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
                 data-testid="landing-stack-stack"
               >
-                <PlaqueFieldGrid layout="solo" aria-label="backend">
-                  <PlaqueSelect
-                    label="backend"
-                    paramId="backend"
-                    value={config.backend}
-                    options={BACKENDS}
-                    onChange={setField('backend')}
-                    data-testid="landing-select-backend"
+                <PlaqueFieldGrid layout="duo" aria-label="backend language and framework">
+                  <AxisField
+                    label="backendLanguage"
+                    paramId="backendLanguage"
+                    value={config.backendLanguage}
+                    options={BACKEND_LANGUAGES}
+                    onChange={setBackendLanguage}
+                  />
+                  <AxisField
+                    label="backendFramework"
+                    paramId="backendFramework"
+                    value={config.backendFramework}
+                    options={backendFrameworks(config.backendLanguage)}
+                    onChange={setBackendFramework}
                   />
                 </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="frontend and tests">
-                  <PlaqueSelect
-                    label="frontend"
-                    paramId="frontend"
-                    value={config.frontend}
-                    options={FRONTENDS}
-                    onChange={setField('frontend')}
-                    data-testid="landing-select-frontend"
+                <PlaqueFieldGrid layout="duo" aria-label="frontend language and framework">
+                  <AxisField
+                    label="frontendLanguage"
+                    paramId="frontendLanguage"
+                    value={config.frontendLanguage}
+                    options={FRONTEND_LANGUAGES}
+                    onChange={setFrontendLanguage}
                   />
-                  <PlaqueSelect
-                    label="tests"
-                    paramId="tests"
-                    value={config.tests}
-                    options={TESTS}
-                    onChange={setField('tests')}
-                    data-testid="landing-select-tests"
+                  <AxisField
+                    label="frontendFramework"
+                    paramId="frontendFramework"
+                    value={config.frontendFramework}
+                    options={frontendFrameworks(config.frontendLanguage)}
+                    onChange={setFrontendFramework}
                   />
                 </PlaqueFieldGrid>
+                <PlaqueFieldGrid layout="solo" aria-label="tests language">
+                  <AxisField
+                    label="testsLanguage"
+                    paramId="testsLanguage"
+                    value={config.testsLanguage}
+                    options={TEST_LANGUAGES}
+                    onChange={setTestsLanguage}
+                  />
+                </PlaqueFieldGrid>
+                {pairRows(visibleTestAxes).map((row) => (
+                  <PlaqueFieldGrid
+                    key={row.map((field) => field.paramId).join('-')}
+                    layout={row.length === 1 ? 'solo' : 'duo'}
+                    aria-label={row.map((field) => field.paramId).join(' and ')}
+                  >
+                    {row.map((field) => (
+                      <AxisField
+                        key={field.paramId}
+                        label={field.paramId}
+                        paramId={field.paramId}
+                        value={
+                          field.axis === 'build'
+                            ? config.testsBuild
+                            : field.axis === 'runner'
+                              ? config.testsRunner
+                              : field.axis === 'allure'
+                                ? config.testsAllure
+                                : config.testsUi
+                        }
+                        options={testAxisOptions(config.testsLanguage, field.axis)}
+                        onChange={setTestsAxis(field.axis)}
+                      />
+                    ))}
+                  </PlaqueFieldGrid>
+                ))}
               </div>
             </Panel>
 
