@@ -8,6 +8,7 @@ import {
   applyTestsAxis,
   applyTestsLanguage,
   backendFrameworks,
+  buildWrapperOptions,
   cloneConfig,
   copyText,
   DEFAULTS,
@@ -64,6 +65,7 @@ describe('landing-config', () => {
     expect(doc.headless).toBe(false);
     expect(doc.closeBrowserAfterAll).toBe(true);
     expect(doc.logToConsole).toBe(true);
+    expect(doc.ciCache).toBe(true);
     expect(doc.remoteUrl).toBe('');
     expect(doc.images).toEqual(['chrome:148']);
     expect(doc.images).not.toBe(DEFAULTS.images);
@@ -84,6 +86,9 @@ describe('landing-config', () => {
     expect(yaml).toContain('name: "true"');
     expect(yaml).toContain('images: []');
     expect(yaml).toContain('buildOs: linux');
+    expect(yaml).toContain('buildTool: gradle');
+    expect(yaml).toContain('buildWrapper: wrapper');
+    expect(yaml).toContain('ciCache: true');
     expect(yaml).toContain('testops: selfhosted');
     expect(yaml).toContain('jira: selfhosted');
     expect(yaml).toContain('confluence: selfhosted');
@@ -176,6 +181,11 @@ describe('landing-config', () => {
     ]);
     expect(testAxisOptions('javascript', 'build')).toEqual([]);
     expect(testAxisOptions('go', 'runner').map((option) => option.label)).toEqual(['testing']);
+    expect(buildWrapperOptions('gradle').map((option) => option.label)).toEqual([
+      './gradlew',
+      'gradle',
+    ]);
+    expect(buildWrapperOptions('maven').map((option) => option.label)).toEqual(['./mvnw', 'mvn']);
   });
 
   it('prints a YAML list when images are selected', () => {

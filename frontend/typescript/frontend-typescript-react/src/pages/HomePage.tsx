@@ -32,6 +32,8 @@ import {
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
   backendFrameworks,
+  buildWrapperOptions,
+  CI_CACHE_OPTIONS,
   CI_RUNNERS,
   CODE_HOSTS,
   cloneConfig,
@@ -316,15 +318,23 @@ export function HomePage() {
                     data-testid="landing-select-javaVersion"
                   />
                 </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Build tool and version">
-                  <PlaqueSelect
-                    label="Build Tool"
+                <PlaqueFieldGrid layout="duo" aria-label="Build tool and wrapper">
+                  <AxisField
+                    label="buildTool"
                     paramId="buildTool"
                     value={config.buildTool}
                     options={BUILD_TOOLS}
                     onChange={setField('buildTool')}
-                    data-testid="landing-select-buildTool"
                   />
+                  <AxisField
+                    label="buildWrapper"
+                    paramId="buildWrapper"
+                    value={config.buildWrapper}
+                    options={buildWrapperOptions(config.buildTool)}
+                    onChange={setField('buildWrapper')}
+                  />
+                </PlaqueFieldGrid>
+                <PlaqueFieldGrid layout="solo" aria-label="Build tool version">
                   <PlaqueSelect
                     label="Build Tool Version"
                     paramId="buildToolVersion"
@@ -358,6 +368,15 @@ export function HomePage() {
                     options={CI_RUNNERS}
                     onChange={setField('ciRunner')}
                     data-testid="landing-select-ciRunner"
+                  />
+                </PlaqueFieldGrid>
+                <PlaqueFieldGrid layout="solo" aria-label="CI cache">
+                  <AxisField
+                    label="ciCache"
+                    paramId="ciCache"
+                    value={config.ciCache}
+                    options={CI_CACHE_OPTIONS}
+                    onChange={setField('ciCache')}
                   />
                 </PlaqueFieldGrid>
               </div>

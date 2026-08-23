@@ -44,6 +44,11 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-vector')).toHaveTextContent(fingerprint(DEFAULTS));
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('buildOs: linux');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('buildTool: gradle');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'buildWrapper: wrapper',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: true');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('codeHost: github.com');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'ciRunner: github-hosted',
@@ -191,6 +196,33 @@ describe('HomePage', () => {
       'codeHost: "gitlab.com/qa-guru"',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
+  });
+
+  it('writes build wrapper and CI cache into the terminal YAML', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-buildWrapper')).getByRole('button', {
+        name: 'gradle',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('buildWrapper: system');
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-buildTool')).getByRole('button', { name: 'Maven' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('buildTool: maven');
+    expect(
+      within(screen.getByTestId('landing-seg-buildWrapper')).getByRole('button', {
+        name: './mvnw',
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-ciCache')).getByRole('button', { name: 'no-cache' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: false');
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {

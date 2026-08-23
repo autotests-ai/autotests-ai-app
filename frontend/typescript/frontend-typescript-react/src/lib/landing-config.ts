@@ -6,6 +6,7 @@ export type LandingConfig = {
   buildLanguage: string;
   javaVersion: string;
   buildTool: string;
+  buildWrapper: string;
   buildToolVersion: string;
   driverEngine: string;
   browser: string;
@@ -29,6 +30,8 @@ export type LandingConfig = {
   codeHost: string;
   /** Where CI executes — product axis, not a TestConfig cfg-key. */
   ciRunner: string;
+  /** CI dependency cache — product axis, not a TestConfig cfg-key. */
+  ciCache: string;
   /** Allure TestOps — product axis, not a TestConfig cfg-key. */
   testops: string;
   /** Jira — product axis, not a TestConfig cfg-key. */
@@ -65,6 +68,7 @@ const BOOL_KEYS = [
   'enableHar',
   'logToConsole',
   'selenideLogToConsole',
+  'ciCache',
 ] as const;
 
 type BoolKey = (typeof BOOL_KEYS)[number];
@@ -79,7 +83,8 @@ export const DEFAULTS: LandingConfig = {
   buildOsVersion: 'ubuntu-24.04',
   buildLanguage: 'java',
   javaVersion: '21',
-  buildTool: 'gradle-wrapper',
+  buildTool: 'gradle',
+  buildWrapper: 'wrapper',
   buildToolVersion: '9.6.0',
   driverEngine: 'webdriver',
   browser: 'chrome',
@@ -101,6 +106,7 @@ export const DEFAULTS: LandingConfig = {
   rootLogLevel: 'info',
   codeHost: 'github.com',
   ciRunner: 'github-hosted',
+  ciCache: 'true',
   testops: 'selfhosted',
   jira: 'selfhosted',
   confluence: 'selfhosted',
@@ -148,11 +154,23 @@ export const BUILD_LANGUAGES = [
 export const LANGUAGE_VERSIONS = [{ value: '17' }, { value: '21' }, { value: '25' }];
 
 export const BUILD_TOOLS = [
-  { value: 'gradle-system', label: 'gradle (system)' },
-  { value: 'gradle-wrapper', label: '.gradlew (wrapper)' },
-  { value: 'maven-system', label: 'maven (system)' },
-  { value: 'maven-wrapper', label: '.mvn (wrapper)' },
+  { value: 'gradle', label: 'Gradle' },
+  { value: 'maven', label: 'Maven' },
 ];
+
+/** Wrapper vs system binary — labels follow the selected build tool. */
+export function buildWrapperOptions(tool: string): ReadonlyArray<{ value: string; label: string }> {
+  if (tool === 'maven') {
+    return [
+      { value: 'wrapper', label: './mvnw' },
+      { value: 'system', label: 'mvn' },
+    ];
+  }
+  return [
+    { value: 'wrapper', label: './gradlew' },
+    { value: 'system', label: 'gradle' },
+  ];
+}
 
 export const BUILD_TOOL_VERSIONS = [{ value: '8.14' }, { value: '9.0' }, { value: '9.6.0' }];
 
@@ -218,6 +236,12 @@ export const CI_RUNNERS = [
   { value: 'gitlab-hosted', label: 'GitLab.com shared' },
   { value: 'gitlab-self-hosted', label: 'gitlab.qa.guru' },
   { value: 'jenkins', label: 'Jenkins' },
+];
+
+/** CI cache on/off — 2-opt product axis. */
+export const CI_CACHE_OPTIONS = [
+  { value: 'true', label: 'cache' },
+  { value: 'false', label: 'no-cache' },
 ];
 
 /** Default runner for a code host — used only while the runner is still that default. */
