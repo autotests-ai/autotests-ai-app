@@ -91,9 +91,8 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  flex: 1 1 auto;
-  flex-shrink: 1;
-  width: 100%;
+  flex: 0 1 auto;
+  width: max-content;
   max-width: 100%;
   min-width: 0;
 }

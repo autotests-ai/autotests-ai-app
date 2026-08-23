@@ -19,19 +19,19 @@
   min-width: 0;
 }
 
-/* CANON: label + short divider float on row 1; chips inline + ALWAYS
-   right-aligned (text-align:right). Overflow wraps under the label.
-   Rule: plaque-many-first-row. */
+/* CANON: --many keeps label | divider | track (same 3-col as selects).
+   Chips live in the track; wrap only inside column 3. Rule: plaque-many-first-row. */
 .plaque-field--divided:has(> .plaque-field-seg-track--many),
 .plaque-field--divided.plaque-field--stretch:has(> .plaque-field-seg-track--many) {
-  display: block;
+  display: grid;
+  grid-template-columns: var(--plaque-mixed-label-col, max-content) 1px minmax(0, 1fr);
+  align-items: start;
   height: auto;
   min-height: var(--plaque-control-height);
-  grid-template-columns: unset;
   padding-top: 0;
   padding-bottom: 0;
   overflow: visible;
-  text-align: right;
+  text-align: unset;
   background-color: var(--color-surface);
   /* 1px rule between wrap bands (= --plaque-seg-row-gap).
      Origin MUST be padding-box (same box as wrap bands). border-box + clip
@@ -51,20 +51,17 @@
 }
 
 .plaque-field--divided:has(> .plaque-field-seg-track--many)::after {
-  content: "";
-  display: block;
-  clear: both;
-  /* Chips add row-gap into margin-block-end (line box = band+gap). Pull the
-     trailing gap on the last wrap line so outer = n×band + (n−1)×gap + 2 border. */
+  content: none;
+  display: none;
+  margin: 0;
   height: 0;
-  margin-block-start: calc(-1 * var(--plaque-seg-row-gap));
 }
 
 .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__label,
 .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__text {
-  float: left;
+  float: none;
   box-sizing: border-box;
-  /* Same label column as sibling magnet rows — divider lines up with browser/… */
+  grid-column: 1;
   width: var(--plaque-mixed-label-col, max-content);
   min-width: 0;
   max-width: 100%;
@@ -78,15 +75,17 @@
   white-space: nowrap;
 }
 
-/* First-row only — short float so wrapped chips clear under it. */
+/* First-row only — optical center in band 1 when chips wrap in column 3. */
 .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-divider {
-  float: left;
+  float: none;
+  grid-column: 2;
+  align-self: start;
   height: var(--plaque-divider-height, calc(var(--font-size-sm) * 1.35));
   min-height: var(--plaque-divider-height, calc(var(--font-size-sm) * 1.35));
   margin-block-start: calc(
     (var(--plaque-seg-band-height) - var(--plaque-divider-height, calc(var(--font-size-sm) * 1.35))) / 2
   );
-  margin-right: var(--plaque-seg-gap);
+  margin-right: 0;
   background: var(--plaque-seg-rule);
 }
 
@@ -907,15 +906,16 @@ html.theme-light .plaque-field-checkstrip--pill .plaque-field-checkstrip__item:h
   white-space: nowrap;
 }
 
-/* --many: same flex wrap escape as grid-stack--magnet — one rule for every panel.
-   Without this, magnet re-applies 3-col grid and .plaque-divider { align-self:center }
-   centers against the full wrap height (Test layer / junitTags). */
+/* --many: keep 3-col grid (label | divider | track). Do not fall back to
+   display:block — that wrapped chips under the label. First-row label via
+   align-items:start (Test layer / junitTags wrap in column 3). */
 .plaque-field-panel-stack--magnet > :not(.plaque-field-grid) .plaque-field--divided:has(> .plaque-field-seg-track--many),
 .plaque-field-panel-stack--magnet > :not(.plaque-field-grid) .plaque-field--divided.plaque-field--stretch:has(> .plaque-field-seg-track--many) {
-  display: block;
-  grid-template-columns: unset;
-  column-gap: unset;
-  text-align: right;
+  display: grid;
+  grid-template-columns: var(--plaque-mixed-label-col, max-content) 1px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 0;
+  text-align: unset;
 }
 
 .plaque-field-panel-stack--magnet .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__label,
