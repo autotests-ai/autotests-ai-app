@@ -15,6 +15,7 @@ import {
 } from '@zero-design-system/react';
 import { type ChangeEvent, useState } from 'react';
 import {
+  applyCodeHost,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -23,6 +24,8 @@ import {
   BUILD_OS_VERSIONS,
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
+  CI_RUNNERS,
+  CODE_HOSTS,
   cloneConfig,
   copyText,
   DEFAULTS,
@@ -75,6 +78,10 @@ export function HomePage() {
         ? prev.images.filter((item) => item !== value)
         : [...prev.images, value],
     }));
+  };
+
+  const setCodeHost = (value: string) => {
+    setConfig((prev) => applyCodeHost(prev, value));
   };
 
   const resetConfig = () => {
@@ -149,6 +156,32 @@ export function HomePage() {
                     options={BUILD_TOOL_VERSIONS}
                     onChange={setField('buildToolVersion')}
                     data-testid="landing-select-buildToolVersion"
+                  />
+                </PlaqueFieldGrid>
+              </div>
+            </Panel>
+
+            <Panel title="CI" testId="landing-ci-panel" titleTestId="landing-ci-title">
+              <div
+                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
+                data-testid="landing-ci-stack"
+              >
+                <PlaqueFieldGrid layout="duo" aria-label="Code host and CI runner">
+                  <PlaqueSelect
+                    label="codeHost"
+                    paramId="codeHost"
+                    value={config.codeHost}
+                    options={CODE_HOSTS}
+                    onChange={setCodeHost}
+                    data-testid="landing-select-codeHost"
+                  />
+                  <PlaqueSelect
+                    label="ciRunner"
+                    paramId="ciRunner"
+                    value={config.ciRunner}
+                    options={CI_RUNNERS}
+                    onChange={setField('ciRunner')}
+                    data-testid="landing-select-ciRunner"
                   />
                 </PlaqueFieldGrid>
               </div>

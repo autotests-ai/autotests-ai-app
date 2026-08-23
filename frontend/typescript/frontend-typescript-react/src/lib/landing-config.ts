@@ -25,6 +25,10 @@ export type LandingConfig = {
   logToConsole: string;
   selenideLogToConsole: string;
   rootLogLevel: string;
+  /** Where the repo lives — product axis, not a TestConfig cfg-key. */
+  codeHost: string;
+  /** Where CI executes — product axis, not a TestConfig cfg-key. */
+  ciRunner: string;
 };
 
 export type OutputTabId = 'yaml' | 'json';
@@ -72,6 +76,8 @@ export const DEFAULTS: LandingConfig = {
   logToConsole: 'true',
   selenideLogToConsole: 'true',
   rootLogLevel: 'info',
+  codeHost: 'github.com',
+  ciRunner: 'github-hosted',
 };
 
 export const BUILD_OS = [
@@ -153,6 +159,29 @@ export const ROOT_LOG_LEVELS = [
   { value: 'error' },
 ];
 
+/** Git forge. GitLab.com group is qa-guru; self-hosted is gitlab.qa.guru. */
+export const CODE_HOSTS = [
+  { value: 'github.com', label: 'GitHub' },
+  { value: 'gitlab.com/qa-guru', label: 'GitLab.com / qa-guru' },
+  { value: 'gitlab.qa.guru', label: 'gitlab.qa.guru' },
+];
+
+/** CI executor. Hosted = vendor cloud runners; self-hosted = own machines. */
+export const CI_RUNNERS = [
+  { value: 'github-hosted', label: 'GitHub-hosted' },
+  { value: 'github-self-hosted', label: 'GitHub self-hosted' },
+  { value: 'gitlab-hosted', label: 'GitLab.com shared' },
+  { value: 'gitlab-self-hosted', label: 'gitlab.qa.guru' },
+  { value: 'jenkins', label: 'Jenkins' },
+];
+
+/** Default runner for a code host — used only while the runner is still that default. */
+export const DEFAULT_CI_RUNNER: Record<string, string> = {
+  'github.com': 'github-hosted',
+  'gitlab.com/qa-guru': 'gitlab-hosted',
+  'gitlab.qa.guru': 'gitlab-self-hosted',
+};
+
 export const OUTPUT_TABS: ReadonlyArray<{
   id: OutputTabId;
   label: string;
@@ -164,6 +193,16 @@ export const OUTPUT_TABS: ReadonlyArray<{
 
 export function cloneConfig(config: LandingConfig): LandingConfig {
   return { ...config, images: [...config.images] };
+}
+
+/** Follow the matching CI default only if the runner is still the previous host's default. */
+export function applyCodeHost(config: LandingConfig, codeHost: string): LandingConfig {
+  const next = { ...config, codeHost };
+  const previousDefault = DEFAULT_CI_RUNNER[config.codeHost];
+  if (config.ciRunner === previousDefault) {
+    next.ciRunner = DEFAULT_CI_RUNNER[codeHost] ?? config.ciRunner;
+  }
+  return next;
 }
 
 /** Same 8-hex fingerprint as autotests-builder `simpleHash` / `vector#…`. */

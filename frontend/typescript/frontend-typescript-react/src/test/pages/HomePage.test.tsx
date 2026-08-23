@@ -26,6 +26,7 @@ describe('HomePage', () => {
       'configurator__layout--terminal',
     );
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-ci-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-driver-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-remote-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-console-panel')).toHaveClass('panel--content');
@@ -41,6 +42,10 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-vector')).toHaveTextContent(fingerprint(DEFAULTS));
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('buildOs: linux');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('codeHost: github.com');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'ciRunner: github-hosted',
+    );
   });
 
   it('updates the terminal YAML when a seg is clicked', async () => {
@@ -56,6 +61,31 @@ describe('HomePage', () => {
 
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: true');
     expect(screen.getByTestId('landing-terminal-vector')).not.toHaveTextContent(before);
+  });
+
+  it('writes GitLab host and Jenkins runner into the terminal YAML', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'codeHost' }), 'gitlab.qa.guru');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'codeHost: gitlab.qa.guru',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'ciRunner: gitlab-self-hosted',
+    );
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'ciRunner' }), 'jenkins');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'codeHost' }),
+      'gitlab.com/qa-guru',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'codeHost: "gitlab.com/qa-guru"',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  applyCodeHost,
   cloneConfig,
   copyText,
   DEFAULTS,
@@ -32,6 +33,21 @@ describe('landing-config', () => {
     expect(vectorHash(DEFAULTS)).toHaveLength(8);
     expect(fingerprint(DEFAULTS)).toBe(id);
     expect(fingerprint({ ...DEFAULTS, headless: 'true' })).not.toBe(id);
+  });
+
+  it('follows the matching CI default until the runner is chosen explicitly', () => {
+    const gitlab = applyCodeHost(cloneConfig(DEFAULTS), 'gitlab.qa.guru');
+    expect(gitlab.codeHost).toBe('gitlab.qa.guru');
+    expect(gitlab.ciRunner).toBe('gitlab-self-hosted');
+
+    const jenkins: LandingConfig = { ...cloneConfig(DEFAULTS), ciRunner: 'jenkins' };
+    const keep = applyCodeHost(jenkins, 'gitlab.com/qa-guru');
+    expect(keep.codeHost).toBe('gitlab.com/qa-guru');
+    expect(keep.ciRunner).toBe('jenkins');
+
+    const unknown = applyCodeHost(cloneConfig(DEFAULTS), 'gitea.example');
+    expect(unknown.codeHost).toBe('gitea.example');
+    expect(unknown.ciRunner).toBe('github-hosted');
   });
 
   it('maps cfg-keys booleans in the document and keeps empty remoteUrl', () => {
