@@ -262,9 +262,39 @@ describe('HomePage', () => {
       screen.getByTestId('landing-terminal-output').querySelector('.ch-tok-key'),
     ).not.toBeNull();
 
+    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
+    expect(screen.getByRole('tab', { name: 'ci.yml' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('name: ci');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('run: ./gradlew test');
+
     await user.click(screen.getByRole('tab', { name: 'YAML' }));
     expect(screen.getByRole('tab', { name: 'YAML' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('browser: firefox');
+  });
+
+  it('rewrites the live CI preview when host, runner, and cache change', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('name: ci');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('cache: gradle');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'live preview; not the teaching orchestrator',
+    );
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-ciCache')).getByRole('button', { name: 'no-cache' }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('cache: gradle');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'codeHost' }), 'gitlab.qa.guru');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('image:');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('self-hosted');
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'ciRunner' }), 'jenkins');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('pipeline {');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: off');
   });
 
   it('resets, copies, and downloads the live output', async () => {
@@ -301,5 +331,9 @@ describe('HomePage', () => {
     await user.click(screen.getByTestId('landing-terminal-download'));
     expect(click).toHaveBeenCalled();
     expect(createObjectURL).toHaveBeenCalled();
+
+    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    expect(click).toHaveBeenCalledTimes(2);
   });
 });

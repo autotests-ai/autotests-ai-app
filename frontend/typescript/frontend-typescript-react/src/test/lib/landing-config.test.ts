@@ -204,9 +204,16 @@ describe('landing-config', () => {
     expect(json.headless).toBe(false);
   });
 
-  it('picks download names for YAML and JSON tabs', () => {
+  it('picks download names for YAML, JSON, and CI tabs', () => {
     expect(outputFilename('yaml')).toBe('config.yaml');
     expect(outputFilename('json')).toBe('config.json');
+    expect(outputFilename('ci')).toBe('ci.yml');
+    expect(outputFilename('ci', { ...cloneConfig(DEFAULTS), ciRunner: 'gitlab-hosted' })).toBe(
+      '.gitlab-ci.yml',
+    );
+    expect(outputFilename('ci', { ...cloneConfig(DEFAULTS), ciRunner: 'jenkins' })).toBe(
+      'Jenkinsfile',
+    );
   });
 
   it('copies when clipboard exists and no-ops when it does not', async () => {

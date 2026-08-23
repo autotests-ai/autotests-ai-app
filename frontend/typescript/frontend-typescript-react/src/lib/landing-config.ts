@@ -1,3 +1,7 @@
+import { ciFilename } from './landing-ci';
+
+export { ciFilename, ciFlavor, toCiYaml } from './landing-ci';
+
 /** Home configurator selection — cfg-keys + harvested presets. Not a matrix profile id. */
 
 export type LandingConfig = {
@@ -57,7 +61,7 @@ export type LandingConfig = {
   tests: string;
 };
 
-export type OutputTabId = 'yaml' | 'json';
+export type OutputTabId = 'yaml' | 'json' | 'ci';
 
 const BOOL_KEYS = [
   'headless',
@@ -642,6 +646,7 @@ export const OUTPUT_TABS: ReadonlyArray<{
 }> = [
   { id: 'yaml', label: 'YAML', barLabel: 'YAML' },
   { id: 'json', label: 'JSON', barLabel: 'JSON' },
+  { id: 'ci', label: 'ci.yml', barLabel: 'ci.yml' },
 ];
 
 export function cloneConfig(config: LandingConfig): LandingConfig {
@@ -737,8 +742,14 @@ export function toJson(config: LandingConfig, vectorId: string): string {
   return JSON.stringify({ ...toDocument(config), vector: vectorId }, null, 2);
 }
 
-export function outputFilename(tab: OutputTabId): string {
-  return tab === 'json' ? 'config.json' : 'config.yaml';
+export function outputFilename(tab: OutputTabId, config: LandingConfig = DEFAULTS): string {
+  if (tab === 'json') {
+    return 'config.json';
+  }
+  if (tab === 'ci') {
+    return ciFilename(config);
+  }
+  return 'config.yaml';
 }
 
 export function copyText(contents: string): void {

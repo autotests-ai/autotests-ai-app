@@ -56,6 +56,7 @@ import {
   TEST_LANGUAGES,
   type TestAxis,
   testAxisOptions,
+  toCiYaml,
   toJson,
   toYaml,
 } from '../lib/landing-config';
@@ -128,7 +129,8 @@ export function HomePage() {
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId);
   const json = toJson(config, vectorId);
-  const activeOutput = activeTab === 'json' ? json : yaml;
+  const ci = toCiYaml(config, vectorId);
+  const activeOutput = activeTab === 'json' ? json : activeTab === 'ci' ? ci : yaml;
   const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
   const highlightedHtml = highlightOutput(activeOutput, highlightKind);
 
@@ -680,7 +682,7 @@ export function HomePage() {
                   {
                     icon: <IconDownload />,
                     label: 'Скачать',
-                    onClick: () => downloadText(activeOutput, outputFilename(activeTab)),
+                    onClick: () => downloadText(activeOutput, outputFilename(activeTab, config)),
                     'data-testid': 'landing-terminal-download',
                   },
                   {
