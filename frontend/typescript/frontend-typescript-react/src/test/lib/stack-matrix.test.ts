@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ALLURE_AWESOME_LATEST,
+  allureModuleHref,
+  allureSearchQuery,
+  allureTestsHref,
+  allureTestsSearchQuery,
   apiDocsHref,
   assignLocation,
+  COMPONENT_ROW_LAYERS,
   COMPONENT_RTL_PATH,
+  CRYSTAL_ROW_LAYERS,
   comboHref,
   componentTestsMeta,
   componentTestsPath,
@@ -15,6 +22,7 @@ import {
   GITHUB_TREE_BASE,
   githubModuleHref,
   isOpenable,
+  localComponentTestsPath,
   parseMount,
   parseStackQuery,
   parseTestsId,
@@ -194,6 +202,77 @@ describe('stack-matrix helpers', () => {
     expect(apiDocsHref('backend-python-flask')).toBe('/stack/backend-python-flask/api/docs');
   });
 
+  it('builds Allure awesome hrefs filtered by searchable tokens', () => {
+    expect(ALLURE_AWESOME_LATEST).toContain('reports.autotests.ai');
+    expect(allureModuleHref(null)).toBe(null);
+    expect(allureModuleHref('')).toBe(null);
+    expect(allureModuleHref('tests-java-gradle-junit5-allure3-selenide')).toBe(null);
+    expect(allureModuleHref('backend-java-spring?x=1')).toBe(null);
+    expect(allureSearchQuery('backend-java-spring', { language: 'java' })).toBe(
+      'dev.multistack.app',
+    );
+    expect(allureModuleHref('backend-java-spring', { language: 'java' })).toBe(
+      `${ALLURE_AWESOME_LATEST}?query=dev.multistack.app`,
+    );
+    expect(allureModuleHref('backend-python-flask', { language: 'python' })).toBe(
+      `${ALLURE_AWESOME_LATEST}?query=backend-python-flask`,
+    );
+    expect(allureModuleHref('frontend-typescript-react')).toBe(
+      `${ALLURE_AWESOME_LATEST}?query=frontend-typescript-react`,
+    );
+    expect(COMPONENT_ROW_LAYERS).toEqual(['component']);
+    expect(CRYSTAL_ROW_LAYERS).toEqual(['crystal']);
+  });
+
+  it('builds Allure hrefs for tests-column suites', () => {
+    expect(allureTestsSearchQuery(null)).toBe(null);
+    expect(allureTestsSearchQuery({ id: 'backend-java-spring' })).toBe(null);
+    expect(allureTestsSearchQuery({ id: 'tests-java-x?x=1', language: 'java' })).toBe(null);
+    expect(allureTestsSearchQuery({ id: 'tests-java-x/../y', language: 'java' })).toBe(null);
+    expect(
+      allureTestsSearchQuery({
+        id: 'tests-java-gradle-junit5-allure3-selenide',
+        language: 'java',
+        layers: ['api', 'e2e'],
+      }),
+    ).toBe('tests');
+    expect(
+      allureTestsSearchQuery({
+        id: 'tests-java-gradle-junit5-allure3-restassured',
+        language: 'java',
+        layers: ['api'],
+      }),
+    ).toBe('tests.api');
+    expect(
+      allureTestsSearchQuery({
+        id: 'tests-java-gradle-junit5-allure3-selenium',
+        language: 'java',
+        layers: ['e2e'],
+      }),
+    ).toBe('tests.e2e');
+    expect(allureTestsSearchQuery({ id: 'tests-java-empty', language: 'java' })).toBe('tests');
+    expect(
+      allureTestsSearchQuery({ id: 'tests-kotlin-x', language: 'kotlin', layers: ['e2e'] }),
+    ).toBe('tests.e2e');
+    expect(allureTestsSearchQuery({ id: 'tests-python-pytest', language: 'python' })).toBe(
+      'tests-python-pytest',
+    );
+    expect(
+      allureTestsHref({
+        id: 'tests-java-gradle-junit5-allure3-selenide',
+        language: 'java',
+        layers: ['api', 'e2e'],
+      }),
+    ).toBe(`${ALLURE_AWESOME_LATEST}?query=tests`);
+    expect(
+      allureTestsHref({
+        id: 'tests-java-gradle-junit5-allure3-selenium',
+        language: 'java',
+        layers: ['e2e'],
+      }),
+    ).toBe(`${ALLURE_AWESOME_LATEST}?query=tests.e2e`);
+  });
+
   it('derives unit and component test paths', () => {
     expect(unitTestsPath(null)).toBe(null);
     expect(unitTestsPath({ id: 'backend-x' })).toBe(null);
@@ -232,6 +311,14 @@ describe('stack-matrix helpers', () => {
         module: 'frontend/javascript/frontend-javascript-vanilla',
       }),
     ).toBe(COMPONENT_RTL_PATH);
+    expect(
+      localComponentTestsPath({
+        id: 'frontend-javascript-vanilla',
+        kind: 'static',
+        module: 'frontend/javascript/frontend-javascript-vanilla',
+      }),
+    ).toBe(null);
+    expect(localComponentTestsPath(null)).toBe(null);
     expect(componentTestsPath(null)).toBe(COMPONENT_RTL_PATH);
     expect(
       componentTestsPath({
@@ -309,6 +396,43 @@ describe('stack-matrix helpers', () => {
         tests: undefined,
       }),
     ).toEqual({ backends: [], frontends: [], tests: [] });
+    expect(
+      summarizeMatrix({
+        backends: [],
+        frontends: [],
+        tests: [
+          { id: 'tests-java-gradle-junit5-allure3-selenide', layers: ['api', 'e2e'] },
+          { id: 'tests-go-cdp', layers: ['crystal'], in_stack: false },
+          { id: 'tests-go-cdp-sync-leak', layers: ['crystal'] },
+        ],
+      }).tests.map((t) => t.id),
+    ).toEqual(['tests-java-gradle-junit5-allure3-selenide']);
+    expect(
+      resolveTestsId(
+        {
+          backends: [],
+          frontends: [],
+          tests: [
+            { id: 'tests-go-cdp', layers: ['crystal'], in_stack: false },
+            { id: 'tests-javascript-playwright', status: 'active', layers: ['api', 'e2e'] },
+          ],
+        },
+        'tests-go-cdp',
+      ),
+    ).toBe('tests-javascript-playwright');
+    expect(
+      resolveTestsId(
+        {
+          backends: [],
+          frontends: [],
+          tests: [
+            { id: 'tests-go-cdp', status: 'slot', layers: CRYSTAL_ROW_LAYERS },
+            { id: 'tests-typescript-playwright', status: 'active', layers: ['api', 'e2e'] },
+          ],
+        },
+        'tests-go-cdp',
+      ),
+    ).toBe('tests-typescript-playwright');
   });
 
   it('fetches matrix.json and throws on HTTP errors', async () => {

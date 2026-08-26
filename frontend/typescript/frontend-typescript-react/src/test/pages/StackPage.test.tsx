@@ -53,9 +53,24 @@ const MATRIX: StackMatrix = {
       module: 'tests/java/tests-java-gradle-junit5-allure3-selenide',
       layers: ['api', 'e2e'],
     },
+    {
+      id: 'tests-java-gradle-junit5-allure3-selenium',
+      status: 'slot',
+      language: 'java',
+      module: 'tests/java/tests-java-gradle-junit5-allure3-selenium',
+      layers: ['e2e'],
+    },
     { id: 'tests-no-layers', status: 'stub' },
     { id: 'tests-bare' },
     { id: 'tests-slot', status: 'slot' },
+    {
+      id: 'tests-go-cdp',
+      status: 'slot',
+      language: 'go',
+      module: 'tests/go/tests-go-cdp',
+      layers: ['crystal'],
+      in_stack: false,
+    },
   ],
 };
 
@@ -124,6 +139,50 @@ describe('StackPage', () => {
       '/stack/backend-python-flask/api/docs',
     );
     expect(screen.queryByTestId('stack-api-backend-go-slot')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-tests-src-backend-backend-java-spring')).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/backend/java/backend-java-spring/src/test',
+    );
+    expect(screen.getByTestId('stack-allure-backend-backend-java-spring')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=dev.multistack.app',
+    );
+    expect(
+      screen.getByTestId('stack-tests-src-frontend-frontend-typescript-react'),
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/frontend/typescript/frontend-typescript-react/src/test',
+    );
+    expect(screen.getByTestId('stack-allure-frontend-frontend-typescript-react')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-typescript-react',
+    );
+    expect(screen.getByTestId('stack-allure-tests-unit')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=dev.multistack.app',
+    );
+    expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-typescript-react',
+    );
+    expect(
+      screen.getByTestId('stack-allure-tests-tests-java-gradle-junit5-allure3-selenide'),
+    ).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests',
+    );
+    expect(
+      screen.getByTestId('stack-allure-tests-tests-java-gradle-junit5-allure3-selenium'),
+    ).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests.e2e',
+    );
+    expect(screen.queryByTestId('stack-allure-tests-tests-slot')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-allure-tests-tests-no-layers')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-allure-tests-tests-go-cdp')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-tests-src-backend-backend-go-slot')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-allure-backend-backend-go-slot')).not.toBeInTheDocument();
     expect(bindStackHeaderPoll).toHaveBeenCalled();
   });
 
@@ -202,6 +261,11 @@ describe('StackPage', () => {
       expect(screen.getByTestId('stack-tests-unit').tagName).toBe('SPAN');
     });
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('unit');
+    expect(screen.queryByTestId('stack-allure-tests-unit')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-typescript-react',
+    );
     expect(screen.getByTestId('stack-tests-tests-slot')).toHaveClass('is-active');
     expect(screen.getByTestId('stack-backend-backend-go-slot')).toHaveClass('is-active');
     expect(screen.getByTestId('stack-frontend-frontend-slot')).toHaveClass('is-active');
@@ -252,6 +316,10 @@ describe('StackPage', () => {
       'href',
       '/stack/backend-java-spring/frontend-javascript-vue/?tests=tests-java-gradle-junit5-allure3-selenide',
     );
+    expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-javascript-vue',
+    );
   });
 
   it('uses path pair hrefs off the hub', async () => {
@@ -266,6 +334,10 @@ describe('StackPage', () => {
       '/stack/backend-python-flask/frontend-typescript-react/',
     );
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('backend-python-flask/tests');
+    expect(screen.getByTestId('stack-allure-tests-unit')).toHaveAttribute(
+      'href',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=backend-python-flask',
+    );
   });
 
   it('assigns the hub row when the row is clicked outside a link', async () => {
@@ -290,6 +362,12 @@ describe('StackPage', () => {
     screen.getByTestId('stack-backend-backend-python-flask').click();
     expect(assign).not.toHaveBeenCalled();
     screen.getByTestId('stack-api-backend-python-flask').click();
+    expect(assign).not.toHaveBeenCalled();
+    screen.getByTestId('stack-tests-src-backend-backend-python-flask').click();
+    expect(assign).not.toHaveBeenCalled();
+    screen.getByTestId('stack-allure-backend-backend-python-flask').click();
+    expect(assign).not.toHaveBeenCalled();
+    screen.getByTestId('stack-allure-tests-unit').click();
     expect(assign).not.toHaveBeenCalled();
     assign.mockRestore();
   });

@@ -126,79 +126,89 @@
   font-size: var(--font-size-sm, 0.9rem);
 }
 
-/* Same Module / GH / Status / Open track weights in frontend board */
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(1),
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(1) {
-  width: 52%;
+/* Same Module / GH / Tests / Allure / Status / Open track weights in frontend board */
+.stack-page__table--frontend th:nth-child(1),
+.stack-page__table--frontend td:nth-child(1) {
+  width: 44%;
 }
 
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(2),
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(2) {
+.stack-page__table--frontend th:nth-child(2),
+.stack-page__table--frontend td:nth-child(2),
+.stack-page__table--frontend th:nth-child(3),
+.stack-page__table--frontend td:nth-child(3),
+.stack-page__table--frontend th:nth-child(4),
+.stack-page__table--frontend td:nth-child(4) {
   width: 3rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(3),
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(3) {
-  width: 22%;
-}
-
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(4),
-.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(4) {
+.stack-page__table--frontend th:nth-child(5),
+.stack-page__table--frontend td:nth-child(5) {
   width: 20%;
 }
 
-/* Backend: Module / GH / API / Status / Open */
+.stack-page__table--frontend th:nth-child(6),
+.stack-page__table--frontend td:nth-child(6) {
+  width: 18%;
+}
+
+/* Backend: Module / GH / API / Tests / Allure / Status / Open */
 .stack-page__table--backend th:nth-child(1),
 .stack-page__table--backend td:nth-child(1) {
-  width: 46%;
+  width: 36%;
 }
 
 .stack-page__table--backend th:nth-child(2),
 .stack-page__table--backend td:nth-child(2),
 .stack-page__table--backend th:nth-child(3),
-.stack-page__table--backend td:nth-child(3) {
+.stack-page__table--backend td:nth-child(3),
+.stack-page__table--backend th:nth-child(4),
+.stack-page__table--backend td:nth-child(4),
+.stack-page__table--backend th:nth-child(5),
+.stack-page__table--backend td:nth-child(5) {
   width: 3rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
-.stack-page__table--backend th:nth-child(4),
-.stack-page__table--backend td:nth-child(4) {
-  width: 20%;
-}
-
-.stack-page__table--backend th:nth-child(5),
-.stack-page__table--backend td:nth-child(5) {
+.stack-page__table--backend th:nth-child(6),
+.stack-page__table--backend td:nth-child(6) {
   width: 18%;
 }
 
-/* Tests: Module / Layers / GH / Status / Select */
+.stack-page__table--backend th:nth-child(7),
+.stack-page__table--backend td:nth-child(7) {
+  width: 16%;
+}
+
+/* Tests: Module / Layers / GH / Allure / Status / Select */
 .stack-page__table--tests th:nth-child(1),
 .stack-page__table--tests td:nth-child(1) {
-  width: 38%;
+  width: 36%;
 }
 
 .stack-page__table--tests th:nth-child(2),
 .stack-page__table--tests td:nth-child(2) {
-  width: 28%;
+  width: 22%;
 }
 
 .stack-page__table--tests th:nth-child(3),
-.stack-page__table--tests td:nth-child(3) {
+.stack-page__table--tests td:nth-child(3),
+.stack-page__table--tests th:nth-child(4),
+.stack-page__table--tests td:nth-child(4) {
   width: 3rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
-.stack-page__table--tests th:nth-child(4),
-.stack-page__table--tests td:nth-child(4) {
+.stack-page__table--tests th:nth-child(5),
+.stack-page__table--tests td:nth-child(5) {
   width: 16%;
 }
 
-.stack-page__table--tests th:nth-child(5),
-.stack-page__table--tests td:nth-child(5) {
+.stack-page__table--tests th:nth-child(6),
+.stack-page__table--tests td:nth-child(6) {
   width: 15%;
 }
 

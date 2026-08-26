@@ -1,15 +1,53 @@
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { extname, resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const reactUiSrc = resolve(__dirname, 'vendor/react-ui/src/index.ts');
+const dsRoot = resolve(__dirname, 'vendor/ds');
 const mountBase = '/';
+
+const DS_MIME: Record<string, string> = {
+  '.js': 'text/javascript',
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css',
+};
+
+/** Compose overlay in prod. Vite-dev needs the same /js + /templates URLs. */
+function serveVendorDs(): Plugin {
+  return {
+    name: 'serve-vendor-ds',
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url || '').split('?')[0];
+        const prefix = url.startsWith('/js/')
+          ? '/js/'
+          : url.startsWith('/templates/')
+            ? '/templates/'
+            : '';
+        if (!prefix) {
+          next();
+          return;
+        }
+        const rel = url.slice(1);
+        const file = resolve(dsRoot, rel);
+        if (!file.startsWith(dsRoot) || !existsSync(file)) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', DS_MIME[extname(file)] || 'application/octet-stream');
+        res.end(readFileSync(file));
+      });
+    },
+  };
+}
 
 export default defineConfig({
   root: resolve(__dirname),
   base: mountBase,
   plugins: [
+    serveVendorDs(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',

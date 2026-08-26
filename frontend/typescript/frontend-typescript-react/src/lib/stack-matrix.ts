@@ -54,6 +54,8 @@ export interface TestsModule {
   language?: string;
   module?: string;
   layers?: string[];
+  /** Hub `in_stack: false` — IR mill, omit from /stack/ Tests board. */
+  in_stack?: boolean;
 }
 
 export interface StackMatrix {
@@ -178,6 +180,71 @@ export function apiDocsHref(backendId: string | null | undefined): string | null
   return `${STACK_PREFIX}/${id}/api/docs`;
 }
 
+/** Latest merged Allure 3 awesome report (GitHub Pages). */
+export const ALLURE_AWESOME_LATEST =
+  'https://reports.autotests.ai/reports/latest/awesome/index.html';
+
+/**
+ * Awesome `?query=` token. Plugin search-index indexes a label allowlist
+ * (owner/suite/package/…) and **omits** `module` / `layer`, so matrix ids do
+ * not match Java results. Use strings that actually appear in fullName/package:
+ * frontend id prefix, Java/Kotlin `dev.multistack.app` (excludes tests.api / tests.e2e).
+ */
+export function allureSearchQuery(
+  moduleId: string | null | undefined,
+  options?: { language?: string },
+): string | null {
+  if (!moduleId) return null;
+  const id = String(moduleId);
+  if (!id.startsWith('backend-') && !id.startsWith('frontend-')) return null;
+  if (/[/?#]/.test(id) || id.includes('..')) return null;
+  if (id.startsWith('frontend-')) return id;
+  const language = options?.language;
+  if (language === 'java' || language === 'kotlin') return 'dev.multistack.app';
+  return id;
+}
+
+/**
+ * Awesome tree filtered to in-module tests (backend: unit + integration, not e2e;
+ * frontend: component).
+ */
+export function allureQueryHref(query: string | null | undefined): string | null {
+  if (!query) return null;
+  const q = String(query);
+  if (!q || /[/?#]/.test(q) || q.includes('..')) return null;
+  return `${ALLURE_AWESOME_LATEST}?query=${encodeURIComponent(q)}`;
+}
+
+export function allureModuleHref(
+  moduleId: string | null | undefined,
+  options?: { language?: string },
+): string | null {
+  return allureQueryHref(allureSearchQuery(moduleId, options));
+}
+
+/**
+ * Tests-column suites live under `tests.<layer>…` packages (Java/Kotlin).
+ * `tests` matches both api and e2e; a single layer uses `tests.api` / `tests.e2e`.
+ */
+export function allureTestsSearchQuery(item: TestsModule | null | undefined): string | null {
+  if (!item?.id) return null;
+  const id = String(item.id);
+  if (!id.startsWith('tests-') || /[/?#]/.test(id) || id.includes('..')) return null;
+  if (item.language === 'java' || item.language === 'kotlin') {
+    const layers = item.layers || [];
+    const hasApi = layers.includes('api');
+    const hasE2e = layers.includes('e2e');
+    if (hasApi && !hasE2e) return 'tests.api';
+    if (hasE2e && !hasApi) return 'tests.e2e';
+    return 'tests';
+  }
+  return id;
+}
+
+export function allureTestsHref(item: TestsModule | null | undefined): string | null {
+  return allureQueryHref(allureTestsSearchQuery(item));
+}
+
 export function findModuleById(
   items: Array<{ id: string; module?: string }>,
   id: string | null,
@@ -197,6 +264,21 @@ export function findById<T extends { id: string }>(
 /** Pyramid layers hosted in the backend test tree (not tests/<lang>/). */
 export const UNIT_ROW_LAYERS: string[] = ['unit', 'integration'];
 
+/** Pyramid layer hosted in a SPA frontend test tree. */
+export const COMPONENT_ROW_LAYERS: string[] = ['component'];
+
+/**
+ * Reserved 4th Tests-board column: IR mill (`layers: [crystal]`, hub `in_stack: false`).
+ * Do not render until product asks — hub sync omits those modules from matrix.json.
+ */
+export const CRYSTAL_ROW_LAYERS: string[] = ['crystal'];
+
+function isTestsBoardRow(item: TestsModule): boolean {
+  if (item.in_stack === false) return false;
+  const layers = item.layers || [];
+  return !CRYSTAL_ROW_LAYERS.some((layer) => layers.includes(layer));
+}
+
 /** Unit tests live inside the selected backend module (not under tests/). */
 export function unitTestsPath(backend: BackendModule | null): string | null {
   if (!backend?.module) return null;
@@ -208,21 +290,20 @@ export function unitTestsPath(backend: BackendModule | null): string | null {
 export const COMPONENT_RTL_PATH = 'frontend/typescript/frontend-typescript-react/src/test';
 
 /**
+ * Local component suite for a frontend row. Static FE has no in-module tests —
+ * do not fall back to another module (that belongs on the Tests board).
+ */
+export function localComponentTestsPath(frontend: FrontendModule | null): string | null {
+  if (!frontend?.module || frontend.kind === 'static') return null;
+  return `${frontend.module}/src/test`;
+}
+
+/**
  * Component / RTL tests — selected React FE `src/test`, else canonical
  * frontend-typescript-react RTL (static FE has no local component suite).
  */
 export function componentTestsPath(frontend: FrontendModule | null): string {
-  if (
-    frontend?.module &&
-    frontend.kind !== 'static' &&
-    String(frontend.id || '').includes('react')
-  ) {
-    return `${frontend.module}/src/test`;
-  }
-  if (frontend?.module && frontend.kind !== 'static') {
-    return `${frontend.module}/src/test`;
-  }
-  return COMPONENT_RTL_PATH;
+  return localComponentTestsPath(frontend) || COMPONENT_RTL_PATH;
 }
 
 /** Short label for Module column (`frontend-typescript-react/src/test`). */
@@ -252,7 +333,7 @@ export function componentTestsMeta(path: string | null | undefined): string {
 }
 
 export function resolveTestsId(data: StackMatrix, requested: string | null): string | null {
-  const tests = data.tests ?? [];
+  const tests = (data.tests ?? []).filter(isTestsBoardRow);
   if (requested && tests.some((t) => t.id === requested)) return requested;
   const active = tests.filter((t) => isOpenable(t.status || 'active'));
   const withApi = active.find((t) => (t.layers || []).includes('api'));
@@ -263,7 +344,7 @@ export function summarizeMatrix(data: StackMatrix) {
   return {
     backends: data.backends ?? [],
     frontends: data.frontends ?? [],
-    tests: data.tests ?? [],
+    tests: (data.tests ?? []).filter(isTestsBoardRow),
   };
 }
 

@@ -452,7 +452,7 @@ export const TEST_MODULES: readonly TestModule[] = [
     runner: '',
     allure: '',
     ui: 'playwright',
-    status: 'slot',
+    status: 'active',
   },
   {
     id: 'tests-python-selenium',

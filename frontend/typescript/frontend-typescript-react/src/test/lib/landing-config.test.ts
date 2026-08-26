@@ -17,6 +17,7 @@ import {
   frontendFrameworks,
   type LandingConfig,
   outputFilename,
+  TEST_MODULES,
   testAxisOptions,
   toDocument,
   toJson,
@@ -130,8 +131,15 @@ describe('landing-config', () => {
     const vue = applyFrontendFramework(jsFrontend, 'vue');
     expect(vue.frontend).toBe('frontend-javascript-vue');
 
+    expect(TEST_MODULES.find((module) => module.id === 'tests-typescript-playwright')?.status).toBe(
+      'active',
+    );
+    expect(TEST_MODULES.some((module) => module.id === 'tests-go-cdp')).toBe(false);
+
     const jsTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'javascript');
     expect(jsTests.tests).toBe('tests-javascript-playwright');
+    const tsTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'typescript');
+    expect(tsTests.tests).toBe('tests-typescript-playwright');
     expect(jsTests.testsBuild).toBe('');
     const jsDoc = toDocument(jsTests);
     expect(jsDoc.tests).toBe('tests-javascript-playwright');
