@@ -147,6 +147,7 @@
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -176,6 +177,7 @@
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit4-allure2-selenium",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -185,6 +187,7 @@
       "language": "java",
       "module": "tests/java/tests-java-gradle-testng-allure3-selenium",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -214,6 +217,7 @@
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-playwright",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -223,15 +227,17 @@
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-cypress",
       "layers": [
+        "api",
         "e2e"
       ]
     },
     {
       "id": "tests-typescript-playwright",
-      "status": "slot",
+      "status": "active",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-playwright",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -241,6 +247,7 @@
       "language": "python",
       "module": "tests/python/tests-python-selenium",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -250,6 +257,7 @@
       "language": "python",
       "module": "tests/python/tests-python-playwright",
       "layers": [
+        "api",
         "e2e"
       ]
     },
@@ -259,6 +267,17 @@
       "language": "go",
       "module": "tests/go/tests-go-testing-allure3",
       "layers": [
+        "api",
+        "e2e"
+      ]
+    },
+    {
+      "id": "tests-go-cdp",
+      "status": "slot",
+      "language": "go",
+      "module": "tests/go/tests-go-cdp",
+      "layers": [
+        "api",
         "e2e"
       ]
     }
