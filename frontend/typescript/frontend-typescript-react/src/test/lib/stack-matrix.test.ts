@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  apiDocsHref,
   assignLocation,
   COMPONENT_RTL_PATH,
   comboHref,
@@ -182,6 +183,15 @@ describe('stack-matrix helpers', () => {
     expect(findById(undefined, 'backend-java-spring')).toBe(null);
     expect(findById(items, 'backend-java-spring')?.id).toBe('backend-java-spring');
     expect(findById(items, 'missing')).toBe(null);
+  });
+
+  it('builds Swagger UI hrefs per backend id', () => {
+    expect(apiDocsHref(null)).toBe(null);
+    expect(apiDocsHref('')).toBe(null);
+    expect(apiDocsHref('frontend-typescript-react')).toBe(null);
+    expect(apiDocsHref('backend-java-spring/../x')).toBe(null);
+    expect(apiDocsHref('backend-java-spring?x=1')).toBe(null);
+    expect(apiDocsHref('backend-python-flask')).toBe('/stack/backend-python-flask/api/docs');
   });
 
   it('derives unit and component test paths', () => {

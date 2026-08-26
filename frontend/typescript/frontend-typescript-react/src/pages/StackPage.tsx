@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { appPath } from '../lib/appBase';
 import { bindStackHeaderPoll } from '../lib/header-poll';
 import {
+  apiDocsHref,
   assignLocation,
   type BackendModule,
   componentTestsMeta,
@@ -54,6 +55,24 @@ function GitHubMark() {
   );
 }
 
+function SwaggerMark() {
+  return (
+    <span className="icon" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
+        <path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" />
+      </svg>
+    </span>
+  );
+}
+
 function GitHubCell({
   modulePath,
   kind,
@@ -78,6 +97,26 @@ function GitHubCell({
       data-testid={`stack-gh-${kind}-${id}`}
     >
       <GitHubMark />
+    </a>
+  );
+}
+
+function ApiDocsCell({ id, openable }: { id: string; openable: boolean }) {
+  const href = openable ? apiDocsHref(id) : null;
+  if (!href) {
+    return <span className="text text--sm text--muted">—</span>;
+  }
+  return (
+    <a
+      className="icon-btn stack-page__gh-icon"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Swagger ${id}`}
+      title="Swagger UI"
+      data-testid={`stack-api-${id}`}
+    >
+      <SwaggerMark />
     </a>
   );
 }
@@ -209,11 +248,12 @@ export function StackPage() {
             bodyClassName="stack-page__board-body"
             className="stack-page__board"
           >
-            <table className="stack-page__table">
+            <table className="stack-page__table stack-page__table--backend">
               <thead>
                 <tr>
                   <th>Module</th>
                   <th className="stack-page__gh-cell">GH</th>
+                  <th className="stack-page__gh-cell">API</th>
                   <th>Status</th>
                   <th>Open</th>
                 </tr>
@@ -262,6 +302,9 @@ export function StackPage() {
                       </td>
                       <td className="stack-page__gh-cell">
                         <GitHubCell modulePath={item.module} kind="backend" id={item.id} />
+                      </td>
+                      <td className="stack-page__gh-cell">
+                        <ApiDocsCell id={item.id} openable={openable} />
                       </td>
                       <td>{statusBadge(item.status)}</td>
                       <td>

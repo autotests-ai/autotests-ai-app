@@ -126,27 +126,52 @@
   font-size: var(--font-size-sm, 0.9rem);
 }
 
-/* Same Module / GH / Status / Open track weights in both boards */
-.stack-page__table:not(.stack-page__table--tests) th:nth-child(1),
-.stack-page__table:not(.stack-page__table--tests) td:nth-child(1) {
+/* Same Module / GH / Status / Open track weights in frontend board */
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(1),
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(1) {
   width: 52%;
 }
 
-.stack-page__table:not(.stack-page__table--tests) th:nth-child(2),
-.stack-page__table:not(.stack-page__table--tests) td:nth-child(2) {
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(2),
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(2) {
   width: 3rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
-.stack-page__table:not(.stack-page__table--tests) th:nth-child(3),
-.stack-page__table:not(.stack-page__table--tests) td:nth-child(3) {
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(3),
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(3) {
   width: 22%;
 }
 
-.stack-page__table:not(.stack-page__table--tests) th:nth-child(4),
-.stack-page__table:not(.stack-page__table--tests) td:nth-child(4) {
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) th:nth-child(4),
+.stack-page__table:not(.stack-page__table--tests):not(.stack-page__table--backend) td:nth-child(4) {
   width: 20%;
+}
+
+/* Backend: Module / GH / API / Status / Open */
+.stack-page__table--backend th:nth-child(1),
+.stack-page__table--backend td:nth-child(1) {
+  width: 46%;
+}
+
+.stack-page__table--backend th:nth-child(2),
+.stack-page__table--backend td:nth-child(2),
+.stack-page__table--backend th:nth-child(3),
+.stack-page__table--backend td:nth-child(3) {
+  width: 3rem;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.stack-page__table--backend th:nth-child(4),
+.stack-page__table--backend td:nth-child(4) {
+  width: 20%;
+}
+
+.stack-page__table--backend th:nth-child(5),
+.stack-page__table--backend td:nth-child(5) {
+  width: 18%;
 }
 
 /* Tests: Module / Layers / GH / Status / Select */

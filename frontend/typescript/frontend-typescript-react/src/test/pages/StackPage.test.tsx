@@ -114,6 +114,16 @@ describe('StackPage', () => {
       'href',
       'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/backend/java/backend-java-spring',
     );
+    expect(screen.getByTestId('stack-api-backend-java-spring')).toHaveAttribute(
+      'href',
+      '/stack/backend-java-spring/api/docs',
+    );
+    expect(screen.getByTestId('stack-api-backend-java-spring')).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('stack-api-backend-python-flask')).toHaveAttribute(
+      'href',
+      '/stack/backend-python-flask/api/docs',
+    );
+    expect(screen.queryByTestId('stack-api-backend-go-slot')).not.toBeInTheDocument();
     expect(bindStackHeaderPoll).toHaveBeenCalled();
   });
 
@@ -278,6 +288,8 @@ describe('StackPage', () => {
       expect(screen.getByTestId('stack-backend-backend-python-flask')).toBeInTheDocument();
     });
     screen.getByTestId('stack-backend-backend-python-flask').click();
+    expect(assign).not.toHaveBeenCalled();
+    screen.getByTestId('stack-api-backend-python-flask').click();
     expect(assign).not.toHaveBeenCalled();
     assign.mockRestore();
   });

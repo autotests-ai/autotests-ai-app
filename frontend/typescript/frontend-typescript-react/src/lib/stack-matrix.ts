@@ -170,6 +170,14 @@ export function githubModuleHref(modulePath: string | null | undefined): string 
   return `${GITHUB_TREE_BASE}/${cleaned}`;
 }
 
+/** Swagger UI for a teaching backend — `/stack/{backend}/api/docs`. */
+export function apiDocsHref(backendId: string | null | undefined): string | null {
+  if (!backendId) return null;
+  const id = String(backendId);
+  if (!id.startsWith('backend-') || /[/?#]/.test(id) || id.includes('..')) return null;
+  return `${STACK_PREFIX}/${id}/api/docs`;
+}
+
 export function findModuleById(
   items: Array<{ id: string; module?: string }>,
   id: string | null,
