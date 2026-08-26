@@ -183,6 +183,12 @@ describe('StackPage', () => {
     expect(screen.queryByTestId('stack-allure-tests-tests-go-cdp')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-src-backend-backend-go-slot')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-backend-backend-go-slot')).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId('stack-backend-backend-java-spring')
+        .closest('table')
+        ?.querySelector('.stack-page__open'),
+    ).toBeNull();
     expect(bindStackHeaderPoll).toHaveBeenCalled();
   });
 

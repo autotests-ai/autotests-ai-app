@@ -153,10 +153,10 @@
   width: 18%;
 }
 
-/* Backend: Module / GH / API / Tests / Allure / Status / Open */
+/* Backend: Module / GH / API / Tests / Allure / Status */
 .stack-page__table--backend th:nth-child(1),
 .stack-page__table--backend td:nth-child(1) {
-  width: 36%;
+  width: 44%;
 }
 
 .stack-page__table--backend th:nth-child(2),
@@ -174,12 +174,7 @@
 
 .stack-page__table--backend th:nth-child(6),
 .stack-page__table--backend td:nth-child(6) {
-  width: 18%;
-}
-
-.stack-page__table--backend th:nth-child(7),
-.stack-page__table--backend td:nth-child(7) {
-  width: 16%;
+  width: 20%;
 }
 
 /* Tests: Module / Layers / GH / Allure / Status / Select */

@@ -427,7 +427,6 @@ export function StackPage() {
                   <th className="stack-page__gh-cell">Tests</th>
                   <th className="stack-page__gh-cell">Allure</th>
                   <th>Status</th>
-                  <th>Open</th>
                 </tr>
               </thead>
               <tbody>
@@ -497,19 +496,6 @@ export function StackPage() {
                         />
                       </td>
                       <td>{statusBadge(item.status)}</td>
-                      <td>
-                        {openable ? (
-                          <Link
-                            className="stack-page__open"
-                            active={current}
-                            href={rowHref('backend', item)}
-                          >
-                            open →
-                          </Link>
-                        ) : (
-                          <span className="text text--sm text--muted">—</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
