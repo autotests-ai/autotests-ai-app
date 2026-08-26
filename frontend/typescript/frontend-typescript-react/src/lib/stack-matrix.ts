@@ -54,8 +54,9 @@ export interface TestsModule {
   language?: string;
   module?: string;
   layers?: string[];
-  /** Hub `in_stack: false` — IR mill, omit from /stack/ Tests board. */
+  /** Hub mill `in_stack: true` — 4th Tests-board crystal row. `false` omits it. */
   in_stack?: boolean;
+  role?: string;
 }
 
 export interface StackMatrix {
@@ -268,15 +269,36 @@ export const UNIT_ROW_LAYERS: string[] = ['unit', 'integration'];
 export const COMPONENT_ROW_LAYERS: string[] = ['component'];
 
 /**
- * Reserved 4th Tests-board column: IR mill (`layers: [crystal]`, hub `in_stack: false`).
- * Do not render until product asks — hub sync omits those modules from matrix.json.
+ * 4th Tests-board column: IR mill (`layers: [crystal]`). Shown when hub `in_stack: true`.
+ * Not mixed into the api/e2e list — not a Selenide/PW peer.
  */
 export const CRYSTAL_ROW_LAYERS: string[] = ['crystal'];
 
+function isCrystalMill(item: TestsModule): boolean {
+  return CRYSTAL_ROW_LAYERS.some((layer) => (item.layers || []).includes(layer));
+}
+
 function isTestsBoardRow(item: TestsModule): boolean {
   if (item.in_stack === false) return false;
-  const layers = item.layers || [];
-  return !CRYSTAL_ROW_LAYERS.some((layer) => layers.includes(layer));
+  return !isCrystalMill(item);
+}
+
+/** Pinned crystal mill (`tests-go-cdp`) when the hub asked for the /stack/ column. */
+export function crystalMill(data: StackMatrix): TestsModule | null {
+  const mills = (data.tests ?? []).filter((item) => item.in_stack === true && isCrystalMill(item));
+  return mills.find((item) => item.id === 'tests-go-cdp') ?? mills[0] ?? null;
+}
+
+/** IR JSON for the mill — not Go page objects. */
+export function crystalTestsPath(item: TestsModule | null): string | null {
+  if (!item?.module) return null;
+  return `${item.module}/crystals`;
+}
+
+/** Meta under crystal row — mill caption (path is the Module label). */
+export function crystalTestsMeta(item: TestsModule | null): string {
+  if (!item) return 'IR mill';
+  return 'greedy run';
 }
 
 /** Unit tests live inside the selected backend module (not under tests/). */
@@ -311,7 +333,8 @@ export function shortModuleLabel(path: string | null | undefined): string {
   if (!path) return '';
   return String(path)
     .replace(/^frontend\/(?:javascript|typescript)\//, '')
-    .replace(/^backend\/(?:java|kotlin|python|go)\//, '');
+    .replace(/^backend\/(?:java|kotlin|python|go)\//, '')
+    .replace(/^tests\/(?:java|kotlin|python|go|javascript|typescript)\//, '');
 }
 
 /** Meta under unit row — framework caption (path is the Module label). */
@@ -345,6 +368,7 @@ export function summarizeMatrix(data: StackMatrix) {
     backends: data.backends ?? [],
     frontends: data.frontends ?? [],
     tests: (data.tests ?? []).filter(isTestsBoardRow),
+    crystal: crystalMill(data),
   };
 }
 

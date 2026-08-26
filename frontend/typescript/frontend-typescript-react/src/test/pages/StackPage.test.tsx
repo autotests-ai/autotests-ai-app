@@ -69,7 +69,7 @@ const MATRIX: StackMatrix = {
       language: 'go',
       module: 'tests/go/tests-go-cdp',
       layers: ['crystal'],
-      in_stack: false,
+      in_stack: true,
     },
   ],
 };
@@ -180,7 +180,12 @@ describe('StackPage', () => {
     expect(screen.queryByTestId('stack-allure-tests-tests-slot')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-tests-tests-no-layers')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('stack-allure-tests-tests-go-cdp')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-tests-crystal')).toHaveTextContent('tests-go-cdp/crystals');
+    expect(screen.getByTestId('stack-gh-tests-crystal')).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/tests/go/tests-go-cdp/crystals',
+    );
+    expect(screen.queryByTestId('stack-allure-tests-crystal')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-src-backend-backend-go-slot')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-backend-backend-go-slot')).not.toBeInTheDocument();
     expect(
@@ -376,6 +381,26 @@ describe('StackPage', () => {
     screen.getByTestId('stack-allure-tests-unit').click();
     expect(assign).not.toHaveBeenCalled();
     assign.mockRestore();
+  });
+
+  it('hides the crystal mill when in_stack is false', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        jsonOk({
+          ...MATRIX,
+          tests: MATRIX.tests.map((item) =>
+            item.id === 'tests-go-cdp' ? { ...item, in_stack: false } : item,
+          ),
+        }),
+      ),
+    );
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-tests-board')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('stack-tests-crystal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
   });
 
   it('polls by reusing the header tick callback', async () => {

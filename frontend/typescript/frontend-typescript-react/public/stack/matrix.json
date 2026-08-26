@@ -139,7 +139,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "canon"
     },
     {
       "id": "tests-java-gradle-junit5-allure3-selenium",
@@ -149,7 +150,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-java-gradle-junit5-allure2-selenide",
@@ -159,7 +161,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-java-gradle-junit5-no_allure-selenide",
@@ -169,7 +172,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-java-gradle-junit4-allure2-selenium",
@@ -179,7 +183,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-java-gradle-testng-allure3-selenium",
@@ -189,7 +194,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-java-maven-junit5-allure3-selenide",
@@ -199,7 +205,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-kotlin-gradle-junit5-allure3-selenide",
@@ -209,7 +216,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-javascript-playwright",
@@ -219,7 +227,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "living"
     },
     {
       "id": "tests-javascript-cypress",
@@ -229,7 +238,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-typescript-playwright",
@@ -239,7 +249,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "living"
     },
     {
       "id": "tests-python-selenium",
@@ -249,7 +260,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "living"
     },
     {
       "id": "tests-python-playwright",
@@ -259,7 +271,8 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-go-testing-allure3",
@@ -269,7 +282,19 @@
       "layers": [
         "api",
         "e2e"
-      ]
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-go-cdp",
+      "status": "slot",
+      "language": "go",
+      "module": "tests/go/tests-go-cdp",
+      "layers": [
+        "crystal"
+      ],
+      "in_stack": true,
+      "role": "mill"
     }
   ]
 }

@@ -13,6 +13,9 @@ import {
   comboHref,
   componentTestsMeta,
   componentTestsPath,
+  crystalMill,
+  crystalTestsMeta,
+  crystalTestsPath,
   DEFAULT_STACK_BACKEND,
   DEFAULT_STACK_FRONTEND,
   effectiveStackPair,
@@ -337,6 +340,7 @@ describe('stack-matrix helpers', () => {
     expect(shortModuleLabel('backend/java/backend-java-spring/src/test')).toBe(
       'backend-java-spring/src/test',
     );
+    expect(shortModuleLabel('tests/go/tests-go-cdp/crystals')).toBe('tests-go-cdp/crystals');
     expect(unitTestsMeta(null)).toBe('pick a backend');
     expect(unitTestsMeta({ id: 'b', language: 'python' })).toBe('pytest');
     expect(unitTestsMeta({ id: 'b', language: 'java' })).toBe('junit5');
@@ -388,6 +392,7 @@ describe('stack-matrix helpers', () => {
       backends: [],
       frontends: [],
       tests: [],
+      crystal: null,
     });
     expect(
       summarizeMatrix({
@@ -395,7 +400,7 @@ describe('stack-matrix helpers', () => {
         frontends: undefined as unknown as StackMatrix['frontends'],
         tests: undefined,
       }),
-    ).toEqual({ backends: [], frontends: [], tests: [] });
+    ).toEqual({ backends: [], frontends: [], tests: [], crystal: null });
     expect(
       summarizeMatrix({
         backends: [],
@@ -407,6 +412,52 @@ describe('stack-matrix helpers', () => {
         ],
       }).tests.map((t) => t.id),
     ).toEqual(['tests-java-gradle-junit5-allure3-selenide']);
+    expect(
+      summarizeMatrix({
+        backends: [],
+        frontends: [],
+        tests: [
+          { id: 'tests-java-gradle-junit5-allure3-selenide', layers: ['api', 'e2e'] },
+          {
+            id: 'tests-go-cdp',
+            status: 'slot',
+            module: 'tests/go/tests-go-cdp',
+            layers: ['crystal'],
+            in_stack: true,
+          },
+          { id: 'tests-go-cdp-sync-leak', layers: ['crystal'] },
+        ],
+      }),
+    ).toEqual({
+      backends: [],
+      frontends: [],
+      tests: [{ id: 'tests-java-gradle-junit5-allure3-selenide', layers: ['api', 'e2e'] }],
+      crystal: {
+        id: 'tests-go-cdp',
+        status: 'slot',
+        module: 'tests/go/tests-go-cdp',
+        layers: ['crystal'],
+        in_stack: true,
+      },
+    });
+    expect(
+      crystalMill({
+        backends: [],
+        frontends: [],
+        tests: [{ id: 'tests-go-cdp', layers: ['crystal'], in_stack: false }],
+      }),
+    ).toBe(null);
+    expect(crystalTestsPath(null)).toBe(null);
+    expect(
+      crystalTestsPath({
+        id: 'tests-go-cdp',
+        module: 'tests/go/tests-go-cdp',
+        layers: ['crystal'],
+        in_stack: true,
+      }),
+    ).toBe('tests/go/tests-go-cdp/crystals');
+    expect(crystalTestsMeta(null)).toBe('IR mill');
+    expect(crystalTestsMeta({ id: 'tests-go-cdp', layers: ['crystal'] })).toBe('greedy run');
     expect(
       resolveTestsId(
         {
@@ -427,6 +478,19 @@ describe('stack-matrix helpers', () => {
           frontends: [],
           tests: [
             { id: 'tests-go-cdp', status: 'slot', layers: CRYSTAL_ROW_LAYERS },
+            { id: 'tests-typescript-playwright', status: 'active', layers: ['api', 'e2e'] },
+          ],
+        },
+        'tests-go-cdp',
+      ),
+    ).toBe('tests-typescript-playwright');
+    expect(
+      resolveTestsId(
+        {
+          backends: [],
+          frontends: [],
+          tests: [
+            { id: 'tests-go-cdp', status: 'slot', layers: CRYSTAL_ROW_LAYERS, in_stack: true },
             { id: 'tests-typescript-playwright', status: 'active', layers: ['api', 'e2e'] },
           ],
         },

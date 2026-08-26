@@ -10,8 +10,11 @@ import {
   assignLocation,
   type BackendModule,
   COMPONENT_ROW_LAYERS,
+  CRYSTAL_ROW_LAYERS,
   componentTestsMeta,
   componentTestsPath,
+  crystalTestsMeta,
+  crystalTestsPath,
   DEFAULT_STACK_FRONTEND,
   effectiveStackPair,
   type FrontendModule,
@@ -329,6 +332,10 @@ export function StackPage() {
   const componentLabel = shortModuleLabel(componentPath);
   const componentAllureId =
     localComponentTestsPath(frontend) && frontend ? frontend.id : DEFAULT_STACK_FRONTEND;
+  const crystal = summary?.crystal ?? null;
+  const crystalPath = crystalTestsPath(crystal);
+  const crystalMeta = crystalTestsMeta(crystal);
+  const crystalLabel = shortModuleLabel(crystalPath) || crystal?.id || 'crystal';
 
   const labelParts: string[] = [];
   if (selection.frontendId && !selection.backendId && !selection.hub) {
@@ -710,6 +717,54 @@ export function StackPage() {
                     <span className="text text--sm text--muted">—</span>
                   </td>
                 </tr>
+
+                {crystal ? (
+                  <tr>
+                    <td>
+                      {githubModuleHref(crystalPath) ? (
+                        <Link
+                          className="stack-page__id"
+                          href={githubModuleHref(crystalPath)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid="stack-tests-crystal"
+                        >
+                          {crystalLabel}
+                        </Link>
+                      ) : (
+                        <span
+                          className="stack-page__id stack-page__id--disabled"
+                          data-testid="stack-tests-crystal"
+                        >
+                          {crystalLabel}
+                        </span>
+                      )}
+                      <div className="text text--sm text--muted stack-page__meta">
+                        {crystalMeta}
+                      </div>
+                    </td>
+                    <td className="stack-page__layers-cell">
+                      <span className="stack-page__layers" data-testid="stack-tests-layers">
+                        {layersLabel(CRYSTAL_ROW_LAYERS)}
+                      </span>
+                    </td>
+                    <td className="stack-page__gh-cell">
+                      <GitHubCell modulePath={crystalPath} kind="tests" id="crystal" />
+                    </td>
+                    <td className="stack-page__gh-cell">
+                      <AllureCell
+                        href={null}
+                        id={crystal.id}
+                        layers={CRYSTAL_ROW_LAYERS}
+                        testId="stack-allure-tests-crystal"
+                      />
+                    </td>
+                    <td>{statusBadge(crystal.status)}</td>
+                    <td>
+                      <span className="text text--sm text--muted">—</span>
+                    </td>
+                  </tr>
+                ) : null}
 
                 {summary.tests.map((item) => {
                   const current = item.id === currentTests;
