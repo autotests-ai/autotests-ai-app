@@ -24,7 +24,7 @@ export interface HeaderNavItem {
   label: string;
   active?: boolean;
   testid?: string;
-  /** `host` — env switcher: keep current path, highlight by hostname. Default `path`. */
+  /** `host` — env switcher: highlight by hostname; keep stack board / cell mount, not /login. Default `path`. */
   match?: 'path' | 'host';
 }
 

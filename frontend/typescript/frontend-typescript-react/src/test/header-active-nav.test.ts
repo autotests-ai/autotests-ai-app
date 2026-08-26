@@ -117,6 +117,12 @@ describe('canonical header.js — active nav follows the route', () => {
     expect(ariaCurrentTestids()).toEqual(['header-nav-stack']);
   });
 
+  it('highlights Stack on a nested cell URL, not Home', async () => {
+    await mountAt('/stack/backend-java-spring/frontend-typescript-react/');
+    expect(activeTestids()).toEqual(['header-nav-stack']);
+    expect(ariaCurrentTestids()).toEqual(['header-nav-stack']);
+  });
+
   it('re-syncs on SPA pushState (Home → Stack)', async () => {
     await mountAt('/');
     expect(activeTestids()).toEqual(['header-nav-home']);
@@ -292,14 +298,30 @@ describe('canonical header.js — host-match env switchers', () => {
     expect(activeTestids()).toEqual(['header-nav-home', 'header-nav-here']);
   });
 
-  it('keeps Stage/Prod on env homes after SPA pushState', async () => {
+  it('points Stage/Prod at the stack board after SPA pushState', async () => {
     await mountAt('/');
     window.history.pushState({}, '', '/stack/');
 
     await vi.waitFor(() => {
       const stage = document.querySelector<HTMLAnchorElement>('[data-testid="header-nav-stage"]');
-      expect(stage?.getAttribute('href')).toBe(`${STAGE_ORIGIN}/`);
+      expect(stage?.getAttribute('href')).toBe(`${STAGE_ORIGIN}/stack/`);
     });
+    const prod = document.querySelector<HTMLAnchorElement>('[data-testid="header-nav-prod"]');
+    expect(prod?.getAttribute('href')).toBe(`${PROD_ORIGIN}/stack/`);
+    expect(activeTestids()).toEqual(['header-nav-stack']);
+  });
+
+  it('points Stage/Prod at the cell mount, not /login', async () => {
+    await mountAt('/stack/backend-java-spring/frontend-typescript-react/login');
+
+    const stage = document.querySelector<HTMLAnchorElement>('[data-testid="header-nav-stage"]');
+    const prod = document.querySelector<HTMLAnchorElement>('[data-testid="header-nav-prod"]');
+    expect(stage?.getAttribute('href')).toBe(
+      `${STAGE_ORIGIN}/stack/backend-java-spring/frontend-typescript-react/`,
+    );
+    expect(prod?.getAttribute('href')).toBe(
+      `${PROD_ORIGIN}/stack/backend-java-spring/frontend-typescript-react/`,
+    );
     expect(activeTestids()).toEqual(['header-nav-stack']);
   });
 });

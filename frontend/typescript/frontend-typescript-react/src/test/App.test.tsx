@@ -42,6 +42,27 @@ describe('App', { tags: ['smoke'] }, () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps the stack board on a cell URL instead of the router 404', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ backends: [], frontends: [], tests: [] }),
+        } as Response),
+      ),
+    );
+    renderApp('/stack/backend-java-spring/frontend-typescript-react/');
+    expect(screen.getByTestId('app-header-mount')).toBeInTheDocument();
+    expect(screen.getByTestId('stack-page')).toBeInTheDocument();
+    expect(screen.queryByText(/404 Not Found/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
+    });
+    vi.unstubAllGlobals();
+  });
+
   it('exposes Home + Stack + Stage/Prod without login on apex', () => {
     expect(STACK_INDEX_HREF).toBe('/stack/');
     expect(headerConfig.nav?.map((item) => item.testid)).toEqual([

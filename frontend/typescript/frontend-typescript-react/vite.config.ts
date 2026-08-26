@@ -85,6 +85,9 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /\/api\//,
+          // Cell mounts + swagger live under nginx, not this SPA. A landing SW
+          // that fallbacks them to index.html 404s the board "open →" links.
+          /^\/stack\/(?:backend-|frontend-)/,
           /\.(?:css|js|mjs|map|png|svg|ico|webmanifest|json|woff2?)$/i,
         ],
         cleanupOutdatedCaches: true,

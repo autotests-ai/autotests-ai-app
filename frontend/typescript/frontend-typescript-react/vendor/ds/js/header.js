@@ -160,9 +160,27 @@ function hrefToPathname(href) {
 }
 
 /**
- * Env switcher (`match: 'host'`): keep the configured env home (origin + `/`),
- * highlight by hostname, without participating in exclusive page-nav active.
- * Do not copy the current path — Stage/Prod are stand roots, not page twins.
+ * Path to keep on Stage/Prod. Stack board and cell mount stay twins;
+ * in-app routes (/login, /register) collapse to the cell home — not copied.
+ * @param {string} pathname
+ * @param {string} [search]
+ * @returns {{ pathname: string, search: string }}
+ */
+function envSwitcherTarget(pathname, search) {
+  const current = normalizePathname(pathname);
+  const pair = current.match(/^(\/stack\/backend-[^/]+\/frontend-[^/]+)/);
+  if (pair) {
+    return { pathname: `${pair[1]}/`, search: '' };
+  }
+  if (current === '/stack' || current.startsWith('/stack/')) {
+    return { pathname: '/stack/', search: search || '' };
+  }
+  return { pathname: '/', search: '' };
+}
+
+/**
+ * Env switcher (`match: 'host'`): highlight by hostname. Rewrite href to the
+ * stack board or cell mount on that origin. Never copy /login onto the other stand.
  * @param {HTMLAnchorElement} link
  */
 function syncHostMatchLink(link) {
@@ -172,6 +190,11 @@ function syncHostMatchLink(link) {
   } catch {
     return;
   }
+  const target = envSwitcherTarget(window.location.pathname, window.location.search);
+  url.pathname = target.pathname;
+  url.search = target.search;
+  url.hash = '';
+  link.setAttribute('href', url.toString());
   const isCurrentHost = url.hostname === window.location.hostname;
   link.classList.toggle('is-active', isCurrentHost);
   if (isCurrentHost) {
@@ -182,11 +205,27 @@ function syncHostMatchLink(link) {
 }
 
 /**
+ * `/` is exact-only so Home does not steal `/stack/…`. Other hrefs match
+ * themselves and descendant paths (`/stack` → `/stack/backend-…`).
+ * @param {string | null} hrefPath
+ * @param {string} current
+ */
+function pathMatches(hrefPath, current) {
+  if (!hrefPath) {
+    return false;
+  }
+  if (hrefPath === '/') {
+    return current === '/';
+  }
+  return current === hrefPath || current.startsWith(`${hrefPath}/`);
+}
+
+/**
  * Recompute is-active / aria-current on the rendered nav from the current URL.
  * Exactly one path-matched link is ever marked `aria-current="page"`. Falls back
  * to the config-declared active item (data-header-active) only when no nav href
- * matches the current route. Host-match items (env switchers) keep their
- * configured origin and are highlighted separately. Syncs inline nav and mobile menu.
+ * matches the current route. Longest matching href wins. Host-match items
+ * (env switchers) keep origin, rewrite stack/cell path, and highlight by host.
  * @param {ParentNode} root
  */
 function syncActiveNav(root) {
@@ -205,9 +244,19 @@ function syncActiveNav(root) {
   const hostLinks = links.filter((link) => link.dataset.headerMatch === 'host');
 
   const current = normalizePathname(window.location.pathname);
-  const routeHref = pathLinks
-    .find((link) => hrefToPathname(link.getAttribute('href')) === current)
-    ?.getAttribute('href');
+  let routeHref = null;
+  let bestLen = -1;
+  for (const link of pathLinks) {
+    const hrefPath = hrefToPathname(link.getAttribute('href'));
+    if (!pathMatches(hrefPath, current)) {
+      continue;
+    }
+    const len = hrefPath ? hrefPath.length : 0;
+    if (len > bestLen) {
+      bestLen = len;
+      routeHref = link.getAttribute('href');
+    }
+  }
   const fallbackHref = pathLinks
     .find((link) => link.dataset.headerActive === 'true')
     ?.getAttribute('href');
