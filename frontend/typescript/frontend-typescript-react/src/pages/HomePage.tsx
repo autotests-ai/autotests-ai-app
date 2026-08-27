@@ -14,6 +14,7 @@ import {
   usePlaqueFieldMagnet,
 } from '@zero-design-system/react';
 import { type ChangeEvent, useState } from 'react';
+import { useI18n } from '../i18n';
 import {
   applyBackendFramework,
   applyBackendLanguage,
@@ -119,6 +120,7 @@ function AxisField({
 }
 
 export function HomePage() {
+  const { copy } = useI18n();
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
 
@@ -204,7 +206,11 @@ export function HomePage() {
       >
         <div className="configurator__main">
           <div className="stack stack--lg">
-            <Panel title="Stack" testId="landing-stack-panel" titleTestId="landing-stack-title">
+            <Panel
+              title={copy.home.panelStack}
+              testId="landing-stack-panel"
+              titleTestId="landing-stack-title"
+            >
               <div
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
                 data-testid="landing-stack-stack"
@@ -279,7 +285,11 @@ export function HomePage() {
               </div>
             </Panel>
 
-            <Panel title="Build" testId="landing-build-panel" titleTestId="landing-build-title">
+            <Panel
+              title={copy.home.panelBuild}
+              testId="landing-build-panel"
+              titleTestId="landing-build-title"
+            >
               <div
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
                 data-testid="landing-build-stack"
@@ -349,7 +359,11 @@ export function HomePage() {
               </div>
             </Panel>
 
-            <Panel title="CI" testId="landing-ci-panel" titleTestId="landing-ci-title">
+            <Panel
+              title={copy.home.panelCi}
+              testId="landing-ci-panel"
+              titleTestId="landing-ci-title"
+            >
               <div
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
                 data-testid="landing-ci-stack"
@@ -385,7 +399,7 @@ export function HomePage() {
             </Panel>
 
             <Panel
-              title="Integrations"
+              title={copy.home.panelIntegrations}
               testId="landing-integrations-panel"
               titleTestId="landing-integrations-title"
             >
@@ -428,7 +442,11 @@ export function HomePage() {
               </div>
             </Panel>
 
-            <Panel title="Driver" testId="landing-driver-panel" titleTestId="landing-driver-title">
+            <Panel
+              title={copy.home.panelDriver}
+              testId="landing-driver-panel"
+              titleTestId="landing-driver-title"
+            >
               <div
                 className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
                 data-testid="landing-driver-stack"
@@ -440,8 +458,8 @@ export function HomePage() {
                     value={config.driverEngine}
                     onValueChange={setField('driverEngine')}
                     options={[
-                      { value: 'webdriver', title: 'Selenium WebDriver / Selenoid' },
-                      { value: 'playwright', title: 'Playwright движок' },
+                      { value: 'webdriver', title: copy.home.driverWebdriver },
+                      { value: 'playwright', title: copy.home.driverPlaywright },
                     ]}
                     data-testid="landing-seg-driverEngine"
                   />
@@ -518,7 +536,7 @@ export function HomePage() {
             </Panel>
 
             <Panel
-              title="Remote hub"
+              title={copy.home.panelRemote}
               testId="landing-remote-panel"
               titleTestId="landing-remote-title"
             >
@@ -532,7 +550,7 @@ export function HomePage() {
                     paramId="remoteUrl"
                     labelVariant="param"
                     value={config.remoteUrl}
-                    placeholder="пусто = local driver"
+                    placeholder={copy.home.remotePlaceholder}
                     onChange={setFromInput('remoteUrl')}
                     data-testid="landing-field-remoteUrl"
                   />
@@ -596,7 +614,7 @@ export function HomePage() {
             </Panel>
 
             <Panel
-              title="Console log"
+              title={copy.home.panelConsole}
               testId="landing-console-panel"
               titleTestId="landing-console-title"
             >
@@ -648,7 +666,7 @@ export function HomePage() {
                   <div
                     className="tabs"
                     role="tablist"
-                    aria-label="Формат вывода"
+                    aria-label={copy.home.outputFormat}
                     data-testid="landing-terminal-tabs"
                   >
                     {OUTPUT_TABS.map((tab) => (
@@ -675,19 +693,19 @@ export function HomePage() {
                 actions={[
                   {
                     icon: <IconReset />,
-                    label: 'Сброс',
+                    label: copy.home.reset,
                     onClick: resetConfig,
                     'data-testid': 'landing-terminal-reset',
                   },
                   {
                     icon: <IconDownload />,
-                    label: 'Скачать',
+                    label: copy.home.download,
                     onClick: () => downloadText(activeOutput, outputFilename(activeTab, config)),
                     'data-testid': 'landing-terminal-download',
                   },
                   {
                     icon: <IconCopy />,
-                    label: 'Копировать',
+                    label: copy.home.copy,
                     onClick: () => copyText(activeOutput),
                     'data-testid': 'landing-terminal-copy',
                   },

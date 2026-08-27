@@ -27,6 +27,10 @@ const TEMPLATE_URLS = [
  */
 
 export const HEADER_LANG_CHANGE = 'header:lang-change';
+export const HEADER_THEME_CHANGE = 'header:theme-change';
+
+const LANG_STORAGE_KEY = 'zds-lang';
+const THEME_STORAGE_KEY = 'zds-theme';
 
 /**
  * Keyboard vs pointer focus — SSOT with css/tokens.css
@@ -59,6 +63,7 @@ function installKeyboardFocusIntent() {
 
 if (typeof window !== 'undefined') {
   window.HEADER_LANG_CHANGE = HEADER_LANG_CHANGE;
+  window.HEADER_THEME_CHANGE = HEADER_THEME_CHANGE;
   installKeyboardFocusIntent();
 }
 
@@ -542,10 +547,63 @@ function bindHeaderMenu(root) {
   window.addEventListener('resize', onViewportChange);
 }
 
+/** @param {string} key @returns {string | null} */
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string} key @param {string} value */
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // private mode / blocked storage
+  }
+}
+
+/** @param {string | null | undefined} value @returns {value is 'en' | 'ru'} */
+function isLang(value) {
+  return value === 'en' || value === 'ru';
+}
+
+/** @param {string | null | undefined} value @returns {value is 'light' | 'dark'} */
+function isTheme(value) {
+  return value === 'light' || value === 'dark';
+}
+
+/** @param {HeaderLangConfig | undefined} langConfig @returns {'en' | 'ru'} */
+function resolveLang(langConfig) {
+  const stored = readStorage(LANG_STORAGE_KEY);
+  if (isLang(stored)) {
+    return stored;
+  }
+  return langConfig?.default === 'ru' ? 'ru' : 'en';
+}
+
+/** @param {HeaderThemeConfig | undefined} themeConfig @returns {'light' | 'dark'} */
+function resolveTheme(themeConfig) {
+  const stored = readStorage(THEME_STORAGE_KEY);
+  if (isTheme(stored)) {
+    return stored;
+  }
+  return themeConfig?.default === 'dark' ? 'dark' : 'light';
+}
+
 /** @param {'ru' | 'en'} lang */
 function dispatchLangChange(lang) {
   document.dispatchEvent(
     new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang } })
+  );
+}
+
+/** @param {'light' | 'dark'} theme */
+function dispatchThemeChange(theme) {
+  document.dispatchEvent(
+    new CustomEvent(HEADER_THEME_CHANGE, { detail: { theme } })
   );
 }
 
@@ -571,11 +629,18 @@ function syncAllLangToggles(root, lang) {
   }
 }
 
+/** @param {ParentNode} root @param {'ru' | 'en'} lang */
+function applyLang(root, lang) {
+  const code = lang === 'en' ? 'en' : 'ru';
+  syncAllLangToggles(root, code);
+  document.documentElement.lang = code;
+  writeStorage(LANG_STORAGE_KEY, code);
+  dispatchLangChange(code);
+}
+
 /** @param {ParentNode} root @param {HeaderLangConfig | undefined} langConfig */
 function applyLangDefault(root, langConfig) {
-  const code = langConfig?.default === 'ru' ? 'ru' : 'en';
-  syncAllLangToggles(root, code);
-  dispatchLangChange(code);
+  applyLang(root, resolveLang(langConfig));
 }
 
 /** @param {HTMLElement} themeBtn */
@@ -583,10 +648,32 @@ function setThemeIcon(themeBtn) {
   syncThemeToggleIcon(themeBtn);
 }
 
-/** @param {HeaderThemeConfig | undefined} themeConfig */
-function applyThemeDefault(themeConfig) {
-  const isLight = themeConfig?.default !== 'dark';
-  document.documentElement.classList.toggle('theme-light', isLight);
+/** @param {ParentNode} root */
+function queryThemeToggles(root) {
+  return [...root.querySelectorAll(
+    '[data-testid="header-theme-toggle"], [data-testid="header-menu-theme-toggle"]'
+  )].filter((el) => el instanceof HTMLElement);
+}
+
+/** @param {ParentNode} root */
+function syncAllThemeToggles(root) {
+  for (const themeBtn of queryThemeToggles(root)) {
+    setThemeIcon(themeBtn);
+  }
+}
+
+/** @param {ParentNode} root @param {'light' | 'dark'} theme */
+function applyTheme(root, theme) {
+  const next = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.classList.toggle('theme-light', next === 'light');
+  writeStorage(THEME_STORAGE_KEY, next);
+  syncAllThemeToggles(root);
+  dispatchThemeChange(next);
+}
+
+/** @param {ParentNode} root @param {HeaderThemeConfig | undefined} themeConfig */
+function applyThemeDefault(root, themeConfig) {
+  applyTheme(root, resolveTheme(themeConfig));
 }
 
 async function fetchHeaderTemplate() {
@@ -613,15 +700,7 @@ async function mountHeader() {
   applyHeaderTools(mount, config.tools);
   buildHeaderMenu(mount, config);
   applyLangDefault(mount, config.lang);
-  applyThemeDefault(config.theme);
-
-  for (const themeBtn of mount.querySelectorAll(
-    '[data-testid="header-theme-toggle"], [data-testid="header-menu-theme-toggle"]'
-  )) {
-    if (themeBtn instanceof HTMLElement) {
-      setThemeIcon(themeBtn);
-    }
-  }
+  applyThemeDefault(mount, config.theme);
 
   bindHeaderControls(mount);
   bindHeaderMenu(mount);
@@ -641,23 +720,16 @@ function bindHeaderControls(root) {
         return;
       }
       const next = langBtn.dataset.lang === 'ru' ? 'en' : 'ru';
-      syncAllLangToggles(root, next);
-      dispatchLangChange(next);
+      applyLang(root, next);
     });
   }
 
-  const themeBtns = [
-    ...root.querySelectorAll(
-      '[data-testid="header-theme-toggle"], [data-testid="header-menu-theme-toggle"]'
-    ),
-  ].filter((el) => el instanceof HTMLElement);
-
-  for (const themeBtn of themeBtns) {
+  for (const themeBtn of queryThemeToggles(root)) {
     themeBtn.addEventListener('click', () => {
-      document.documentElement.classList.toggle('theme-light');
-      for (const btn of themeBtns) {
-        setThemeIcon(btn);
-      }
+      const next = document.documentElement.classList.contains('theme-light')
+        ? 'dark'
+        : 'light';
+      applyTheme(root, next);
     });
   }
 }

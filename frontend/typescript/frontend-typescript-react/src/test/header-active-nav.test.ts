@@ -98,6 +98,7 @@ describe('canonical header.js — active nav follows the route', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     document.documentElement.className = '';
+    localStorage.clear();
     mockMobileViewport();
   });
 
@@ -159,6 +160,7 @@ describe('canonical header.js — mobile burger menu', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     document.documentElement.className = '';
+    localStorage.clear();
     mockMobileViewport();
   });
 
@@ -250,6 +252,7 @@ describe('canonical header.js — host-match env switchers', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     document.documentElement.className = '';
+    localStorage.clear();
     mockMobileViewport();
   });
 

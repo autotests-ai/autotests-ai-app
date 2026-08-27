@@ -1,6 +1,7 @@
 import { Badge, Link, Panel } from '@zero-design-system/react';
 import { type MouseEvent, type ReactNode, useEffect, useId, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { type Dictionary, formatCopy, useI18n } from '../i18n';
 import { appPath } from '../lib/appBase';
 import { bindStackHeaderPoll } from '../lib/header-poll';
 import {
@@ -161,7 +162,7 @@ function AllureMark() {
 function IconHrefCell({
   href,
   label,
-  title,
+  title = label,
   testId,
   children,
 }: {
@@ -181,7 +182,7 @@ function IconHrefCell({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      title={title ?? label}
+      title={title}
       data-testid={testId}
     >
       {children}
@@ -193,15 +194,17 @@ function GitHubCell({
   modulePath,
   kind,
   id,
+  copy,
 }: {
   modulePath?: string | null;
   kind: string;
   id: string;
+  copy: Dictionary;
 }) {
   return (
     <IconHrefCell
       href={githubModuleHref(modulePath)}
-      label={`GitHub ${id}`}
+      label={formatCopy(copy.stack.github, { id })}
       title={modulePath ? String(modulePath) : undefined}
       testId={`stack-gh-${kind}-${id}`}
     >
@@ -210,12 +213,12 @@ function GitHubCell({
   );
 }
 
-function ApiDocsCell({ id, openable }: { id: string; openable: boolean }) {
+function ApiDocsCell({ id, openable, copy }: { id: string; openable: boolean; copy: Dictionary }) {
   return (
     <IconHrefCell
       href={openable ? apiDocsHref(id) : null}
-      label={`Swagger ${id}`}
-      title="Swagger UI"
+      label={formatCopy(copy.stack.swagger, { id })}
+      title={copy.stack.swaggerTitle}
       testId={`stack-api-${id}`}
     >
       <SwaggerMark />
@@ -228,16 +231,18 @@ function ModuleTestsCell({
   id,
   testsPath,
   layers,
+  copy,
 }: {
   kind: 'backend' | 'frontend';
   id: string;
   testsPath: string | null;
   layers: string[];
+  copy: Dictionary;
 }) {
   return (
     <IconHrefCell
       href={githubModuleHref(testsPath)}
-      label={`Tests ${id}`}
+      label={formatCopy(copy.stack.testsSrc, { id })}
       title={testsPath ? `${testsPath} · ${layersLabel(layers)}` : undefined}
       testId={`stack-tests-src-${kind}-${id}`}
     >
@@ -251,16 +256,18 @@ function AllureCell({
   id,
   layers,
   testId,
+  copy,
 }: {
   href: string | null;
   id: string;
   layers: string[];
   testId: string;
+  copy: Dictionary;
 }) {
   return (
     <IconHrefCell
       href={href}
-      label={`Allure report ${id}`}
+      label={formatCopy(copy.stack.allure, { id })}
       title={href ? `${href} · ${layersLabel(layers)}` : undefined}
       testId={testId}
     >
@@ -275,12 +282,14 @@ function ModuleAllureCell({
   enabled,
   layers,
   language,
+  copy,
 }: {
   kind: 'backend' | 'frontend';
   id: string;
   enabled: boolean;
   layers: string[];
   language?: string;
+  copy: Dictionary;
 }) {
   return (
     <AllureCell
@@ -288,11 +297,13 @@ function ModuleAllureCell({
       id={id}
       layers={layers}
       testId={`stack-allure-${kind}-${id}`}
+      copy={copy}
     />
   );
 }
 
 export function StackPage() {
+  const { copy } = useI18n();
   const location = useLocation();
   const selection = resolveSelection(location.pathname, location.search);
   const requestedTests = parseTestsId(location.search);
@@ -339,7 +350,7 @@ export function StackPage() {
 
   const labelParts: string[] = [];
   if (selection.frontendId && !selection.backendId && !selection.hub) {
-    labelParts.push(`(no backend prefix) · ${selection.frontendId}`);
+    labelParts.push(`${copy.stack.noBackendPrefix} · ${selection.frontendId}`);
   } else {
     labelParts.push(`${selection.backendId} · ${selection.frontendId}`);
   }
@@ -372,11 +383,8 @@ export function StackPage() {
       : stackHref(backendId, frontendId);
   }
 
-  function rowHref(kind: 'backend' | 'frontend', item: BackendModule | FrontendModule): string {
-    const { backendId, frontendId } = effectiveStackPair(
-      kind === 'backend' ? item.id : selection.backendId,
-      kind === 'frontend' ? item.id : selection.frontendId,
-    );
+  function rowHref(item: FrontendModule): string {
+    const { backendId, frontendId } = effectiveStackPair(selection.backendId, item.id);
     return stackHref(backendId, frontendId);
   }
 
@@ -398,7 +406,7 @@ export function StackPage() {
         <a
           className="badge badge--primary stack-page__current"
           href={homeHref}
-          title="open app home"
+          title={copy.stack.openHome}
           data-testid="stack-current-pair"
         >
           {label}
@@ -407,33 +415,33 @@ export function StackPage() {
 
       {state.status === 'error' ? (
         <div className="stack-page__error" data-testid="stack-error">
-          Не удалось загрузить matrix.json — sync: python frontend/scripts/sync-stack-matrix.py.{' '}
-          {state.message}
+          {formatCopy(copy.stack.error, { message: state.message })}
         </div>
       ) : null}
 
       {state.status === 'loading' ? (
         <p className="text text--muted" data-testid="stack-loading">
-          → Loading matrix…
+          {copy.stack.loading}
         </p>
       ) : null}
 
       {summary ? (
         <div className="stack-page__boards">
           <Panel
-            title="Backend"
+            title={copy.stack.panelBackend}
+            titleTestId="stack-backend-title"
             bodyClassName="stack-page__board-body"
             className="stack-page__board"
           >
             <table className="stack-page__table stack-page__table--backend">
               <thead>
                 <tr>
-                  <th>Module</th>
-                  <th className="stack-page__gh-cell">GH</th>
-                  <th className="stack-page__gh-cell">API</th>
-                  <th className="stack-page__gh-cell">Tests</th>
-                  <th className="stack-page__gh-cell">Allure</th>
-                  <th>Status</th>
+                  <th>{copy.stack.colModule}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colApi}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th>{copy.stack.colStatus}</th>
                 </tr>
               </thead>
               <tbody>
@@ -480,10 +488,15 @@ export function StackPage() {
                         </div>
                       </td>
                       <td className="stack-page__gh-cell">
-                        <GitHubCell modulePath={item.module} kind="backend" id={item.id} />
+                        <GitHubCell
+                          modulePath={item.module}
+                          kind="backend"
+                          id={item.id}
+                          copy={copy}
+                        />
                       </td>
                       <td className="stack-page__gh-cell">
-                        <ApiDocsCell id={item.id} openable={openable} />
+                        <ApiDocsCell id={item.id} openable={openable} copy={copy} />
                       </td>
                       <td className="stack-page__gh-cell">
                         <ModuleTestsCell
@@ -491,6 +504,7 @@ export function StackPage() {
                           id={item.id}
                           testsPath={testsPath}
                           layers={UNIT_ROW_LAYERS}
+                          copy={copy}
                         />
                       </td>
                       <td className="stack-page__gh-cell">
@@ -500,6 +514,7 @@ export function StackPage() {
                           enabled={Boolean(testsPath)}
                           layers={UNIT_ROW_LAYERS}
                           language={item.language}
+                          copy={copy}
                         />
                       </td>
                       <td>{statusBadge(item.status)}</td>
@@ -511,19 +526,20 @@ export function StackPage() {
           </Panel>
 
           <Panel
-            title="Frontend"
+            title={copy.stack.panelFrontend}
+            titleTestId="stack-frontend-title"
             bodyClassName="stack-page__board-body"
             className="stack-page__board"
           >
             <table className="stack-page__table stack-page__table--frontend">
               <thead>
                 <tr>
-                  <th>Module</th>
-                  <th className="stack-page__gh-cell">GH</th>
-                  <th className="stack-page__gh-cell">Tests</th>
-                  <th className="stack-page__gh-cell">Allure</th>
-                  <th>Status</th>
-                  <th>Open</th>
+                  <th>{copy.stack.colModule}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th>{copy.stack.colStatus}</th>
+                  <th>{copy.stack.colOpen}</th>
                 </tr>
               </thead>
               <tbody>
@@ -570,7 +586,12 @@ export function StackPage() {
                         </div>
                       </td>
                       <td className="stack-page__gh-cell">
-                        <GitHubCell modulePath={item.module} kind="frontend" id={item.id} />
+                        <GitHubCell
+                          modulePath={item.module}
+                          kind="frontend"
+                          id={item.id}
+                          copy={copy}
+                        />
                       </td>
                       <td className="stack-page__gh-cell">
                         <ModuleTestsCell
@@ -578,6 +599,7 @@ export function StackPage() {
                           id={item.id}
                           testsPath={testsPath}
                           layers={COMPONENT_ROW_LAYERS}
+                          copy={copy}
                         />
                       </td>
                       <td className="stack-page__gh-cell">
@@ -586,17 +608,14 @@ export function StackPage() {
                           id={item.id}
                           enabled={Boolean(testsPath)}
                           layers={COMPONENT_ROW_LAYERS}
+                          copy={copy}
                         />
                       </td>
                       <td>{statusBadge(item.status)}</td>
                       <td>
                         {openable ? (
-                          <Link
-                            className="stack-page__open"
-                            active={current}
-                            href={rowHref('frontend', item)}
-                          >
-                            open →
+                          <Link className="stack-page__open" active={current} href={rowHref(item)}>
+                            {copy.stack.open}
                           </Link>
                         ) : (
                           <span className="text text--sm text--muted">—</span>
@@ -610,7 +629,8 @@ export function StackPage() {
           </Panel>
 
           <Panel
-            title="Tests"
+            title={copy.stack.panelTests}
+            titleTestId="stack-tests-title"
             bodyClassName="stack-page__board-body"
             className="stack-page__board stack-page__board--tests"
             testId="stack-tests-board"
@@ -618,12 +638,12 @@ export function StackPage() {
             <table className="stack-page__table stack-page__table--tests">
               <thead>
                 <tr>
-                  <th>Module</th>
-                  <th>Layers</th>
-                  <th className="stack-page__gh-cell">GH</th>
-                  <th className="stack-page__gh-cell">Allure</th>
-                  <th>Status</th>
-                  <th>Select</th>
+                  <th>{copy.stack.colModule}</th>
+                  <th>{copy.stack.colLayers}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th>{copy.stack.colStatus}</th>
+                  <th>{copy.stack.colSelect}</th>
                 </tr>
               </thead>
               <tbody>
@@ -656,7 +676,7 @@ export function StackPage() {
                     </span>
                   </td>
                   <td className="stack-page__gh-cell">
-                    <GitHubCell modulePath={unitPath} kind="tests" id="unit" />
+                    <GitHubCell modulePath={unitPath} kind="tests" id="unit" copy={copy} />
                   </td>
                   <td className="stack-page__gh-cell">
                     <AllureCell
@@ -668,6 +688,7 @@ export function StackPage() {
                       id={selection.backendId || 'unit'}
                       layers={UNIT_ROW_LAYERS}
                       testId="stack-allure-tests-unit"
+                      copy={copy}
                     />
                   </td>
                   <td>
@@ -700,7 +721,12 @@ export function StackPage() {
                     </span>
                   </td>
                   <td className="stack-page__gh-cell">
-                    <GitHubCell modulePath={componentPath} kind="tests" id="component" />
+                    <GitHubCell
+                      modulePath={componentPath}
+                      kind="tests"
+                      id="component"
+                      copy={copy}
+                    />
                   </td>
                   <td className="stack-page__gh-cell">
                     <AllureCell
@@ -708,6 +734,7 @@ export function StackPage() {
                       id={componentAllureId}
                       layers={COMPONENT_ROW_LAYERS}
                       testId="stack-allure-tests-component"
+                      copy={copy}
                     />
                   </td>
                   <td>
@@ -749,7 +776,7 @@ export function StackPage() {
                       </span>
                     </td>
                     <td className="stack-page__gh-cell">
-                      <GitHubCell modulePath={crystalPath} kind="tests" id="crystal" />
+                      <GitHubCell modulePath={crystalPath} kind="tests" id="crystal" copy={copy} />
                     </td>
                     <td className="stack-page__gh-cell">
                       <AllureCell
@@ -757,6 +784,7 @@ export function StackPage() {
                         id={crystal.id}
                         layers={CRYSTAL_ROW_LAYERS}
                         testId="stack-allure-tests-crystal"
+                        copy={copy}
                       />
                     </td>
                     <td>{statusBadge(crystal.status)}</td>
@@ -818,7 +846,12 @@ export function StackPage() {
                         )}
                       </td>
                       <td className="stack-page__gh-cell">
-                        <GitHubCell modulePath={item.module} kind="tests" id={item.id} />
+                        <GitHubCell
+                          modulePath={item.module}
+                          kind="tests"
+                          id={item.id}
+                          copy={copy}
+                        />
                       </td>
                       <td className="stack-page__gh-cell">
                         <AllureCell
@@ -826,13 +859,14 @@ export function StackPage() {
                           id={item.id}
                           layers={item.layers || []}
                           testId={`stack-allure-tests-${item.id}`}
+                          copy={copy}
                         />
                       </td>
                       <td>{statusBadge(item.status)}</td>
                       <td>
                         {selectable ? (
                           <Link className="stack-page__open" active={current} href={href}>
-                            select →
+                            {copy.stack.select}
                           </Link>
                         ) : (
                           <span className="text text--sm text--muted">—</span>

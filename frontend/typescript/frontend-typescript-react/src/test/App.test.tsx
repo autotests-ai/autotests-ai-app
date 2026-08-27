@@ -1,8 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { act } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
-import { headerConfig, STACK_INDEX_HREF } from '../lib/headerConfig';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HEADER_LANG_CHANGE, ru } from '../i18n';
+import { buildHeaderConfig, headerConfig, STACK_INDEX_HREF } from '../lib/headerConfig';
 import { routes } from '../routes';
+
+function dispatchLang(lang: string) {
+  act(() => {
+    document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang } }));
+  });
+}
 
 function renderApp(initialPath: string) {
   return render(
@@ -11,6 +19,21 @@ function renderApp(initialPath: string) {
 }
 
 describe('App', { tags: ['smoke'] }, () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = 'en';
+    window.headerConfig = buildHeaderConfig('en');
+    window.__designSystemRemountHeader = vi.fn().mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete window.headerConfig;
+    delete window.__designSystemRemountHeader;
+    localStorage.clear();
+    document.documentElement.lang = 'en';
+  });
+
   it('mounts the header slot and configurator on /', () => {
     renderApp('/');
 
@@ -39,7 +62,6 @@ describe('App', { tags: ['smoke'] }, () => {
     await waitFor(() => {
       expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     });
-    vi.unstubAllGlobals();
   });
 
   it('keeps the stack board on a cell URL instead of the router 404', async () => {
@@ -60,7 +82,6 @@ describe('App', { tags: ['smoke'] }, () => {
     await waitFor(() => {
       expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     });
-    vi.unstubAllGlobals();
   });
 
   it('exposes Home + Stack + Stage/Prod without login on apex', () => {
@@ -71,5 +92,18 @@ describe('App', { tags: ['smoke'] }, () => {
       'header-nav-stage',
       'header-nav-prod',
     ]);
+  });
+
+  it('remounts header nav once when language changes', async () => {
+    const remount = window.__designSystemRemountHeader as ReturnType<typeof vi.fn>;
+    renderApp('/');
+
+    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent('Stack');
+    dispatchLang('ru');
+    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent(ru.home.panelStack);
+    await waitFor(() => expect(remount).toHaveBeenCalledTimes(1));
+
+    dispatchLang('ru');
+    expect(remount).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,13 +1,22 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HEADER_LANG_CHANGE, ru } from '../../i18n';
 import { DEFAULTS, fingerprint } from '../../lib/landing-config';
 import { HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = 'en';
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    localStorage.clear();
+    document.documentElement.lang = 'en';
   });
 
   it('renders the configurator shell and sticky terminal, not an empty page-shell', () => {
@@ -335,5 +344,31 @@ describe('HomePage', () => {
     await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
     await user.click(screen.getByTestId('landing-terminal-download'));
     expect(click).toHaveBeenCalledTimes(2);
+  });
+
+  it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
+    render(<HomePage />);
+    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent('Stack');
+    expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');
+    expect(screen.getByTestId('landing-driver-title')).toHaveTextContent('Driver');
+
+    act(() => {
+      document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang: 'ru' } }));
+    });
+
+    expect(document.documentElement.lang).toBe('ru');
+    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent(ru.home.panelStack);
+    expect(screen.getByTestId('landing-build-title')).toHaveTextContent(ru.home.panelBuild);
+    expect(screen.getByTestId('landing-ci-title')).toHaveTextContent(ru.home.panelCi);
+    expect(screen.getByTestId('landing-integrations-title')).toHaveTextContent(
+      ru.home.panelIntegrations,
+    );
+    expect(screen.getByTestId('landing-driver-title')).toHaveTextContent(ru.home.panelDriver);
+    expect(screen.getByTestId('landing-remote-title')).toHaveTextContent(ru.home.panelRemote);
+    expect(screen.getByTestId('landing-console-title')).toHaveTextContent(ru.home.panelConsole);
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backend: backend-java-spring',
+    );
+    expect(screen.getByRole('combobox', { name: 'backendLanguage' })).toBeInTheDocument();
   });
 });

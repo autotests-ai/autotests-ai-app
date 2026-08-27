@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HEADER_LANG_CHANGE, ru } from '../../i18n';
 import type { StackMatrix } from '../../lib/stack-matrix';
 import * as stackMatrix from '../../lib/stack-matrix';
 import { StackPage } from '../../pages/StackPage';
@@ -92,6 +93,8 @@ function renderAt(path: string) {
 
 describe('StackPage', () => {
   beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = 'en';
     bindStackHeaderPoll.mockReturnValue(() => {});
     vi.stubGlobal(
       'fetch',
@@ -102,6 +105,8 @@ describe('StackPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+    localStorage.clear();
+    document.documentElement.lang = 'en';
   });
 
   it('shows the loading state then the live board', async () => {
@@ -389,7 +394,7 @@ describe('StackPage', () => {
       vi.fn(() =>
         jsonOk({
           ...MATRIX,
-          tests: MATRIX.tests.map((item) =>
+          tests: (MATRIX.tests ?? []).map((item) =>
             item.id === 'tests-go-cdp' ? { ...item, in_stack: false } : item,
           ),
         }),
@@ -401,6 +406,26 @@ describe('StackPage', () => {
     });
     expect(screen.queryByTestId('stack-tests-crystal')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
+  });
+
+  it('shows a disabled crystal row when the mill has no module path', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        jsonOk({
+          ...MATRIX,
+          tests: (MATRIX.tests ?? []).map((item) =>
+            item.id === 'tests-go-cdp' ? { ...item, module: undefined } : item,
+          ),
+        }),
+      ),
+    );
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-tests-crystal')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('stack-tests-crystal').tagName).toBe('SPAN');
+    expect(screen.getByTestId('stack-tests-crystal')).toHaveClass('stack-page__id--disabled');
   });
 
   it('polls by reusing the header tick callback', async () => {
@@ -418,5 +443,58 @@ describe('StackPage', () => {
       onTick?.();
     });
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('switches chrome to RU and keeps matrix ids and hrefs in English', async () => {
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-title')).toHaveTextContent('Backend');
+    });
+    expect(document.documentElement.lang).toBe('en');
+    expect(screen.getByTestId('stack-page')).toBeInTheDocument();
+    expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveTextContent(
+      'backend-java-spring',
+    );
+    expect(
+      screen.getByTestId('stack-tests-src-backend-backend-java-spring').getAttribute('title'),
+    ).toContain('unit · integration');
+
+    act(() => {
+      document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang: 'ru' } }));
+    });
+
+    expect(document.documentElement.lang).toBe('ru');
+    expect(screen.getByTestId('stack-backend-title')).toHaveTextContent(ru.stack.panelBackend);
+    expect(screen.getByTestId('stack-frontend-title')).toHaveTextContent(ru.stack.panelFrontend);
+    expect(screen.getByTestId('stack-tests-title')).toHaveTextContent(ru.stack.panelTests);
+    expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveTextContent(
+      'backend-java-spring',
+    );
+    expect(screen.getByTestId('stack-frontend-frontend-typescript-react')).toHaveTextContent(
+      'frontend-typescript-react',
+    );
+    expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveAttribute(
+      'href',
+      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+    );
+    expect(
+      screen.getByTestId('stack-tests-src-backend-backend-java-spring').getAttribute('title'),
+    ).toContain('unit · integration');
+    expect(screen.getAllByText('active').length).toBeGreaterThan(0);
+  });
+
+  it('starts from stored ru without translating status or layers', async () => {
+    localStorage.setItem('zds-lang', 'ru');
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-title')).toHaveTextContent(ru.stack.panelBackend);
+    });
+    expect(document.documentElement.lang).toBe('ru');
+    expect(screen.getByTestId('stack-page')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('stack-tests-tests-java-gradle-junit5-allure3-selenide'),
+    ).toHaveTextContent('tests-java-gradle-junit5-allure3-selenide');
+    expect(screen.getAllByText('slot').length).toBeGreaterThan(0);
   });
 });
