@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   ALLURE_AWESOME_LATEST,
   allureModuleHref,
+  allureQueryHref,
   allureSearchQuery,
   allureTestsHref,
   allureTestsSearchQuery,
@@ -223,6 +224,8 @@ describe('stack-matrix helpers', () => {
     expect(allureModuleHref('frontend-typescript-react')).toBe(
       `${ALLURE_AWESOME_LATEST}?query=frontend-typescript-react`,
     );
+    expect(allureQueryHref('ok/nope')).toBe(null);
+    expect(allureQueryHref('..')).toBe(null);
     expect(COMPONENT_ROW_LAYERS).toEqual(['component']);
     expect(CRYSTAL_ROW_LAYERS).toEqual(['crystal']);
   });
