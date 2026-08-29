@@ -209,6 +209,26 @@
       "role": "slot"
     },
     {
+      "id": "tests-java-jmeter",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-jmeter",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-gradle-gatling",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-gradle-gatling",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-kotlin-gradle-junit5-allure3-selenide",
       "status": "slot",
       "language": "kotlin",
@@ -238,6 +258,16 @@
       "layers": [
         "api",
         "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-javascript-k6",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-k6",
+      "layers": [
+        "performance"
       ],
       "role": "slot"
     },
@@ -275,15 +305,24 @@
       "role": "slot"
     },
     {
-      "id": "tests-go-testing-allure3",
+      "id": "tests-python-yandex-tank",
       "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-yandex-tank",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-go-testing-allure3",
+      "status": "active",
       "language": "go",
       "module": "tests/go/tests-go-testing-allure3",
       "layers": [
-        "api",
-        "e2e"
+        "api"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-go-cdp",
