@@ -292,6 +292,16 @@
       "role": "slot"
     },
     {
+      "id": "tests-javascript-k6",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-k6",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-typescript-playwright",
       "status": "active",
       "language": "typescript",
