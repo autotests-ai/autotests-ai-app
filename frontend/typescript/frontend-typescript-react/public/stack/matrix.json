@@ -375,6 +375,16 @@
       "role": "slot"
     },
     {
+      "id": "tests-python-locust",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-locust",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-go-testing-allure3",
       "status": "active",
       "language": "go",
