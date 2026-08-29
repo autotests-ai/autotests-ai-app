@@ -148,6 +148,7 @@
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
       "layers": [
+        "api",
         "e2e"
       ],
       "role": "living"
