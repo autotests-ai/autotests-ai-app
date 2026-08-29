@@ -334,7 +334,7 @@ export function shortModuleLabel(path: string | null | undefined): string {
   return String(path)
     .replace(/^frontend\/(?:javascript|typescript)\//, '')
     .replace(/^backend\/(?:java|kotlin|python|go)\//, '')
-    .replace(/^tests\/(?:java|kotlin|python|go|javascript|typescript)\//, '');
+    .replace(/^tests\/(?:java|kotlin|scala|groovy|python|go|javascript|typescript)\//, '');
 }
 
 /** Meta under unit row — framework caption (path is the Module label). */

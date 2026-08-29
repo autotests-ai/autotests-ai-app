@@ -229,6 +229,16 @@
       "role": "slot"
     },
     {
+      "id": "tests-groovy-jmeter",
+      "status": "slot",
+      "language": "groovy",
+      "module": "tests/groovy/tests-groovy-jmeter",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-kotlin-gradle-junit5-allure3-selenide",
       "status": "slot",
       "language": "kotlin",
@@ -236,6 +246,26 @@
       "layers": [
         "api",
         "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-kotlin-gradle-gatling",
+      "status": "slot",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-gradle-gatling",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-gatling",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-gatling",
+      "layers": [
+        "performance"
       ],
       "role": "slot"
     },
@@ -262,16 +292,6 @@
       "role": "slot"
     },
     {
-      "id": "tests-javascript-k6",
-      "status": "slot",
-      "language": "javascript",
-      "module": "tests/javascript/tests-javascript-k6",
-      "layers": [
-        "performance"
-      ],
-      "role": "slot"
-    },
-    {
       "id": "tests-typescript-playwright",
       "status": "active",
       "language": "typescript",
@@ -281,6 +301,16 @@
         "e2e"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-typescript-k6",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-k6",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-python-selenium",
