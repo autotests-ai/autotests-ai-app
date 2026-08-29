@@ -346,6 +346,9 @@ describe('stack-matrix helpers', () => {
     expect(shortModuleLabel('tests/go/tests-go-cdp/crystals')).toBe('tests-go-cdp/crystals');
     expect(shortModuleLabel('tests/scala/tests-scala-gatling')).toBe('tests-scala-gatling');
     expect(shortModuleLabel('tests/groovy/tests-groovy-jmeter')).toBe('tests-groovy-jmeter');
+    expect(shortModuleLabel('tests/csharp/tests-csharp-nunit-allure3-selenium')).toBe(
+      'tests-csharp-nunit-allure3-selenium',
+    );
     expect(unitTestsMeta(null)).toBe('pick a backend');
     expect(unitTestsMeta({ id: 'b', language: 'python' })).toBe('pytest');
     expect(unitTestsMeta({ id: 'b', language: 'java' })).toBe('junit5');
