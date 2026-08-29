@@ -302,6 +302,16 @@
       "role": "slot"
     },
     {
+      "id": "tests-javascript-gatling",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-gatling",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-typescript-playwright",
       "status": "active",
       "language": "typescript",
@@ -317,6 +327,16 @@
       "status": "slot",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-k6",
+      "layers": [
+        "performance"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-typescript-gatling",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-gatling",
       "layers": [
         "performance"
       ],
