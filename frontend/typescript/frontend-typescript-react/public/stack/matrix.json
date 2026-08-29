@@ -220,23 +220,23 @@
     },
     {
       "id": "tests-java-gradle-junit5-allure3-restassured",
-      "status": "slot",
+      "status": "active",
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit5-allure3-restassured",
       "layers": [
         "api"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-java-gradle-junit5-allure3-retrofit2",
-      "status": "slot",
+      "status": "active",
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit5-allure3-retrofit2",
       "layers": [
         "api"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-java-jmeter",
