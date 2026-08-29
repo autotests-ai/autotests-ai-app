@@ -144,13 +144,13 @@
     },
     {
       "id": "tests-java-gradle-junit5-allure3-selenium",
-      "status": "slot",
+      "status": "active",
       "language": "java",
       "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
       "layers": [
         "e2e"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-java-gradle-junit5-allure3-playwright",
