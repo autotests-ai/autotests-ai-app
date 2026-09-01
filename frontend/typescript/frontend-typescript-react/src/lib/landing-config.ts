@@ -473,13 +473,13 @@ export const TEST_MODULES: readonly TestModule[] = [
     status: 'slot',
   },
   {
-    id: 'tests-go-testing-allure3',
+    id: 'tests-go-testing-allure3-net_http',
     language: 'go',
     build: '',
     runner: 'testing',
     allure: 'allure3',
     ui: '',
-    status: 'slot',
+    status: 'active',
   },
 ];
 

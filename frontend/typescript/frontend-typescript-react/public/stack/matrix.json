@@ -138,6 +138,7 @@
       "module": "tests/java/tests-java-gradle-junit5-allure3-selenide",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "canon"
@@ -149,6 +150,7 @@
       "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "living"
@@ -160,6 +162,7 @@
       "module": "tests/java/tests-java-gradle-junit5-allure3-playwright",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "living"
@@ -171,6 +174,7 @@
       "module": "tests/java/tests-java-gradle-junit5-allure2-selenide",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -182,6 +186,7 @@
       "module": "tests/java/tests-java-gradle-junit5-no_allure-selenide",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -193,6 +198,7 @@
       "module": "tests/java/tests-java-gradle-junit4-allure2-selenium",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -204,6 +210,7 @@
       "module": "tests/java/tests-java-gradle-testng-allure3-selenium",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -215,6 +222,7 @@
       "module": "tests/java/tests-java-maven-junit5-allure3-selenide",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -275,6 +283,7 @@
       "language": "kotlin",
       "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-selenide",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -285,6 +294,7 @@
       "language": "kotlin",
       "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-selenium",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -295,7 +305,18 @@
       "language": "kotlin",
       "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-playwright",
       "layers": [
+        "ui",
         "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-kotlin-gradle-junit5-allure3-ktor",
+      "status": "slot",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-ktor",
+      "layers": [
+        "api"
       ],
       "role": "slot"
     },
@@ -326,6 +347,7 @@
       "module": "tests/javascript/tests-javascript-playwright",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "living"
@@ -337,7 +359,18 @@
       "module": "tests/javascript/tests-javascript-cypress",
       "layers": [
         "api",
+        "ui",
         "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-javascript-axios",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-axios",
+      "layers": [
+        "api"
       ],
       "role": "slot"
     },
@@ -368,7 +401,18 @@
       "module": "tests/typescript/tests-typescript-playwright",
       "layers": [
         "api",
+        "ui",
         "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-typescript-axios",
+      "status": "active",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-axios",
+      "layers": [
+        "api"
       ],
       "role": "living"
     },
@@ -399,6 +443,7 @@
       "module": "tests/python/tests-python-selenium",
       "layers": [
         "api",
+        "ui",
         "e2e"
       ],
       "role": "living"
@@ -409,6 +454,7 @@
       "language": "python",
       "module": "tests/python/tests-python-selene",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -419,9 +465,30 @@
       "language": "python",
       "module": "tests/python/tests-python-playwright",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
+    },
+    {
+      "id": "tests-python-requests",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-requests",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-python-httpx",
+      "status": "active",
+      "language": "python",
+      "module": "tests/python/tests-python-httpx",
+      "layers": [
+        "api"
+      ],
+      "role": "living"
     },
     {
       "id": "tests-python-yandex-tank",
@@ -444,10 +511,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-go-testing-allure3",
+      "id": "tests-go-testing-allure3-net_http",
       "status": "active",
       "language": "go",
-      "module": "tests/go/tests-go-testing-allure3",
+      "module": "tests/go/tests-go-testing-allure3-net_http",
       "layers": [
         "api"
       ],
@@ -459,6 +526,7 @@
       "language": "go",
       "module": "tests/go/tests-go-testing-allure3-playwright",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -480,6 +548,7 @@
       "language": "csharp",
       "module": "tests/csharp/tests-csharp-nunit-allure3-selenium",
       "layers": [
+        "ui",
         "e2e"
       ],
       "role": "slot"
@@ -490,7 +559,18 @@
       "language": "csharp",
       "module": "tests/csharp/tests-csharp-xunit-allure3-playwright",
       "layers": [
+        "ui",
         "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-csharp-nunit-allure3-restsharp",
+      "status": "slot",
+      "language": "csharp",
+      "module": "tests/csharp/tests-csharp-nunit-allure3-restsharp",
+      "layers": [
+        "api"
       ],
       "role": "slot"
     }

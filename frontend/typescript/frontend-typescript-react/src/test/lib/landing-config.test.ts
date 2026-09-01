@@ -149,7 +149,7 @@ describe('landing-config', () => {
     expect(jsDoc).toHaveProperty('testsUi', 'playwright');
 
     const goTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'go');
-    expect(goTests.tests).toBe('tests-go-testing-allure3');
+    expect(goTests.tests).toBe('tests-go-testing-allure3-net_http');
     const goDoc = toDocument(goTests);
     expect(goDoc).not.toHaveProperty('testsBuild');
     expect(goDoc).not.toHaveProperty('testsUi');
