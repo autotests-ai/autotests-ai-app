@@ -693,7 +693,9 @@ export function StackPage() {
                     />
                   </td>
                   <td className="stack-page__status-cell">
-                    <Badge>{unitPath ? 'derived' : 'slot'}</Badge>
+                    <Badge data-testid="stack-tests-unit-status">
+                      {unitPath ? 'backend' : 'slot'}
+                    </Badge>
                   </td>
                 </tr>
 
@@ -736,7 +738,7 @@ export function StackPage() {
                     />
                   </td>
                   <td className="stack-page__status-cell">
-                    <Badge>derived</Badge>
+                    <Badge data-testid="stack-tests-component-status">frontend</Badge>
                   </td>
                 </tr>
 

@@ -141,9 +141,11 @@ describe('StackPage', () => {
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent(
       'backend-java-spring/src/test',
     );
+    expect(screen.getByTestId('stack-tests-unit-status')).toHaveTextContent('backend');
     expect(screen.getByTestId('stack-tests-component')).toHaveTextContent(
       'frontend-typescript-react/src/test',
     );
+    expect(screen.getByTestId('stack-tests-component-status')).toHaveTextContent('frontend');
     expect(screen.getByTestId('stack-gh-backend-backend-java-spring')).toHaveAttribute(
       'href',
       'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/backend/java/backend-java-spring',
@@ -306,6 +308,8 @@ describe('StackPage', () => {
       expect(screen.getByTestId('stack-tests-unit').tagName).toBe('SPAN');
     });
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('unit');
+    expect(screen.getByTestId('stack-tests-unit-status')).toHaveTextContent('slot');
+    expect(screen.getByTestId('stack-tests-component-status')).toHaveTextContent('frontend');
     expect(screen.queryByTestId('stack-allure-tests-unit')).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
       'href',
