@@ -126,6 +126,17 @@
   font-size: var(--font-size-sm, 0.9rem);
 }
 
+/* panel__body is flush — outer inset lives in first/last cells */
+.stack-page__table th:first-child,
+.stack-page__table td:first-child {
+  padding-left: var(--space-4);
+}
+
+.stack-page__table th:last-child,
+.stack-page__table td:last-child {
+  padding-right: var(--space-4);
+}
+
 /* Same Module / GH / Tests / Allure / Status / Open track weights in frontend board */
 .stack-page__table--frontend th:nth-child(1),
 .stack-page__table--frontend td:nth-child(1) {
@@ -174,7 +185,14 @@
 
 .stack-page__table--backend th:nth-child(6),
 .stack-page__table--backend td:nth-child(6) {
-  width: 20%;
+  /* Rim column after Open was dropped — hug badge + keep panel gutter */
+  width: 1%;
+  white-space: nowrap;
+  padding-right: var(--space-4);
+}
+
+.stack-page__status-cell {
+  white-space: nowrap;
 }
 
 /* Tests: Module / Layers / GH / Allure / Status / Select */

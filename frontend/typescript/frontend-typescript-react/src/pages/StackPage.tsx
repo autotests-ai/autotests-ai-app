@@ -517,7 +517,7 @@ export function StackPage() {
                           copy={copy}
                         />
                       </td>
-                      <td>{statusBadge(item.status)}</td>
+                      <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
                     </tr>
                   );
                 })}
@@ -611,7 +611,7 @@ export function StackPage() {
                           copy={copy}
                         />
                       </td>
-                      <td>{statusBadge(item.status)}</td>
+                      <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
                       <td>
                         {openable ? (
                           <Link className="stack-page__open" active={current} href={rowHref(item)}>
@@ -691,7 +691,7 @@ export function StackPage() {
                       copy={copy}
                     />
                   </td>
-                  <td>
+                  <td className="stack-page__status-cell">
                     <Badge>{unitPath ? 'derived' : 'slot'}</Badge>
                   </td>
                   <td>
@@ -737,7 +737,7 @@ export function StackPage() {
                       copy={copy}
                     />
                   </td>
-                  <td>
+                  <td className="stack-page__status-cell">
                     <Badge>derived</Badge>
                   </td>
                   <td>
@@ -787,7 +787,7 @@ export function StackPage() {
                         copy={copy}
                       />
                     </td>
-                    <td>{statusBadge(crystal.status)}</td>
+                    <td className="stack-page__status-cell">{statusBadge(crystal.status)}</td>
                     <td>
                       <span className="text text--sm text--muted">—</span>
                     </td>
@@ -862,7 +862,7 @@ export function StackPage() {
                           copy={copy}
                         />
                       </td>
-                      <td>{statusBadge(item.status)}</td>
+                      <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
                       <td>
                         {selectable ? (
                           <Link className="stack-page__open" active={current} href={href}>
