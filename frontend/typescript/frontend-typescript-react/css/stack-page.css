@@ -8,13 +8,14 @@
 
 /* Beat .page-shell { max-width: --content-max-width } so four boards fit. */
 .page-shell.stack-page {
-  max-width: min(1760px, calc(100% - 2 * var(--page-padding-x, 24px)));
+  max-width: min(1760px, calc(100% - 2 * var(--space-2, 8px)));
+  padding-inline: var(--space-2, 8px);
 }
 
 .stack-page .text {
   margin: 0;
   font-size: var(--font-size-base, 1rem);
-  line-height: 1.5;
+  line-height: 1.2;
   color: var(--color-text);
 }
 
@@ -29,7 +30,7 @@
 .stack-page__header {
   display: flex;
   justify-content: center;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-2);
 }
 
 /* Override .badge { white-space: nowrap } so long pair labels wrap on mobile. */
@@ -53,9 +54,9 @@
   white-space: nowrap;
 }
 
-.stack-page__gh-icon {
-  width: 1.75rem;
-  height: 1.75rem;
+.icon-btn.stack-page__gh-icon {
+  width: calc(var(--icon-size-md, 18px) + var(--space-2, 8px));
+  height: calc(var(--icon-size-md, 18px) + var(--space-2, 8px));
   margin: 0 auto;
   color: var(--color-text-muted);
 }
@@ -65,14 +66,14 @@
 }
 
 .stack-page__gh-icon .icon {
-  width: 1rem;
-  height: 1rem;
+  width: var(--icon-size-md, 18px);
+  height: var(--icon-size-md, 18px);
 }
 
 .stack-page__boards {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 2.5fr) minmax(0, 2fr);
-  gap: var(--space-4);
+  gap: var(--space-2);
   align-items: stretch;
 }
 
@@ -126,59 +127,53 @@
 .stack-page__table th,
 .stack-page__table td {
   text-align: left;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-1) var(--space-2);
   border-bottom: 1px solid var(--color-border);
-  vertical-align: top;
+  vertical-align: middle;
   font-size: var(--font-size-sm, 0.9rem);
+  line-height: 1.2;
 }
 
 /* panel__body is flush — outer inset lives in first/last cells */
 .stack-page__table th:first-child,
 .stack-page__table td:first-child {
-  padding-left: var(--space-4);
+  padding-left: var(--space-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .stack-page__table th:last-child,
 .stack-page__table td:last-child {
-  padding-right: var(--space-4);
+  padding-right: var(--space-2);
 }
 
-/* Same Module / GH / Tests / Allure / Status / Open track weights in frontend board */
-.stack-page__table--frontend th:nth-child(1),
-.stack-page__table--frontend td:nth-child(1) {
-  width: 38%;
-}
-
+/* Same Module / GH / Tests / Allure / Status / Open track — accessory cols hug, module takes rest */
 .stack-page__table--frontend th:nth-child(2),
 .stack-page__table--frontend td:nth-child(2),
 .stack-page__table--frontend th:nth-child(3),
 .stack-page__table--frontend td:nth-child(3),
 .stack-page__table--frontend th:nth-child(4),
 .stack-page__table--frontend td:nth-child(4) {
-  width: 2.75rem;
-  padding-left: var(--space-2);
-  padding-right: var(--space-2);
+  width: 3rem;
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
 }
 
 .stack-page__table--frontend th:nth-child(5),
 .stack-page__table--frontend td:nth-child(5) {
-  width: 5.5rem;
+  width: 4.25rem;
   white-space: nowrap;
 }
 
 .stack-page__table--frontend th:nth-child(6),
 .stack-page__table--frontend td:nth-child(6) {
-  width: 4.5rem;
+  width: 3.25rem;
   white-space: nowrap;
-  padding-right: var(--space-4);
+  padding-right: var(--space-2);
 }
 
 /* Backend: Module / GH / API / Tests / Allure / Status */
-.stack-page__table--backend th:nth-child(1),
-.stack-page__table--backend td:nth-child(1) {
-  width: 38%;
-}
-
 .stack-page__table--backend th:nth-child(2),
 .stack-page__table--backend td:nth-child(2),
 .stack-page__table--backend th:nth-child(3),
@@ -187,17 +182,16 @@
 .stack-page__table--backend td:nth-child(4),
 .stack-page__table--backend th:nth-child(5),
 .stack-page__table--backend td:nth-child(5) {
-  width: 2.75rem;
-  padding-left: var(--space-2);
-  padding-right: var(--space-2);
+  width: 3rem;
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
 }
 
 .stack-page__table--backend th:nth-child(6),
 .stack-page__table--backend td:nth-child(6) {
-  /* Rim column — fixed track so badge + gutter stay visible in fixed layout */
-  width: 5.5rem;
+  width: 4.25rem;
   white-space: nowrap;
-  padding-right: var(--space-4);
+  padding-right: var(--space-2);
 }
 
 .stack-page__status-cell {
@@ -205,14 +199,9 @@
 }
 
 /* Tests: Module / Layers / GH / Allure / Status */
-.stack-page__table--tests th:nth-child(1),
-.stack-page__table--tests td:nth-child(1) {
-  width: 36%;
-}
-
 .stack-page__table--tests th:nth-child(2),
 .stack-page__table--tests td:nth-child(2) {
-  width: 22%;
+  width: 7.5rem;
 }
 
 .stack-page__table--tests th:nth-child(3),
@@ -220,28 +209,36 @@
 .stack-page__table--tests th:nth-child(4),
 .stack-page__table--tests td:nth-child(4) {
   width: 3rem;
-  padding-left: var(--space-2);
-  padding-right: var(--space-2);
+  padding-left: var(--space-1);
+  padding-right: var(--space-1);
 }
 
 .stack-page__table--tests th:nth-child(5),
 .stack-page__table--tests td:nth-child(5) {
-  width: 18%;
+  width: 5.5rem;
+}
+
+.stack-page__layers-cell {
+  overflow: hidden;
 }
 
 .stack-page__layers {
+  display: block;
   font-family: var(--font-mono, ui-monospace, Menlo, monospace);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--color-text-muted);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stack-page__table th {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: var(--color-text-muted);
   background: var(--color-surface-soft);
+  white-space: nowrap;
 }
 
 .stack-page__table tr:last-child td {
@@ -265,9 +262,12 @@
 }
 
 .stack-page__id {
+  display: block;
   font-family: var(--font-mono, ui-monospace, Menlo, monospace);
-  font-size: 0.84rem;
-  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stack-page__id--disabled {
@@ -282,7 +282,12 @@
 }
 
 .stack-page__meta {
-  margin-top: var(--space-1);
+  display: none;
+}
+
+.stack-page__table .badge {
+  padding: 0 var(--space-2);
+  font-size: 0.7rem;
 }
 
 .stack-page__open {

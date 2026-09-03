@@ -467,7 +467,7 @@ export function StackPage() {
                           : undefined
                       }
                     >
-                      <td>
+                      <td title={`${item.id} · ${metaFor('backend', item)}`}>
                         {openable ? (
                           <Link
                             className="stack-page__id"
@@ -485,9 +485,9 @@ export function StackPage() {
                             {item.id}
                           </span>
                         )}
-                        <div className="text text--sm text--muted stack-page__meta">
+                        <span className="text text--sm text--muted stack-page__meta">
                           {metaFor('backend', item)}
-                        </div>
+                        </span>
                       </td>
                       <td className="stack-page__gh-cell">
                         <GitHubCell
@@ -565,7 +565,7 @@ export function StackPage() {
                           : undefined
                       }
                     >
-                      <td>
+                      <td title={`${item.id} · ${metaFor('frontend', item)}`}>
                         {openable ? (
                           <Link
                             className="stack-page__id"
@@ -583,9 +583,9 @@ export function StackPage() {
                             {item.id}
                           </span>
                         )}
-                        <div className="text text--sm text--muted stack-page__meta">
+                        <span className="text text--sm text--muted stack-page__meta">
                           {metaFor('frontend', item)}
-                        </div>
+                        </span>
                       </td>
                       <td className="stack-page__gh-cell">
                         <GitHubCell
@@ -649,7 +649,7 @@ export function StackPage() {
               </thead>
               <tbody>
                 <tr className={selection.backendId ? 'stack-page__row--active' : ''}>
-                  <td>
+                  <td title={unitPath ? `${unitLabel} · ${unitMeta}` : unitMeta}>
                     {githubModuleHref(unitPath) ? (
                       <Link
                         className="stack-page__id"
@@ -669,9 +669,9 @@ export function StackPage() {
                         {unitLabel}
                       </span>
                     )}
-                    <div className="text text--sm text--muted stack-page__meta">{unitMeta}</div>
+                    <span className="text text--sm text--muted stack-page__meta">{unitMeta}</span>
                   </td>
-                  <td className="stack-page__layers-cell">
+                  <td className="stack-page__layers-cell" title={layersLabel(UNIT_ROW_LAYERS)}>
                     <span className="stack-page__layers" data-testid="stack-tests-layers">
                       {layersLabel(UNIT_ROW_LAYERS)}
                     </span>
@@ -700,7 +700,7 @@ export function StackPage() {
                 </tr>
 
                 <tr className="stack-page__row--active">
-                  <td>
+                  <td title={`${componentLabel} · ${componentMeta}`}>
                     <Link
                       className="stack-page__id"
                       active={Boolean(selection.frontendId)}
@@ -711,11 +711,11 @@ export function StackPage() {
                     >
                       {componentLabel}
                     </Link>
-                    <div className="text text--sm text--muted stack-page__meta">
+                    <span className="text text--sm text--muted stack-page__meta">
                       {componentMeta}
-                    </div>
+                    </span>
                   </td>
-                  <td className="stack-page__layers-cell">
+                  <td className="stack-page__layers-cell" title="component">
                     <span className="stack-page__layers" data-testid="stack-tests-layers">
                       component
                     </span>
@@ -744,7 +744,7 @@ export function StackPage() {
 
                 {crystal ? (
                   <tr>
-                    <td>
+                    <td title={`${crystalLabel} · ${crystalMeta}`}>
                       {githubModuleHref(crystalPath) ? (
                         <Link
                           className="stack-page__id"
@@ -763,11 +763,11 @@ export function StackPage() {
                           {crystalLabel}
                         </span>
                       )}
-                      <div className="text text--sm text--muted stack-page__meta">
+                      <span className="text text--sm text--muted stack-page__meta">
                         {crystalMeta}
-                      </div>
+                      </span>
                     </td>
-                    <td className="stack-page__layers-cell">
+                    <td className="stack-page__layers-cell" title={layersLabel(CRYSTAL_ROW_LAYERS)}>
                       <span className="stack-page__layers" data-testid="stack-tests-layers">
                         {layersLabel(CRYSTAL_ROW_LAYERS)}
                       </span>
@@ -808,7 +808,7 @@ export function StackPage() {
                           : undefined
                       }
                     >
-                      <td>
+                      <td title={`${item.id} · ${testsMeta(item)}`}>
                         {selectable ? (
                           <Link
                             className="stack-page__id"
@@ -826,11 +826,11 @@ export function StackPage() {
                             {item.id}
                           </span>
                         )}
-                        <div className="text text--sm text--muted stack-page__meta">
+                        <span className="text text--sm text--muted stack-page__meta">
                           {testsMeta(item)}
-                        </div>
+                        </span>
                       </td>
-                      <td className="stack-page__layers-cell">
+                      <td className="stack-page__layers-cell" title={layers || undefined}>
                         {layers ? (
                           <span className="stack-page__layers" data-testid="stack-tests-layers">
                             {layers}
@@ -888,18 +888,18 @@ export function StackPage() {
                   );
                   return (
                     <tr key={item.id}>
-                      <td>
+                      <td title={`${item.id} · ${performanceTestsMeta(item)}`}>
                         <span
                           className="stack-page__id stack-page__id--disabled"
                           data-testid={`stack-performance-${item.id}`}
                         >
                           {item.id}
                         </span>
-                        <div className="text text--sm text--muted stack-page__meta">
+                        <span className="text text--sm text--muted stack-page__meta">
                           {performanceTestsMeta(item)}
-                        </div>
+                        </span>
                       </td>
-                      <td className="stack-page__layers-cell">
+                      <td className="stack-page__layers-cell" title={layers || undefined}>
                         {layers ? (
                           <span
                             className="stack-page__layers"
