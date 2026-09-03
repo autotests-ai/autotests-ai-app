@@ -155,6 +155,7 @@ describe('stack-matrix helpers', () => {
     expect(isOpenable('active')).toBe(true);
     expect(isOpenable('stub')).toBe(true);
     expect(isOpenable('slot')).toBe(false);
+    expect(isOpenable('bad-practice')).toBe(false);
     expect(isOpenable(undefined)).toBe(false);
   });
 
