@@ -140,7 +140,7 @@
 /* Same Module / GH / Tests / Allure / Status / Open track weights in frontend board */
 .stack-page__table--frontend th:nth-child(1),
 .stack-page__table--frontend td:nth-child(1) {
-  width: 44%;
+  width: 38%;
 }
 
 .stack-page__table--frontend th:nth-child(2),
@@ -149,25 +149,28 @@
 .stack-page__table--frontend td:nth-child(3),
 .stack-page__table--frontend th:nth-child(4),
 .stack-page__table--frontend td:nth-child(4) {
-  width: 3rem;
+  width: 2.75rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
 .stack-page__table--frontend th:nth-child(5),
 .stack-page__table--frontend td:nth-child(5) {
-  width: 20%;
+  width: 5.5rem;
+  white-space: nowrap;
 }
 
 .stack-page__table--frontend th:nth-child(6),
 .stack-page__table--frontend td:nth-child(6) {
-  width: 18%;
+  width: 4.5rem;
+  white-space: nowrap;
+  padding-right: var(--space-4);
 }
 
 /* Backend: Module / GH / API / Tests / Allure / Status */
 .stack-page__table--backend th:nth-child(1),
 .stack-page__table--backend td:nth-child(1) {
-  width: 44%;
+  width: 38%;
 }
 
 .stack-page__table--backend th:nth-child(2),
@@ -178,15 +181,15 @@
 .stack-page__table--backend td:nth-child(4),
 .stack-page__table--backend th:nth-child(5),
 .stack-page__table--backend td:nth-child(5) {
-  width: 3rem;
+  width: 2.75rem;
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
 
 .stack-page__table--backend th:nth-child(6),
 .stack-page__table--backend td:nth-child(6) {
-  /* Rim column after Open was dropped — hug badge + keep panel gutter */
-  width: 1%;
+  /* Rim column — fixed track so badge + gutter stay visible in fixed layout */
+  width: 5.5rem;
   white-space: nowrap;
   padding-right: var(--space-4);
 }
