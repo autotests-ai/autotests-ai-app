@@ -72,6 +72,20 @@ const MATRIX: StackMatrix = {
       layers: ['crystal'],
       in_stack: true,
     },
+    {
+      id: 'tests-java-jmeter',
+      status: 'slot',
+      language: 'java',
+      module: 'tests/java/tests-java-jmeter',
+      layers: ['performance'],
+    },
+    {
+      id: 'tests-python-locust',
+      status: 'slot',
+      language: 'python',
+      module: 'tests/python/tests-python-locust',
+      layers: ['performance'],
+    },
   ],
 };
 
@@ -185,6 +199,21 @@ describe('StackPage', () => {
     expect(screen.queryByTestId('stack-allure-tests-tests-slot')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-tests-tests-no-layers')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-tests-tests-java-jmeter')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-performance-board')).toBeInTheDocument();
+    expect(screen.getByTestId('stack-performance-tests-java-jmeter')).toHaveTextContent(
+      'tests-java-jmeter',
+    );
+    expect(screen.getByTestId('stack-performance-tests-python-locust')).toHaveTextContent(
+      'tests-python-locust',
+    );
+    expect(screen.getByTestId('stack-gh-performance-tests-java-jmeter')).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/tests/java/tests-java-jmeter',
+    );
+    expect(
+      screen.queryByTestId('stack-allure-performance-tests-java-jmeter'),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-tests-crystal')).toHaveTextContent('tests-go-cdp/crystals');
     expect(screen.getByTestId('stack-gh-tests-crystal')).toHaveAttribute(
       'href',
@@ -408,6 +437,27 @@ describe('StackPage', () => {
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
   });
 
+  it('hides a performance slot when in_stack is false', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        jsonOk({
+          ...MATRIX,
+          tests: (MATRIX.tests ?? []).map((item) =>
+            item.id === 'tests-python-locust' ? { ...item, in_stack: false } : item,
+          ),
+        }),
+      ),
+    );
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-performance-board')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('stack-performance-tests-java-jmeter')).toBeInTheDocument();
+    expect(screen.queryByTestId('stack-performance-tests-python-locust')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stack-tests-tests-python-locust')).not.toBeInTheDocument();
+  });
+
   it('shows a disabled crystal row when the mill has no module path', async () => {
     vi.stubGlobal(
       'fetch',
@@ -467,6 +517,9 @@ describe('StackPage', () => {
     expect(screen.getByTestId('stack-backend-title')).toHaveTextContent(ru.stack.panelBackend);
     expect(screen.getByTestId('stack-frontend-title')).toHaveTextContent(ru.stack.panelFrontend);
     expect(screen.getByTestId('stack-tests-title')).toHaveTextContent(ru.stack.panelTests);
+    expect(screen.getByTestId('stack-performance-title')).toHaveTextContent(
+      ru.stack.panelPerformance,
+    );
     expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveTextContent(
       'backend-java-spring',

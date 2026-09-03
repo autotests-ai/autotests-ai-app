@@ -27,9 +27,13 @@ import {
   githubModuleHref,
   isOpenable,
   localComponentTestsPath,
+  PERFORMANCE_ROW_LAYERS,
   parseMount,
   parseStackQuery,
   parseTestsId,
+  performanceModules,
+  performanceTestsMeta,
+  performanceToolLabel,
   resolveSelection,
   resolveTestsId,
   STACK_PREFIX,
@@ -228,6 +232,7 @@ describe('stack-matrix helpers', () => {
     expect(allureQueryHref('..')).toBe(null);
     expect(COMPONENT_ROW_LAYERS).toEqual(['component']);
     expect(CRYSTAL_ROW_LAYERS).toEqual(['crystal']);
+    expect(PERFORMANCE_ROW_LAYERS).toEqual(['performance']);
   });
 
   it('builds Allure hrefs for tests-column suites', () => {
@@ -401,6 +406,7 @@ describe('stack-matrix helpers', () => {
       frontends: [],
       tests: [],
       crystal: null,
+      performance: [],
     });
     expect(
       summarizeMatrix({
@@ -408,7 +414,7 @@ describe('stack-matrix helpers', () => {
         frontends: undefined as unknown as StackMatrix['frontends'],
         tests: undefined,
       }),
-    ).toEqual({ backends: [], frontends: [], tests: [], crystal: null });
+    ).toEqual({ backends: [], frontends: [], tests: [], crystal: null, performance: [] });
     expect(
       summarizeMatrix({
         backends: [],
@@ -417,6 +423,7 @@ describe('stack-matrix helpers', () => {
           { id: 'tests-java-gradle-junit5-allure3-selenide', layers: ['api', 'e2e'] },
           { id: 'tests-go-cdp', layers: ['crystal'], in_stack: false },
           { id: 'tests-go-cdp-sync-leak', layers: ['crystal'] },
+          { id: 'tests-java-jmeter', layers: ['performance'] },
         ],
       }).tests.map((t) => t.id),
     ).toEqual(['tests-java-gradle-junit5-allure3-selenide']);
@@ -434,6 +441,13 @@ describe('stack-matrix helpers', () => {
             in_stack: true,
           },
           { id: 'tests-go-cdp-sync-leak', layers: ['crystal'] },
+          {
+            id: 'tests-java-jmeter',
+            status: 'slot',
+            module: 'tests/java/tests-java-jmeter',
+            layers: ['performance'],
+          },
+          { id: 'tests-python-locust', layers: ['performance'], in_stack: false },
         ],
       }),
     ).toEqual({
@@ -447,6 +461,14 @@ describe('stack-matrix helpers', () => {
         layers: ['crystal'],
         in_stack: true,
       },
+      performance: [
+        {
+          id: 'tests-java-jmeter',
+          status: 'slot',
+          module: 'tests/java/tests-java-jmeter',
+          layers: ['performance'],
+        },
+      ],
     });
     expect(
       crystalMill({
@@ -505,6 +527,42 @@ describe('stack-matrix helpers', () => {
         'tests-go-cdp',
       ),
     ).toBe('tests-typescript-playwright');
+    expect(
+      resolveTestsId(
+        {
+          backends: [],
+          frontends: [],
+          tests: [
+            { id: 'tests-java-jmeter', status: 'slot', layers: PERFORMANCE_ROW_LAYERS },
+            { id: 'tests-typescript-playwright', status: 'active', layers: ['api', 'e2e'] },
+          ],
+        },
+        'tests-java-jmeter',
+      ),
+    ).toBe('tests-typescript-playwright');
+    expect(
+      performanceModules({
+        backends: [],
+        frontends: [],
+        tests: [
+          { id: 'tests-java-jmeter', layers: ['performance'] },
+          { id: 'tests-python-locust', layers: ['performance'], in_stack: false },
+          { id: 'tests-java-selenide', layers: ['api', 'e2e'] },
+        ],
+      }).map((item) => item.id),
+    ).toEqual(['tests-java-jmeter']);
+    expect(performanceToolLabel({ id: 'tests-java-jmeter' })).toBe('jmeter');
+    expect(performanceToolLabel({ id: 'tests-python-yandex_tank' })).toBe('yandex-tank');
+    expect(performanceToolLabel({ id: '' })).toBe('load');
+    expect(
+      performanceTestsMeta({
+        id: 'tests-java-jmeter',
+        language: 'java',
+        status: 'slot',
+        layers: ['performance'],
+      }),
+    ).toBe('java · jmeter · slot');
+    expect(performanceTestsMeta({ id: 'tests-javascript-k6' })).toBe('tests · k6 · slot');
   });
 
   it('fetches matrix.json and throws on HTTP errors', async () => {

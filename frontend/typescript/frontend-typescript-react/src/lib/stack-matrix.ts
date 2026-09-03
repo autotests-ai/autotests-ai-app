@@ -54,7 +54,7 @@ export interface TestsModule {
   language?: string;
   module?: string;
   layers?: string[];
-  /** Hub mill `in_stack: true` — 4th Tests-board crystal row. `false` omits it. */
+  /** Hub mill `in_stack: true` — crystal row in Tests. `false` hides mill/performance. */
   in_stack?: boolean;
   role?: string;
 }
@@ -269,18 +269,28 @@ export const UNIT_ROW_LAYERS: string[] = ['unit', 'integration'];
 export const COMPONENT_ROW_LAYERS: string[] = ['component'];
 
 /**
- * 4th Tests-board column: IR mill (`layers: [crystal]`). Shown when hub `in_stack: true`.
+ * Pinned Tests-board row: IR mill (`layers: [crystal]`). Shown when hub `in_stack: true`.
  * Not mixed into the api/e2e list — not a Selenide/PW peer.
  */
 export const CRYSTAL_ROW_LAYERS: string[] = ['crystal'];
+
+/**
+ * 4th `/stack/` page column: load slots (`layers: [performance]`).
+ * Not pyramid `@Layer` and not mixed into Tests.
+ */
+export const PERFORMANCE_ROW_LAYERS: string[] = ['performance'];
 
 function isCrystalMill(item: TestsModule): boolean {
   return CRYSTAL_ROW_LAYERS.some((layer) => (item.layers || []).includes(layer));
 }
 
+function isPerformanceRow(item: TestsModule): boolean {
+  return PERFORMANCE_ROW_LAYERS.some((layer) => (item.layers || []).includes(layer));
+}
+
 function isTestsBoardRow(item: TestsModule): boolean {
   if (item.in_stack === false) return false;
-  return !isCrystalMill(item);
+  return !isCrystalMill(item) && !isPerformanceRow(item);
 }
 
 /** Pinned crystal mill (`tests-go-cdp`) when the hub asked for the /stack/ column. */
@@ -299,6 +309,23 @@ export function crystalTestsPath(item: TestsModule | null): string | null {
 export function crystalTestsMeta(item: TestsModule | null): string {
   if (!item) return 'IR mill';
   return 'greedy run';
+}
+
+/** Load slots for the 4th `/stack/` column. Hidden when hub `in_stack: false`. */
+export function performanceModules(data: StackMatrix): TestsModule[] {
+  return (data.tests ?? []).filter((item) => item.in_stack !== false && isPerformanceRow(item));
+}
+
+/** Tool segment from a load-module id (`tests-java-jmeter` → `jmeter`). */
+export function performanceToolLabel(item: TestsModule): string {
+  const rest = String(item.id || '').replace(/^tests-[a-z]+-/, '');
+  return rest.replace(/_/g, '-') || 'load';
+}
+
+/** Meta under a performance row — language · tool · status. */
+export function performanceTestsMeta(item: TestsModule): string {
+  const status = item.status || 'slot';
+  return `${item.language || 'tests'} · ${performanceToolLabel(item)} · ${status}`;
 }
 
 /** Unit tests live inside the selected backend module (not under tests/). */
@@ -369,6 +396,7 @@ export function summarizeMatrix(data: StackMatrix) {
     frontends: data.frontends ?? [],
     tests: (data.tests ?? []).filter(isTestsBoardRow),
     crystal: crystalMill(data),
+    performance: performanceModules(data),
   };
 }
 

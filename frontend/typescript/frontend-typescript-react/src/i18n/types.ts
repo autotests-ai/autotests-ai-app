@@ -29,6 +29,7 @@ export interface Dictionary {
     panelBackend: string;
     panelFrontend: string;
     panelTests: string;
+    panelPerformance: string;
     colModule: string;
     colGh: string;
     colApi: string;

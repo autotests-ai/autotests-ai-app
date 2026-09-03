@@ -30,6 +30,7 @@ export const ru: Dictionary = {
     panelBackend: 'Бэкенд',
     panelFrontend: 'Фронтенд',
     panelTests: 'Тесты',
+    panelPerformance: 'Нагрузка',
     colModule: 'Модуль',
     colGh: 'GH',
     colApi: 'API',

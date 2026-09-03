@@ -26,7 +26,9 @@ import {
   isOpenable,
   localComponentTestsPath,
   type ModuleStatus,
+  PERFORMANCE_ROW_LAYERS,
   parseTestsId,
+  performanceTestsMeta,
   resolveSelection,
   resolveTestsId,
   type StackMatrix,
@@ -849,6 +851,78 @@ export function StackPage() {
                           id={item.id}
                           layers={item.layers || []}
                           testId={`stack-allure-tests-${item.id}`}
+                          copy={copy}
+                        />
+                      </td>
+                      <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Panel>
+
+          <Panel
+            title={copy.stack.panelPerformance}
+            titleTestId="stack-performance-title"
+            bodyClassName="stack-page__board-body"
+            className="stack-page__board stack-page__board--performance"
+            testId="stack-performance-board"
+          >
+            <table className="stack-page__table stack-page__table--tests">
+              <thead>
+                <tr>
+                  <th>{copy.stack.colModule}</th>
+                  <th>{copy.stack.colLayers}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
+                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th>{copy.stack.colStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.performance.map((item) => {
+                  const layers = layersLabel(
+                    item.layers?.length ? item.layers : PERFORMANCE_ROW_LAYERS,
+                  );
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <span
+                          className="stack-page__id stack-page__id--disabled"
+                          data-testid={`stack-performance-${item.id}`}
+                        >
+                          {item.id}
+                        </span>
+                        <div className="text text--sm text--muted stack-page__meta">
+                          {performanceTestsMeta(item)}
+                        </div>
+                      </td>
+                      <td className="stack-page__layers-cell">
+                        {layers ? (
+                          <span
+                            className="stack-page__layers"
+                            data-testid="stack-performance-layers"
+                          >
+                            {layers}
+                          </span>
+                        ) : (
+                          <span className="text text--sm text--muted">—</span>
+                        )}
+                      </td>
+                      <td className="stack-page__gh-cell">
+                        <GitHubCell
+                          modulePath={item.module}
+                          kind="performance"
+                          id={item.id}
+                          copy={copy}
+                        />
+                      </td>
+                      <td className="stack-page__gh-cell">
+                        <AllureCell
+                          href={null}
+                          id={item.id}
+                          layers={item.layers || PERFORMANCE_ROW_LAYERS}
+                          testId={`stack-allure-performance-${item.id}`}
                           copy={copy}
                         />
                       </td>
