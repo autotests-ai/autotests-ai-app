@@ -198,7 +198,7 @@
   white-space: nowrap;
 }
 
-/* Tests: Module / Layers / GH / Allure / Status / Select */
+/* Tests: Module / Layers / GH / Allure / Status */
 .stack-page__table--tests th:nth-child(1),
 .stack-page__table--tests td:nth-child(1) {
   width: 36%;
@@ -220,12 +220,7 @@
 
 .stack-page__table--tests th:nth-child(5),
 .stack-page__table--tests td:nth-child(5) {
-  width: 16%;
-}
-
-.stack-page__table--tests th:nth-child(6),
-.stack-page__table--tests td:nth-child(6) {
-  width: 15%;
+  width: 18%;
 }
 
 .stack-page__layers {

@@ -37,9 +37,7 @@ export interface Dictionary {
     colStatus: string;
     colOpen: string;
     colLayers: string;
-    colSelect: string;
     open: string;
-    select: string;
     github: string;
     swagger: string;
     swaggerTitle: string;

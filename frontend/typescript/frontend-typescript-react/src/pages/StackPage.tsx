@@ -643,7 +643,6 @@ export function StackPage() {
                   <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
                   <th>{copy.stack.colStatus}</th>
-                  <th>{copy.stack.colSelect}</th>
                 </tr>
               </thead>
               <tbody>
@@ -694,9 +693,6 @@ export function StackPage() {
                   <td className="stack-page__status-cell">
                     <Badge>{unitPath ? 'derived' : 'slot'}</Badge>
                   </td>
-                  <td>
-                    <span className="text text--sm text--muted">—</span>
-                  </td>
                 </tr>
 
                 <tr className="stack-page__row--active">
@@ -739,9 +735,6 @@ export function StackPage() {
                   </td>
                   <td className="stack-page__status-cell">
                     <Badge>derived</Badge>
-                  </td>
-                  <td>
-                    <span className="text text--sm text--muted">—</span>
                   </td>
                 </tr>
 
@@ -788,9 +781,6 @@ export function StackPage() {
                       />
                     </td>
                     <td className="stack-page__status-cell">{statusBadge(crystal.status)}</td>
-                    <td>
-                      <span className="text text--sm text--muted">—</span>
-                    </td>
                   </tr>
                 ) : null}
 
@@ -863,15 +853,6 @@ export function StackPage() {
                         />
                       </td>
                       <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
-                      <td>
-                        {selectable ? (
-                          <Link className="stack-page__open" active={current} href={href}>
-                            {copy.stack.select}
-                          </Link>
-                        ) : (
-                          <span className="text text--sm text--muted">—</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
