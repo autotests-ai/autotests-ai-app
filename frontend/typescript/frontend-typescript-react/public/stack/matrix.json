@@ -66,6 +66,18 @@
       "status": "active",
       "language": "typescript",
       "module": "backend/typescript/backend-typescript-nest"
+    },
+    {
+      "id": "backend-csharp-aspnet",
+      "status": "slot",
+      "language": "csharp",
+      "module": "backend/csharp/backend-csharp-aspnet"
+    },
+    {
+      "id": "backend-rust-axum",
+      "status": "slot",
+      "language": "rust",
+      "module": "backend/rust/backend-rust-axum"
     }
   ],
   "frontends": [
@@ -132,10 +144,10 @@
   ],
   "tests": [
     {
-      "id": "tests-java-gradle-junit5-allure3-selenide",
+      "id": "tests-java-junit5-rest_assured-selenide",
       "status": "active",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure3-selenide",
+      "module": "tests/java/tests-java-junit5-rest_assured-selenide",
       "layers": [
         "api",
         "ui",
@@ -144,10 +156,10 @@
       "role": "canon"
     },
     {
-      "id": "tests-java-gradle-junit5-allure3-selenium",
+      "id": "tests-java-junit5-rest_assured-selenium",
       "status": "active",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure3-selenium",
+      "module": "tests/java/tests-java-junit5-rest_assured-selenium",
       "layers": [
         "api",
         "ui",
@@ -156,10 +168,10 @@
       "role": "living"
     },
     {
-      "id": "tests-java-gradle-junit5-allure3-playwright",
+      "id": "tests-java-junit5-api_request-playwright",
       "status": "active",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure3-playwright",
+      "module": "tests/java/tests-java-junit5-api_request-playwright",
       "layers": [
         "api",
         "ui",
@@ -168,10 +180,43 @@
       "role": "living"
     },
     {
-      "id": "tests-java-gradle-junit5-allure2-selenide",
+      "id": "tests-java-junit5-selenide",
       "status": "slot",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure2-selenide",
+      "module": "tests/java/tests-java-junit5-selenide",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-selenium",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-playwright",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-playwright",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit4-selenium",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit4-selenium",
       "layers": [
         "api",
         "ui",
@@ -180,10 +225,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-java-gradle-junit5-no_allure-selenide",
+      "id": "tests-java-testng-selenium",
       "status": "slot",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-no_allure-selenide",
+      "module": "tests/java/tests-java-testng-selenium",
       "layers": [
         "api",
         "ui",
@@ -192,56 +237,20 @@
       "role": "slot"
     },
     {
-      "id": "tests-java-gradle-junit4-allure2-selenium",
-      "status": "slot",
-      "language": "java",
-      "module": "tests/java/tests-java-gradle-junit4-allure2-selenium",
-      "layers": [
-        "api",
-        "ui",
-        "e2e"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-java-gradle-testng-allure3-selenium",
-      "status": "slot",
-      "language": "java",
-      "module": "tests/java/tests-java-gradle-testng-allure3-selenium",
-      "layers": [
-        "api",
-        "ui",
-        "e2e"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-java-maven-junit5-allure3-selenide",
-      "status": "slot",
-      "language": "java",
-      "module": "tests/java/tests-java-maven-junit5-allure3-selenide",
-      "layers": [
-        "api",
-        "ui",
-        "e2e"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-java-gradle-junit5-allure3-restassured",
+      "id": "tests-java-junit5-rest_assured",
       "status": "active",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure3-restassured",
+      "module": "tests/java/tests-java-junit5-rest_assured",
       "layers": [
         "api"
       ],
       "role": "living"
     },
     {
-      "id": "tests-java-gradle-junit5-allure3-retrofit2",
+      "id": "tests-java-junit5-retrofit2",
       "status": "active",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-junit5-allure3-retrofit2",
+      "module": "tests/java/tests-java-junit5-retrofit2",
       "layers": [
         "api"
       ],
@@ -258,10 +267,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-java-gradle-gatling",
+      "id": "tests-java-gatling",
       "status": "slot",
       "language": "java",
-      "module": "tests/java/tests-java-gradle-gatling",
+      "module": "tests/java/tests-java-gatling",
       "layers": [
         "performance"
       ],
@@ -278,10 +287,46 @@
       "role": "slot"
     },
     {
-      "id": "tests-kotlin-gradle-junit5-allure3-selenide",
+      "id": "tests-kotlin-junit5-ktor-selenide",
+      "status": "active",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-junit5-ktor-selenide",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-kotlin-junit5-ktor-selenium",
+      "status": "active",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-junit5-ktor-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-kotlin-junit5-api_request-playwright",
+      "status": "active",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-junit5-api_request-playwright",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-kotlin-junit5-selenide",
       "status": "slot",
       "language": "kotlin",
-      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-selenide",
+      "module": "tests/kotlin/tests-kotlin-junit5-selenide",
       "layers": [
         "ui",
         "e2e"
@@ -289,10 +334,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-kotlin-gradle-junit5-allure3-selenium",
+      "id": "tests-kotlin-junit5-selenium",
       "status": "slot",
       "language": "kotlin",
-      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-selenium",
+      "module": "tests/kotlin/tests-kotlin-junit5-selenium",
       "layers": [
         "ui",
         "e2e"
@@ -300,10 +345,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-kotlin-gradle-junit5-allure3-playwright",
+      "id": "tests-kotlin-junit5-playwright",
       "status": "slot",
       "language": "kotlin",
-      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-playwright",
+      "module": "tests/kotlin/tests-kotlin-junit5-playwright",
       "layers": [
         "ui",
         "e2e"
@@ -311,20 +356,20 @@
       "role": "slot"
     },
     {
-      "id": "tests-kotlin-gradle-junit5-allure3-ktor",
-      "status": "slot",
+      "id": "tests-kotlin-junit5-ktor",
+      "status": "active",
       "language": "kotlin",
-      "module": "tests/kotlin/tests-kotlin-gradle-junit5-allure3-ktor",
+      "module": "tests/kotlin/tests-kotlin-junit5-ktor",
       "layers": [
         "api"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
-      "id": "tests-kotlin-gradle-gatling",
+      "id": "tests-kotlin-gatling",
       "status": "slot",
       "language": "kotlin",
-      "module": "tests/kotlin/tests-kotlin-gradle-gatling",
+      "module": "tests/kotlin/tests-kotlin-gatling",
       "layers": [
         "performance"
       ],
@@ -341,16 +386,27 @@
       "role": "slot"
     },
     {
-      "id": "tests-javascript-playwright",
+      "id": "tests-javascript-api_request-playwright",
       "status": "active",
       "language": "javascript",
-      "module": "tests/javascript/tests-javascript-playwright",
+      "module": "tests/javascript/tests-javascript-api_request-playwright",
       "layers": [
         "api",
         "ui",
         "e2e"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-javascript-playwright",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-playwright",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-javascript-cypress",
@@ -366,13 +422,13 @@
     },
     {
       "id": "tests-javascript-axios",
-      "status": "slot",
+      "status": "active",
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-axios",
       "layers": [
         "api"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-javascript-k6",
@@ -395,16 +451,27 @@
       "role": "slot"
     },
     {
-      "id": "tests-typescript-playwright",
+      "id": "tests-typescript-api_request-playwright",
       "status": "active",
       "language": "typescript",
-      "module": "tests/typescript/tests-typescript-playwright",
+      "module": "tests/typescript/tests-typescript-api_request-playwright",
       "layers": [
         "api",
         "ui",
         "e2e"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-typescript-playwright",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-playwright",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-typescript-axios",
@@ -437,10 +504,10 @@
       "role": "slot"
     },
     {
-      "id": "tests-python-selenium",
+      "id": "tests-python-pytest-requests-selenium",
       "status": "active",
       "language": "python",
-      "module": "tests/python/tests-python-selenium",
+      "module": "tests/python/tests-python-pytest-requests-selenium",
       "layers": [
         "api",
         "ui",
@@ -449,52 +516,87 @@
       "role": "living"
     },
     {
-      "id": "tests-python-selene",
-      "status": "slot",
-      "language": "python",
-      "module": "tests/python/tests-python-selene",
-      "layers": [
-        "ui",
-        "e2e"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-python-playwright",
-      "status": "slot",
-      "language": "python",
-      "module": "tests/python/tests-python-playwright",
-      "layers": [
-        "ui",
-        "e2e"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-python-requests",
-      "status": "slot",
-      "language": "python",
-      "module": "tests/python/tests-python-requests",
-      "layers": [
-        "api"
-      ],
-      "role": "slot"
-    },
-    {
-      "id": "tests-python-httpx",
+      "id": "tests-python-pytest-requests-selene",
       "status": "active",
       "language": "python",
-      "module": "tests/python/tests-python-httpx",
+      "module": "tests/python/tests-python-pytest-requests-selene",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-python-pytest-api_request-playwright",
+      "status": "active",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-api_request-playwright",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-python-pytest-selenium",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-python-pytest-selene",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-selene",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-python-pytest-playwright",
+      "status": "slot",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-playwright",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-python-pytest-requests",
+      "status": "active",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-requests",
       "layers": [
         "api"
       ],
       "role": "living"
     },
     {
-      "id": "tests-python-yandex-tank",
+      "id": "tests-python-pytest-httpx",
+      "status": "active",
+      "language": "python",
+      "module": "tests/python/tests-python-pytest-httpx",
+      "layers": [
+        "api"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-python-yandex_tank",
       "status": "slot",
       "language": "python",
-      "module": "tests/python/tests-python-yandex-tank",
+      "module": "tests/python/tests-python-yandex_tank",
       "layers": [
         "performance"
       ],
@@ -511,20 +613,32 @@
       "role": "slot"
     },
     {
-      "id": "tests-go-testing-allure3-net_http",
+      "id": "tests-go-testing-net_http",
       "status": "active",
       "language": "go",
-      "module": "tests/go/tests-go-testing-allure3-net_http",
+      "module": "tests/go/tests-go-testing-net_http",
       "layers": [
         "api"
       ],
       "role": "living"
     },
     {
-      "id": "tests-go-testing-allure3-playwright",
+      "id": "tests-go-testing-api_request-playwright",
+      "status": "active",
+      "language": "go",
+      "module": "tests/go/tests-go-testing-api_request-playwright",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-go-testing-playwright",
       "status": "slot",
       "language": "go",
-      "module": "tests/go/tests-go-testing-allure3-playwright",
+      "module": "tests/go/tests-go-testing-playwright",
       "layers": [
         "ui",
         "e2e"
@@ -543,10 +657,22 @@
       "role": "mill"
     },
     {
-      "id": "tests-csharp-nunit-allure3-selenium",
+      "id": "tests-csharp-nunit-restsharp-selenium",
+      "status": "active",
+      "language": "csharp",
+      "module": "tests/csharp/tests-csharp-nunit-restsharp-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-csharp-nunit-selenium",
       "status": "slot",
       "language": "csharp",
-      "module": "tests/csharp/tests-csharp-nunit-allure3-selenium",
+      "module": "tests/csharp/tests-csharp-nunit-selenium",
       "layers": [
         "ui",
         "e2e"
@@ -554,10 +680,22 @@
       "role": "slot"
     },
     {
-      "id": "tests-csharp-xunit-allure3-playwright",
+      "id": "tests-csharp-xunit-api_request-playwright",
+      "status": "active",
+      "language": "csharp",
+      "module": "tests/csharp/tests-csharp-xunit-api_request-playwright",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-csharp-xunit-playwright",
       "status": "slot",
       "language": "csharp",
-      "module": "tests/csharp/tests-csharp-xunit-allure3-playwright",
+      "module": "tests/csharp/tests-csharp-xunit-playwright",
       "layers": [
         "ui",
         "e2e"
@@ -565,12 +703,45 @@
       "role": "slot"
     },
     {
-      "id": "tests-csharp-nunit-allure3-restsharp",
-      "status": "slot",
+      "id": "tests-csharp-nunit-restsharp",
+      "status": "active",
       "language": "csharp",
-      "module": "tests/csharp/tests-csharp-nunit-allure3-restsharp",
+      "module": "tests/csharp/tests-csharp-nunit-restsharp",
       "layers": [
         "api"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-rust-testing-reqwest",
+      "status": "slot",
+      "language": "rust",
+      "module": "tests/rust/tests-rust-testing-reqwest",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-rust-testing-selenium",
+      "status": "slot",
+      "language": "rust",
+      "module": "tests/rust/tests-rust-testing-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-rust-testing-reqwest-selenium",
+      "status": "slot",
+      "language": "rust",
+      "module": "tests/rust/tests-rust-testing-reqwest-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     }
