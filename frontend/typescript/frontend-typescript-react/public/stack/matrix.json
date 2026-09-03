@@ -268,13 +268,13 @@
     },
     {
       "id": "tests-java-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "java",
       "module": "tests/java/tests-java-gatling",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-groovy-jmeter",
