@@ -443,7 +443,7 @@ export function StackPage() {
                   <th className="stack-page__gh-cell">{copy.stack.colApi}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
-                  <th>{copy.stack.colStatus}</th>
+                  <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
               <tbody>
@@ -540,8 +540,8 @@ export function StackPage() {
                   <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
-                  <th>{copy.stack.colStatus}</th>
-                  <th>{copy.stack.colOpen}</th>
+                  <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
+                  <th className="stack-page__open-cell">{copy.stack.colOpen}</th>
                 </tr>
               </thead>
               <tbody>
@@ -614,7 +614,7 @@ export function StackPage() {
                         />
                       </td>
                       <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
-                      <td>
+                      <td className="stack-page__open-cell">
                         {openable ? (
                           <Link className="stack-page__open" active={current} href={rowHref(item)}>
                             {copy.stack.open}
@@ -644,7 +644,7 @@ export function StackPage() {
                   <th>{copy.stack.colLayers}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
-                  <th>{copy.stack.colStatus}</th>
+                  <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
               <tbody>
@@ -878,7 +878,7 @@ export function StackPage() {
                   <th>{copy.stack.colLayers}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
                   <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
-                  <th>{copy.stack.colStatus}</th>
+                  <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
               <tbody>

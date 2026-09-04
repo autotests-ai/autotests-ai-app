@@ -160,15 +160,13 @@
   padding-right: var(--space-1);
 }
 
-.stack-page__table--frontend th:nth-child(5),
-.stack-page__table--frontend td:nth-child(5) {
-  width: 5.75rem;
+.stack-page__table--frontend .stack-page__status-cell {
+  width: 6.5rem;
   white-space: nowrap;
   overflow: visible;
 }
 
-.stack-page__table--frontend th:nth-child(6),
-.stack-page__table--frontend td:nth-child(6) {
+.stack-page__table--frontend .stack-page__open-cell {
   width: 6.25rem;
   white-space: nowrap;
   overflow: visible;
@@ -189,9 +187,8 @@
   padding-right: var(--space-1);
 }
 
-.stack-page__table--backend th:nth-child(6),
-.stack-page__table--backend td:nth-child(6) {
-  width: 5.75rem;
+.stack-page__table--backend .stack-page__status-cell {
+  width: 6.5rem;
   white-space: nowrap;
   overflow: visible;
   padding-right: var(--space-3);
@@ -217,10 +214,11 @@
   padding-right: var(--space-1);
 }
 
-.stack-page__table--tests th:nth-child(5),
-.stack-page__table--tests td:nth-child(5) {
-  width: 6.5rem;
+/* Fixed layout ignores later rows — size for longest label (bad-practice / frontend), not `active`. */
+.stack-page__table--tests .stack-page__status-cell {
+  width: 9.5rem;
   overflow: visible;
+  white-space: nowrap;
 }
 
 .stack-page__layers-cell {
@@ -291,7 +289,12 @@
 }
 
 .stack-page__table .badge {
-  padding: var(--space-1) var(--space-3);
+  box-sizing: content-box;
+  flex-shrink: 0;
+  width: max-content;
+  max-width: none;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-3);
   font-size: var(--font-size-sm, 0.875rem);
 }
 
