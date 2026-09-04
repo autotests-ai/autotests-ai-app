@@ -376,6 +376,16 @@
       "role": "living"
     },
     {
+      "id": "tests-kotlin-jmeter",
+      "status": "active",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-jmeter",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
       "id": "tests-scala-gatling",
       "status": "slot",
       "language": "scala",
