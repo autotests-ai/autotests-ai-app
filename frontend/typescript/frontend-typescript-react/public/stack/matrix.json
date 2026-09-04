@@ -278,13 +278,13 @@
     },
     {
       "id": "tests-groovy-jmeter",
-      "status": "slot",
+      "status": "active",
       "language": "groovy",
       "module": "tests/groovy/tests-groovy-jmeter",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-kotlin-junit5-ktor-selenide",
