@@ -51,6 +51,15 @@ function layersLabel(layers?: string[]): string {
   return (layers || []).join(' · ');
 }
 
+function ModuleLayers({ layers, testId }: { layers: string; testId?: string }) {
+  if (!layers) return null;
+  return (
+    <span className="stack-page__layers" title={layers} data-testid={testId}>
+      {layers}
+    </span>
+  );
+}
+
 function statusBadge(status: ModuleStatus | undefined) {
   const value = status || 'active';
   return <Badge variant={value === 'active' ? 'primary' : 'default'}>{value}</Badge>;
@@ -439,10 +448,18 @@ export function StackPage() {
               <thead>
                 <tr>
                   <th>{copy.stack.colModule}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colApi}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colGh}>
+                    {copy.stack.colGh}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colApi}>
+                    {copy.stack.colApi}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colTests}>
+                    {copy.stack.colTests}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colAllure}>
+                    {copy.stack.colAllure}
+                  </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
@@ -537,9 +554,15 @@ export function StackPage() {
               <thead>
                 <tr>
                   <th>{copy.stack.colModule}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colTests}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colGh}>
+                    {copy.stack.colGh}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colTests}>
+                    {copy.stack.colTests}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colAllure}>
+                    {copy.stack.colAllure}
+                  </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                   <th className="stack-page__open-cell">{copy.stack.colOpen}</th>
                 </tr>
@@ -616,7 +639,12 @@ export function StackPage() {
                       <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
                       <td className="stack-page__open-cell">
                         {openable ? (
-                          <Link className="stack-page__open" active={current} href={rowHref(item)}>
+                          <Link
+                            className="stack-page__open"
+                            active={current}
+                            href={rowHref(item)}
+                            title={copy.stack.colOpen}
+                          >
                             {copy.stack.open}
                           </Link>
                         ) : (
@@ -641,9 +669,12 @@ export function StackPage() {
               <thead>
                 <tr>
                   <th>{copy.stack.colModule}</th>
-                  <th>{copy.stack.colLayers}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colGh}>
+                    {copy.stack.colGh}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colAllure}>
+                    {copy.stack.colAllure}
+                  </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
@@ -670,11 +701,10 @@ export function StackPage() {
                       </span>
                     )}
                     <span className="text text--sm text--muted stack-page__meta">{unitMeta}</span>
-                  </td>
-                  <td className="stack-page__layers-cell" title={layersLabel(UNIT_ROW_LAYERS)}>
-                    <span className="stack-page__layers" data-testid="stack-tests-layers">
-                      {layersLabel(UNIT_ROW_LAYERS)}
-                    </span>
+                    <ModuleLayers
+                      layers={layersLabel(UNIT_ROW_LAYERS)}
+                      testId="stack-tests-layers"
+                    />
                   </td>
                   <td className="stack-page__gh-cell">
                     <GitHubCell modulePath={unitPath} kind="tests" id="unit" copy={copy} />
@@ -714,11 +744,7 @@ export function StackPage() {
                     <span className="text text--sm text--muted stack-page__meta">
                       {componentMeta}
                     </span>
-                  </td>
-                  <td className="stack-page__layers-cell" title="component">
-                    <span className="stack-page__layers" data-testid="stack-tests-layers">
-                      component
-                    </span>
+                    <ModuleLayers layers="component" testId="stack-tests-layers" />
                   </td>
                   <td className="stack-page__gh-cell">
                     <GitHubCell
@@ -766,11 +792,10 @@ export function StackPage() {
                       <span className="text text--sm text--muted stack-page__meta">
                         {crystalMeta}
                       </span>
-                    </td>
-                    <td className="stack-page__layers-cell" title={layersLabel(CRYSTAL_ROW_LAYERS)}>
-                      <span className="stack-page__layers" data-testid="stack-tests-layers">
-                        {layersLabel(CRYSTAL_ROW_LAYERS)}
-                      </span>
+                      <ModuleLayers
+                        layers={layersLabel(CRYSTAL_ROW_LAYERS)}
+                        testId="stack-tests-layers"
+                      />
                     </td>
                     <td className="stack-page__gh-cell">
                       <GitHubCell modulePath={crystalPath} kind="tests" id="crystal" copy={copy} />
@@ -829,15 +854,7 @@ export function StackPage() {
                         <span className="text text--sm text--muted stack-page__meta">
                           {testsMeta(item)}
                         </span>
-                      </td>
-                      <td className="stack-page__layers-cell" title={layers || undefined}>
-                        {layers ? (
-                          <span className="stack-page__layers" data-testid="stack-tests-layers">
-                            {layers}
-                          </span>
-                        ) : (
-                          <span className="text text--sm text--muted">—</span>
-                        )}
+                        <ModuleLayers layers={layers} testId="stack-tests-layers" />
                       </td>
                       <td className="stack-page__gh-cell">
                         <GitHubCell
@@ -871,13 +888,16 @@ export function StackPage() {
             className="stack-page__board stack-page__board--performance"
             testId="stack-performance-board"
           >
-            <table className="stack-page__table stack-page__table--tests">
+            <table className="stack-page__table">
               <thead>
                 <tr>
                   <th>{copy.stack.colModule}</th>
-                  <th>{copy.stack.colLayers}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colGh}</th>
-                  <th className="stack-page__gh-cell">{copy.stack.colAllure}</th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colGh}>
+                    {copy.stack.colGh}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colAllure}>
+                    {copy.stack.colAllure}
+                  </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
@@ -898,18 +918,7 @@ export function StackPage() {
                         <span className="text text--sm text--muted stack-page__meta">
                           {performanceTestsMeta(item)}
                         </span>
-                      </td>
-                      <td className="stack-page__layers-cell" title={layers || undefined}>
-                        {layers ? (
-                          <span
-                            className="stack-page__layers"
-                            data-testid="stack-performance-layers"
-                          >
-                            {layers}
-                          </span>
-                        ) : (
-                          <span className="text text--sm text--muted">—</span>
-                        )}
+                        <ModuleLayers layers={layers} testId="stack-performance-layers" />
                       </td>
                       <td className="stack-page__gh-cell">
                         <GitHubCell

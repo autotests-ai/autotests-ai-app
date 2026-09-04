@@ -39,7 +39,7 @@ export const en: Dictionary = {
     colStatus: 'Status',
     colOpen: 'Open',
     colLayers: 'Layers',
-    open: 'open →',
+    open: '→',
     github: 'GitHub {id}',
     swagger: 'Swagger {id}',
     swaggerTitle: 'Swagger UI',

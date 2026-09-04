@@ -103,7 +103,7 @@
   }
 
   .stack-page__table {
-    min-width: 28rem;
+    min-width: 0;
     table-layout: auto;
   }
 }
@@ -134,113 +134,67 @@
   line-height: 1.2;
 }
 
-/* panel__body is flush — outer inset lives in first/last cells */
-.stack-page__table th:first-child,
-.stack-page__table td:first-child {
-  padding-left: var(--space-2);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.stack-page__table th:last-child,
-.stack-page__table td:last-child {
-  padding-right: var(--space-3);
-}
-
-/* Same Module / GH / Tests / Allure / Status / Open track — accessory cols hug, module takes rest */
-.stack-page__table--frontend th:nth-child(2),
-.stack-page__table--frontend td:nth-child(2),
-.stack-page__table--frontend th:nth-child(3),
-.stack-page__table--frontend td:nth-child(3),
-.stack-page__table--frontend th:nth-child(4),
-.stack-page__table--frontend td:nth-child(4) {
-  width: 3rem;
-  padding-left: var(--space-1);
-  padding-right: var(--space-1);
-}
-
-.stack-page__table--frontend .stack-page__status-cell {
-  width: 6.5rem;
-  white-space: nowrap;
-  overflow: visible;
-}
-
-.stack-page__table--frontend .stack-page__open-cell {
-  width: 6.25rem;
-  white-space: nowrap;
-  overflow: visible;
-  padding-right: var(--space-3);
-}
-
-/* Backend: Module / GH / API / Tests / Allure / Status */
-.stack-page__table--backend th:nth-child(2),
-.stack-page__table--backend td:nth-child(2),
-.stack-page__table--backend th:nth-child(3),
-.stack-page__table--backend td:nth-child(3),
-.stack-page__table--backend th:nth-child(4),
-.stack-page__table--backend td:nth-child(4),
-.stack-page__table--backend th:nth-child(5),
-.stack-page__table--backend td:nth-child(5) {
-  width: 3rem;
-  padding-left: var(--space-1);
-  padding-right: var(--space-1);
-}
-
-.stack-page__table--backend .stack-page__status-cell {
-  width: 6.5rem;
-  white-space: nowrap;
-  overflow: visible;
-  padding-right: var(--space-3);
-}
-
-.stack-page__status-cell {
-  white-space: nowrap;
-  overflow: visible;
-}
-
-/* Tests: Module / Layers / GH / Allure / Status */
-.stack-page__table--tests th:nth-child(2),
-.stack-page__table--tests td:nth-child(2) {
-  width: 7.5rem;
-}
-
-.stack-page__table--tests th:nth-child(3),
-.stack-page__table--tests td:nth-child(3),
-.stack-page__table--tests th:nth-child(4),
-.stack-page__table--tests td:nth-child(4) {
-  width: 3rem;
-  padding-left: var(--space-1);
-  padding-right: var(--space-1);
-}
-
-/* Fixed layout ignores later rows — size for longest label (bad-practice / frontend), not `active`. */
-.stack-page__table--tests .stack-page__status-cell {
-  width: 9.5rem;
-  overflow: visible;
-  white-space: nowrap;
-}
-
-.stack-page__layers-cell {
-  overflow: hidden;
-}
-
-.stack-page__layers {
-  display: block;
-  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .stack-page__table th {
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
   background: var(--color-surface-soft);
+  white-space: nowrap;
+}
+
+/* Module gets leftover; wrap at hyphens, never ellipsis. Icon/status/open tracks hug. */
+.stack-page__table th:first-child,
+.stack-page__table td:first-child {
+  padding-left: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.stack-page__table th:last-child,
+.stack-page__table td:last-child {
+  padding-right: var(--space-2);
+}
+
+.stack-page__table th.stack-page__gh-cell,
+.stack-page__table td.stack-page__gh-cell {
+  width: 1.75rem;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+}
+
+.stack-page__table th.stack-page__gh-cell {
+  font-size: 0;
+  line-height: 0;
+  color: transparent;
+}
+
+.stack-page__table .stack-page__status-cell {
+  width: 4.85rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.stack-page__table .stack-page__open-cell {
+  width: 2.1rem;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.stack-page__table--tests .stack-page__status-cell {
+  width: 7rem;
+}
+
+.stack-page__layers {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -268,9 +222,8 @@
   display: block;
   font-family: var(--font-mono, ui-monospace, Menlo, monospace);
   font-size: 0.78rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 .stack-page__id--disabled {
