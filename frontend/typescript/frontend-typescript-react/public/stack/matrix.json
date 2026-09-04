@@ -367,13 +367,13 @@
     },
     {
       "id": "tests-kotlin-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "kotlin",
       "module": "tests/kotlin/tests-kotlin-gatling",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-scala-gatling",
