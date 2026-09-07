@@ -11,6 +11,15 @@ export const STACK_PREFIX = '/stack';
 export const DEFAULT_STACK_BACKEND = 'backend-java-spring';
 export const DEFAULT_STACK_FRONTEND = 'frontend-typescript-react';
 
+/**
+ * Default teaching tests cell — the only tests module whose suites are in the
+ * merged latest Allure report (`tests.api` / `tests.ui` / `tests.e2e`).
+ */
+export const DEFAULT_STACK_TESTS = 'tests-java-junit5-rest_assured-selenide';
+
+/** Static vanilla FE has no in-module Vitest tree (jquery static still does). */
+export const FRONTEND_WITHOUT_LOCAL_TESTS = 'frontend-javascript-vanilla';
+
 /** Effective pair for stack hrefs when only one side is selected in the URL. */
 export function effectiveStackPair(
   backendId: string | null,
@@ -186,23 +195,21 @@ export const ALLURE_AWESOME_LATEST =
   'https://reports.autotests.ai/reports/latest/awesome/index.html';
 
 /**
- * Awesome `?query=` token. Plugin search-index indexes a label allowlist
- * (owner/suite/package/…) and **omits** `module` / `layer`, so matrix ids do
- * not match Java results. Use strings that actually appear in fullName/package:
- * frontend id prefix, Java/Kotlin `dev.multistack.app` (excludes tests.api / tests.e2e).
+ * Awesome `?query=` token for the merged latest report.
+ * Search matches `fullName` / package, not matrix ids — so only the default
+ * teaching cell has hits: Java `dev.multistack.app`, FE `frontend-typescript-react`.
+ * Other modules would open an empty tree; return null (board shows —).
  */
 export function allureSearchQuery(
   moduleId: string | null | undefined,
-  options?: { language?: string },
+  _options?: { language?: string },
 ): string | null {
   if (!moduleId) return null;
   const id = String(moduleId);
-  if (!id.startsWith('backend-') && !id.startsWith('frontend-')) return null;
   if (/[/?#]/.test(id) || id.includes('..')) return null;
-  if (id.startsWith('frontend-')) return id;
-  const language = options?.language;
-  if (language === 'java' || language === 'kotlin') return 'dev.multistack.app';
-  return id;
+  if (id === DEFAULT_STACK_FRONTEND) return id;
+  if (id === DEFAULT_STACK_BACKEND) return 'dev.multistack.app';
+  return null;
 }
 
 /**
@@ -224,22 +231,20 @@ export function allureModuleHref(
 }
 
 /**
- * Tests-column suites live under `tests.<layer>…` packages (Java/Kotlin).
- * `tests` matches both api and e2e; a single layer uses `tests.api` / `tests.e2e`.
+ * Tests-column suites in the merged report live under `tests.api` / `tests.ui` /
+ * `tests.e2e` from the default Java cell only. Other rows would share that
+ * tree or search an id that is not in the index — hide the Allure icon.
  */
 export function allureTestsSearchQuery(item: TestsModule | null | undefined): string | null {
   if (!item?.id) return null;
   const id = String(item.id);
-  if (!id.startsWith('tests-') || /[/?#]/.test(id) || id.includes('..')) return null;
-  if (item.language === 'java' || item.language === 'kotlin') {
-    const layers = item.layers || [];
-    const hasApi = layers.includes('api');
-    const hasE2e = layers.includes('e2e');
-    if (hasApi && !hasE2e) return 'tests.api';
-    if (hasE2e && !hasApi) return 'tests.e2e';
-    return 'tests';
-  }
-  return id;
+  if (id !== DEFAULT_STACK_TESTS || /[/?#]/.test(id) || id.includes('..')) return null;
+  const layers = item.layers || [];
+  const hasApi = layers.includes('api');
+  const hasE2e = layers.includes('e2e');
+  if (hasApi && !hasE2e) return 'tests.api';
+  if (hasE2e && !hasApi) return 'tests.e2e';
+  return 'tests';
 }
 
 export function allureTestsHref(item: TestsModule | null | undefined): string | null {
@@ -328,10 +333,20 @@ export function performanceTestsMeta(item: TestsModule): string {
   return `${item.language || 'tests'} · ${performanceToolLabel(item)} · ${status}`;
 }
 
-/** Unit tests live inside the selected backend module (not under tests/). */
+/** Unit tests live inside the selected backend module (not under tests/<lang>/). */
 export function unitTestsPath(backend: BackendModule | null): string | null {
   if (!backend?.module) return null;
-  if (backend.language === 'python') return `${backend.module}/tests`;
+  const language = backend.language;
+  if (
+    language === 'python' ||
+    language === 'javascript' ||
+    language === 'typescript' ||
+    language === 'csharp'
+  ) {
+    return `${backend.module}/tests`;
+  }
+  if (language === 'go') return `${backend.module}/internal`;
+  if (language === 'rust') return `${backend.module}/src`;
   return `${backend.module}/src/test`;
 }
 
@@ -339,11 +354,12 @@ export function unitTestsPath(backend: BackendModule | null): string | null {
 export const COMPONENT_RTL_PATH = 'frontend/typescript/frontend-typescript-react/src/test';
 
 /**
- * Local component suite for a frontend row. Static FE has no in-module tests —
- * do not fall back to another module (that belongs on the Tests board).
+ * Local component suite for a frontend row. Only javascript-vanilla has no
+ * Vitest tree — do not treat `kind: static` as "no tests" (jquery is static
+ * and still has `src/test`). Do not fall back to another module here.
  */
 export function localComponentTestsPath(frontend: FrontendModule | null): string | null {
-  if (!frontend?.module || frontend.kind === 'static') return null;
+  if (!frontend?.module || frontend.id === FRONTEND_WITHOUT_LOCAL_TESTS) return null;
   return `${frontend.module}/src/test`;
 }
 
@@ -360,8 +376,8 @@ export function shortModuleLabel(path: string | null | undefined): string {
   if (!path) return '';
   return String(path)
     .replace(/^frontend\/(?:javascript|typescript)\//, '')
-    .replace(/^backend\/(?:java|kotlin|python|go)\//, '')
-    .replace(/^tests\/(?:java|kotlin|scala|groovy|python|go|javascript|typescript|csharp)\//, '');
+    .replace(/^backend\/(?:java|kotlin|python|go|javascript|typescript|csharp|rust)\//, '')
+    .replace(/^tests\/(?:java|kotlin|scala|groovy|python|go|javascript|typescript|csharp|rust)\//, '');
 }
 
 /** Meta under unit row — framework caption (path is the Module label). */

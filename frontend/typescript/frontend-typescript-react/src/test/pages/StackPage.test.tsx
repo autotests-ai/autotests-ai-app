@@ -48,17 +48,17 @@ const MATRIX: StackMatrix = {
   ],
   tests: [
     {
-      id: 'tests-java-gradle-junit5-allure3-selenide',
+      id: 'tests-java-junit5-rest_assured-selenide',
       status: 'active',
       language: 'java',
-      module: 'tests/java/tests-java-gradle-junit5-allure3-selenide',
+      module: 'tests/java/tests-java-junit5-rest_assured-selenide',
       layers: ['api', 'e2e'],
     },
     {
-      id: 'tests-java-gradle-junit5-allure3-selenium',
+      id: 'tests-java-junit5-rest_assured-selenium',
       status: 'slot',
       language: 'java',
-      module: 'tests/java/tests-java-gradle-junit5-allure3-selenium',
+      module: 'tests/java/tests-java-junit5-rest_assured-selenium',
       layers: ['e2e'],
     },
     { id: 'tests-no-layers', status: 'stub' },
@@ -135,7 +135,7 @@ describe('StackPage', () => {
     });
     expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveAttribute(
       'href',
-      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-junit5-rest_assured-selenide',
     );
     expect(screen.getByTestId('stack-tests-board')).toBeInTheDocument();
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent(
@@ -187,17 +187,21 @@ describe('StackPage', () => {
       'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-typescript-react',
     );
     expect(
-      screen.getByTestId('stack-allure-tests-tests-java-gradle-junit5-allure3-selenide'),
+      screen.getByTestId('stack-allure-tests-tests-java-junit5-rest_assured-selenide'),
     ).toHaveAttribute(
       'href',
       'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests',
     );
     expect(
-      screen.getByTestId('stack-allure-tests-tests-java-gradle-junit5-allure3-selenium'),
-    ).toHaveAttribute(
+      screen.queryByTestId('stack-allure-tests-tests-java-junit5-rest_assured-selenium'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-tests-src-backend-backend-python-flask')).toHaveAttribute(
       'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests.e2e',
+      'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/backend/python/backend-python-flask/tests',
     );
+    expect(
+      screen.queryByTestId('stack-allure-backend-backend-python-flask'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-tests-tests-slot')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-allure-tests-tests-no-layers')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
@@ -341,7 +345,7 @@ describe('StackPage', () => {
     });
     screen.getByTestId('stack-frontend-frontend-javascript-vue').closest('tr')?.click();
     expect(assign).toHaveBeenCalledWith(
-      '/stack/?backend=backend-java-spring&frontend=frontend-javascript-vue&tests=tests-java-gradle-junit5-allure3-selenide',
+      '/stack/?backend=backend-java-spring&frontend=frontend-javascript-vue&tests=tests-java-junit5-rest_assured-selenide',
     );
     screen.getByTestId('stack-frontend-frontend-javascript-vue').click();
     expect(assign).toHaveBeenCalledTimes(1);
@@ -360,15 +364,12 @@ describe('StackPage', () => {
       '/stack/backend-java-spring/frontend-javascript-vue/',
     );
     expect(
-      screen.getByTestId('stack-tests-tests-java-gradle-junit5-allure3-selenide'),
+      screen.getByTestId('stack-tests-tests-java-junit5-rest_assured-selenide'),
     ).toHaveAttribute(
       'href',
-      '/stack/backend-java-spring/frontend-javascript-vue/?tests=tests-java-gradle-junit5-allure3-selenide',
+      '/stack/backend-java-spring/frontend-javascript-vue/?tests=tests-java-junit5-rest_assured-selenide',
     );
-    expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
-      'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=frontend-javascript-vue',
-    );
+    expect(screen.queryByTestId('stack-allure-tests-component')).not.toBeInTheDocument();
   });
 
   it('uses path pair hrefs off the hub', async () => {
@@ -383,10 +384,7 @@ describe('StackPage', () => {
       '/stack/backend-python-flask/frontend-typescript-react/',
     );
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('backend-python-flask/tests');
-    expect(screen.getByTestId('stack-allure-tests-unit')).toHaveAttribute(
-      'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=backend-python-flask',
-    );
+    expect(screen.queryByTestId('stack-allure-tests-unit')).not.toBeInTheDocument();
   });
 
   it('assigns the hub row when the row is clicked outside a link', async () => {
@@ -397,7 +395,7 @@ describe('StackPage', () => {
     });
     screen.getByTestId('stack-backend-backend-python-flask').closest('tr')?.click();
     expect(assign).toHaveBeenCalledWith(
-      '/stack/?backend=backend-python-flask&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+      '/stack/?backend=backend-python-flask&frontend=frontend-typescript-react&tests=tests-java-junit5-rest_assured-selenide',
     );
     assign.mockRestore();
   });
@@ -414,7 +412,7 @@ describe('StackPage', () => {
     expect(assign).not.toHaveBeenCalled();
     screen.getByTestId('stack-tests-src-backend-backend-python-flask').click();
     expect(assign).not.toHaveBeenCalled();
-    screen.getByTestId('stack-allure-backend-backend-python-flask').click();
+    screen.getByTestId('stack-allure-backend-backend-java-spring').click();
     expect(assign).not.toHaveBeenCalled();
     screen.getByTestId('stack-allure-tests-unit').click();
     expect(assign).not.toHaveBeenCalled();
@@ -533,7 +531,7 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveAttribute(
       'href',
-      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-gradle-junit5-allure3-selenide',
+      '/stack/?backend=backend-java-spring&frontend=frontend-typescript-react&tests=tests-java-junit5-rest_assured-selenide',
     );
     expect(
       screen.getByTestId('stack-tests-src-backend-backend-java-spring').getAttribute('title'),
@@ -550,8 +548,8 @@ describe('StackPage', () => {
     expect(document.documentElement.lang).toBe('ru');
     expect(screen.getByTestId('stack-page')).toBeInTheDocument();
     expect(
-      screen.getByTestId('stack-tests-tests-java-gradle-junit5-allure3-selenide'),
-    ).toHaveTextContent('tests-java-gradle-junit5-allure3-selenide');
+      screen.getByTestId('stack-tests-tests-java-junit5-rest_assured-selenide'),
+    ).toHaveTextContent('tests-java-junit5-rest_assured-selenide');
     expect(screen.getAllByText('slot').length).toBeGreaterThan(0);
   });
 });

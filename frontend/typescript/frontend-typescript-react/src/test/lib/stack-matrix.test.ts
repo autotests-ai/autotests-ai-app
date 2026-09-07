@@ -19,6 +19,8 @@ import {
   crystalTestsPath,
   DEFAULT_STACK_BACKEND,
   DEFAULT_STACK_FRONTEND,
+  DEFAULT_STACK_TESTS,
+  FRONTEND_WITHOUT_LOCAL_TESTS,
   effectiveStackPair,
   fetchStackMatrix,
   findById,
@@ -215,7 +217,7 @@ describe('stack-matrix helpers', () => {
     expect(ALLURE_AWESOME_LATEST).toContain('reports.autotests.ai');
     expect(allureModuleHref(null)).toBe(null);
     expect(allureModuleHref('')).toBe(null);
-    expect(allureModuleHref('tests-java-gradle-junit5-allure3-selenide')).toBe(null);
+    expect(allureModuleHref('tests-java-junit5-rest_assured-selenide')).toBe(null);
     expect(allureModuleHref('backend-java-spring?x=1')).toBe(null);
     expect(allureSearchQuery('backend-java-spring', { language: 'java' })).toBe(
       'dev.multistack.app',
@@ -223,9 +225,10 @@ describe('stack-matrix helpers', () => {
     expect(allureModuleHref('backend-java-spring', { language: 'java' })).toBe(
       `${ALLURE_AWESOME_LATEST}?query=dev.multistack.app`,
     );
-    expect(allureModuleHref('backend-python-flask', { language: 'python' })).toBe(
-      `${ALLURE_AWESOME_LATEST}?query=backend-python-flask`,
-    );
+    expect(allureModuleHref('backend-python-flask', { language: 'python' })).toBe(null);
+    expect(allureModuleHref('backend-kotlin-spring', { language: 'kotlin' })).toBe(null);
+    expect(allureModuleHref('backend-go-gin', { language: 'go' })).toBe(null);
+    expect(allureModuleHref('frontend-javascript-vue')).toBe(null);
     expect(allureModuleHref('frontend-typescript-react')).toBe(
       `${ALLURE_AWESOME_LATEST}?query=frontend-typescript-react`,
     );
@@ -243,46 +246,50 @@ describe('stack-matrix helpers', () => {
     expect(allureTestsSearchQuery({ id: 'tests-java-x/../y', language: 'java' })).toBe(null);
     expect(
       allureTestsSearchQuery({
-        id: 'tests-java-gradle-junit5-allure3-selenide',
+        id: DEFAULT_STACK_TESTS,
         language: 'java',
-        layers: ['api', 'e2e'],
+        layers: ['api', 'ui', 'e2e'],
       }),
     ).toBe('tests');
     expect(
       allureTestsSearchQuery({
-        id: 'tests-java-gradle-junit5-allure3-restassured',
+        id: DEFAULT_STACK_TESTS,
         language: 'java',
         layers: ['api'],
       }),
     ).toBe('tests.api');
     expect(
       allureTestsSearchQuery({
-        id: 'tests-java-gradle-junit5-allure3-selenium',
+        id: DEFAULT_STACK_TESTS,
         language: 'java',
         layers: ['e2e'],
       }),
     ).toBe('tests.e2e');
-    expect(allureTestsSearchQuery({ id: 'tests-java-empty', language: 'java' })).toBe('tests');
+    expect(
+      allureTestsSearchQuery({
+        id: 'tests-java-junit5-rest_assured-selenium',
+        language: 'java',
+        layers: ['api', 'ui', 'e2e'],
+      }),
+    ).toBe(null);
     expect(
       allureTestsSearchQuery({ id: 'tests-kotlin-x', language: 'kotlin', layers: ['e2e'] }),
-    ).toBe('tests.e2e');
-    expect(allureTestsSearchQuery({ id: 'tests-python-pytest', language: 'python' })).toBe(
-      'tests-python-pytest',
-    );
+    ).toBe(null);
+    expect(allureTestsSearchQuery({ id: 'tests-python-pytest', language: 'python' })).toBe(null);
     expect(
       allureTestsHref({
-        id: 'tests-java-gradle-junit5-allure3-selenide',
+        id: DEFAULT_STACK_TESTS,
         language: 'java',
-        layers: ['api', 'e2e'],
+        layers: ['api', 'ui', 'e2e'],
       }),
     ).toBe(`${ALLURE_AWESOME_LATEST}?query=tests`);
     expect(
       allureTestsHref({
-        id: 'tests-java-gradle-junit5-allure3-selenium',
+        id: 'tests-java-junit5-rest_assured-selenium',
         language: 'java',
         layers: ['e2e'],
       }),
-    ).toBe(`${ALLURE_AWESOME_LATEST}?query=tests.e2e`);
+    ).toBe(null);
   });
 
   it('derives unit and component test paths', () => {
@@ -302,6 +309,34 @@ describe('stack-matrix helpers', () => {
         module: 'backend/java/backend-java-spring',
       }),
     ).toBe('backend/java/backend-java-spring/src/test');
+    expect(
+      unitTestsPath({
+        id: 'backend-javascript-express',
+        language: 'javascript',
+        module: 'backend/javascript/backend-javascript-express',
+      }),
+    ).toBe('backend/javascript/backend-javascript-express/tests');
+    expect(
+      unitTestsPath({
+        id: 'backend-go-gin',
+        language: 'go',
+        module: 'backend/go/backend-go-gin',
+      }),
+    ).toBe('backend/go/backend-go-gin/internal');
+    expect(
+      unitTestsPath({
+        id: 'backend-csharp-aspnet',
+        language: 'csharp',
+        module: 'backend/csharp/backend-csharp-aspnet',
+      }),
+    ).toBe('backend/csharp/backend-csharp-aspnet/tests');
+    expect(
+      unitTestsPath({
+        id: 'backend-rust-axum',
+        language: 'rust',
+        module: 'backend/rust/backend-rust-axum',
+      }),
+    ).toBe('backend/rust/backend-rust-axum/src');
     expect(
       componentTestsPath({
         id: 'frontend-typescript-react',
@@ -325,11 +360,18 @@ describe('stack-matrix helpers', () => {
     ).toBe(COMPONENT_RTL_PATH);
     expect(
       localComponentTestsPath({
-        id: 'frontend-javascript-vanilla',
+        id: FRONTEND_WITHOUT_LOCAL_TESTS,
         kind: 'static',
         module: 'frontend/javascript/frontend-javascript-vanilla',
       }),
     ).toBe(null);
+    expect(
+      localComponentTestsPath({
+        id: 'frontend-javascript-jquery',
+        kind: 'static',
+        module: 'frontend/javascript/frontend-javascript-jquery',
+      }),
+    ).toBe('frontend/javascript/frontend-javascript-jquery/src/test');
     expect(localComponentTestsPath(null)).toBe(null);
     expect(componentTestsPath(null)).toBe(COMPONENT_RTL_PATH);
     expect(
@@ -348,6 +390,12 @@ describe('stack-matrix helpers', () => {
     );
     expect(shortModuleLabel('backend/java/backend-java-spring/src/test')).toBe(
       'backend-java-spring/src/test',
+    );
+    expect(shortModuleLabel('backend/csharp/backend-csharp-aspnet/tests')).toBe(
+      'backend-csharp-aspnet/tests',
+    );
+    expect(shortModuleLabel('tests/rust/tests-rust-testing-reqwest')).toBe(
+      'tests-rust-testing-reqwest',
     );
     expect(shortModuleLabel('tests/go/tests-go-cdp/crystals')).toBe('tests-go-cdp/crystals');
     expect(shortModuleLabel('tests/scala/tests-scala-gatling')).toBe('tests-scala-gatling');
