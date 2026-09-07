@@ -112,7 +112,12 @@ if [[ "$REFRESH_STACK_NGINX" == "1" ]]; then
   sudo -u autotests_ai_multistack bash -lc "
     set -euo pipefail
     cd \"$STACK_DIR\"
-    git fetch origin
+    git fetch --prune origin || {
+      echo 'WARN: fetch failed, dropping stale origin tracking refs' >&2
+      git update-ref -d refs/remotes/origin/main || true
+      git update-ref -d refs/remotes/origin/gh-pages || true
+      git fetch --prune origin
+    }
     git checkout origin/main -- deploy/nginx/
     python deploy/nginx/render_vhosts.py
   "
