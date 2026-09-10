@@ -220,10 +220,10 @@ describe('stack-matrix helpers', () => {
     expect(allureModuleHref('tests-java-junit5-rest_assured-selenide')).toBe(null);
     expect(allureModuleHref('backend-java-spring?x=1')).toBe(null);
     expect(allureSearchQuery('backend-java-spring', { language: 'java' })).toBe(
-      'dev.multistack.app',
+      'backend-java-spring',
     );
     expect(allureModuleHref('backend-java-spring', { language: 'java' })).toBe(
-      `${ALLURE_AWESOME_LATEST}?query=dev.multistack.app`,
+      `${ALLURE_AWESOME_LATEST}?query=backend-java-spring`,
     );
     expect(allureModuleHref('backend-python-flask', { language: 'python' })).toBe(null);
     expect(allureModuleHref('backend-kotlin-spring', { language: 'kotlin' })).toBe(null);
@@ -250,21 +250,21 @@ describe('stack-matrix helpers', () => {
         language: 'java',
         layers: ['api', 'ui', 'e2e'],
       }),
-    ).toBe('tests');
+    ).toBe(DEFAULT_STACK_TESTS);
     expect(
       allureTestsSearchQuery({
         id: DEFAULT_STACK_TESTS,
         language: 'java',
         layers: ['api'],
       }),
-    ).toBe('tests.api');
+    ).toBe(DEFAULT_STACK_TESTS);
     expect(
       allureTestsSearchQuery({
         id: DEFAULT_STACK_TESTS,
         language: 'java',
         layers: ['e2e'],
       }),
-    ).toBe('tests.e2e');
+    ).toBe(DEFAULT_STACK_TESTS);
     expect(
       allureTestsSearchQuery({
         id: 'tests-java-junit5-rest_assured-selenium',
@@ -282,7 +282,7 @@ describe('stack-matrix helpers', () => {
         language: 'java',
         layers: ['api', 'ui', 'e2e'],
       }),
-    ).toBe(`${ALLURE_AWESOME_LATEST}?query=tests`);
+    ).toBe(`${ALLURE_AWESOME_LATEST}?query=${DEFAULT_STACK_TESTS}`);
     expect(
       allureTestsHref({
         id: 'tests-java-junit5-rest_assured-selenium',

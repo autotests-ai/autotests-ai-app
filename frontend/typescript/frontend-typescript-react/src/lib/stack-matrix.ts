@@ -196,10 +196,10 @@ export const ALLURE_AWESOME_LATEST =
 
 /**
  * Awesome `?query=` token for the merged latest report.
- * Search matches `fullName` / package plus an allowlist of labels — not
- * `@Module` until allure-report-kit folds module/layer into search-index.
- * Default teaching cell: Java `dev.multistack.app`, FE `frontend-typescript-react`.
- * Other modules would open an empty tree; return null (board shows —).
+ * Search matches `fullName` / package plus kit/CI-folded `module` labels.
+ * Default teaching cell uses the module id (`backend-java-spring`,
+ * `frontend-typescript-react`). Other modules would open an empty tree;
+ * return null (board shows —).
  */
 export function allureSearchQuery(
   moduleId: string | null | undefined,
@@ -208,8 +208,7 @@ export function allureSearchQuery(
   if (!moduleId) return null;
   const id = String(moduleId);
   if (/[/?#]/.test(id) || id.includes('..')) return null;
-  if (id === DEFAULT_STACK_FRONTEND) return id;
-  if (id === DEFAULT_STACK_BACKEND) return 'dev.multistack.app';
+  if (id === DEFAULT_STACK_FRONTEND || id === DEFAULT_STACK_BACKEND) return id;
   return null;
 }
 
@@ -232,20 +231,16 @@ export function allureModuleHref(
 }
 
 /**
- * Tests-column suites in the merged report live under `tests.api` / `tests.ui` /
- * `tests.e2e` from the default Java cell only. Other rows would share that
- * tree or search an id that is not in the index — hide the Allure icon.
+ * Tests-column suites in the merged report are the default Java cell only
+ * (`@Module("tests-java-junit5-rest_assured-selenide")`). Other rows would share
+ * that tree or search an id that is not in the index — hide the Allure icon.
+ * `query=tests` is too broad (AND-tokenizes into almost the whole tree).
  */
 export function allureTestsSearchQuery(item: TestsModule | null | undefined): string | null {
   if (!item?.id) return null;
   const id = String(item.id);
   if (id !== DEFAULT_STACK_TESTS || /[/?#]/.test(id) || id.includes('..')) return null;
-  const layers = item.layers || [];
-  const hasApi = layers.includes('api');
-  const hasE2e = layers.includes('e2e');
-  if (hasApi && !hasE2e) return 'tests.api';
-  if (hasE2e && !hasApi) return 'tests.e2e';
-  return 'tests';
+  return id;
 }
 
 export function allureTestsHref(item: TestsModule | null | undefined): string | null {

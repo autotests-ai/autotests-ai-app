@@ -166,7 +166,7 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-allure-backend-backend-java-spring')).toHaveAttribute(
       'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=dev.multistack.app',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=backend-java-spring',
     );
     expect(
       screen.getByTestId('stack-tests-src-frontend-frontend-typescript-react'),
@@ -180,7 +180,7 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-allure-tests-unit')).toHaveAttribute(
       'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=dev.multistack.app',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=backend-java-spring',
     );
     expect(screen.getByTestId('stack-allure-tests-component')).toHaveAttribute(
       'href',
@@ -190,7 +190,7 @@ describe('StackPage', () => {
       screen.getByTestId('stack-allure-tests-tests-java-junit5-rest_assured-selenide'),
     ).toHaveAttribute(
       'href',
-      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests',
+      'https://reports.autotests.ai/reports/latest/awesome/index.html?query=tests-java-junit5-rest_assured-selenide',
     );
     expect(
       screen.queryByTestId('stack-allure-tests-tests-java-junit5-rest_assured-selenium'),
