@@ -196,8 +196,9 @@ export const ALLURE_AWESOME_LATEST =
 
 /**
  * Awesome `?query=` token for the merged latest report.
- * Search matches `fullName` / package, not matrix ids — so only the default
- * teaching cell has hits: Java `dev.multistack.app`, FE `frontend-typescript-react`.
+ * Search matches `fullName` / package plus an allowlist of labels — not
+ * `@Module` until allure-report-kit folds module/layer into search-index.
+ * Default teaching cell: Java `dev.multistack.app`, FE `frontend-typescript-react`.
  * Other modules would open an empty tree; return null (board shows —).
  */
 export function allureSearchQuery(

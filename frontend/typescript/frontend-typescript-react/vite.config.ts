@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
@@ -91,6 +92,30 @@ export default defineConfig({
           /\.(?:css|js|mjs|map|png|svg|ico|webmanifest|json|woff2?)$/i,
         ],
         cleanupOutdatedCaches: true,
+        // Unhashed `assets/index.js` gets revision:null, so Workbox never
+        // replaces the first cached shell — Allure hrefs stay on the old query.
+        manifestTransforms: [
+          async (entries) => {
+            const dist = resolve(__dirname, 'dist');
+            return {
+              manifest: entries.map((entry) => {
+                if (entry.revision) {
+                  return entry;
+                }
+                try {
+                  const buf = readFileSync(resolve(dist, entry.url));
+                  return {
+                    ...entry,
+                    revision: createHash('sha256').update(buf).digest('hex').slice(0, 16),
+                  };
+                } catch {
+                  return entry;
+                }
+              }),
+              warnings: [],
+            };
+          },
+        ],
       },
       devOptions: {
         enabled: false,
