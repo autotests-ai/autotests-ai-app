@@ -1,24 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  applyBackendFramework,
-  applyBackendLanguage,
-  applyCodeHost,
-  applyFrontendFramework,
-  applyFrontendLanguage,
-  applyTestsAxis,
-  applyTestsLanguage,
-  backendFrameworks,
   buildWrapperOptions,
   cloneConfig,
   copyText,
   DEFAULTS,
   downloadText,
   fingerprint,
-  frontendFrameworks,
   type LandingConfig,
   outputFilename,
-  TEST_MODULES,
-  testAxisOptions,
   toDocument,
   toJson,
   toYaml,
@@ -46,30 +35,21 @@ describe('landing-config', () => {
     expect(fingerprint({ ...DEFAULTS, headless: 'true' })).not.toBe(id);
   });
 
-  it('follows the matching CI default until the runner is chosen explicitly', () => {
-    const gitlab = applyCodeHost(cloneConfig(DEFAULTS), 'gitlab.qa.guru');
-    expect(gitlab.codeHost).toBe('gitlab.qa.guru');
-    expect(gitlab.ciRunner).toBe('gitlab-self-hosted');
-
-    const jenkins: LandingConfig = { ...cloneConfig(DEFAULTS), ciRunner: 'jenkins' };
-    const keep = applyCodeHost(jenkins, 'gitlab.com/qa-guru');
-    expect(keep.codeHost).toBe('gitlab.com/qa-guru');
-    expect(keep.ciRunner).toBe('jenkins');
-
-    const unknown = applyCodeHost(cloneConfig(DEFAULTS), 'gitea.example');
-    expect(unknown.codeHost).toBe('gitea.example');
-    expect(unknown.ciRunner).toBe('github-hosted');
-  });
-
   it('maps cfg-keys booleans in the document and keeps empty remoteUrl', () => {
     const doc = toDocument(DEFAULTS);
     expect(doc.headless).toBe(false);
     expect(doc.closeBrowserAfterAll).toBe(true);
     expect(doc.logToConsole).toBe(true);
-    expect(doc.ciCache).toBe(true);
+    expect(doc.testopsEnabled).toBe(false);
+    expect(doc.allureQualityGate).toBe(false);
     expect(doc.remoteUrl).toBe('');
     expect(doc.images).toEqual(['chrome:148']);
     expect(doc.images).not.toBe(DEFAULTS.images);
+    expect(doc.allureReportMode).toBe('allure3');
+    expect(doc.allureAgentMode).toBe('none');
+    expect(doc.allureRestAssuredListenerStyle).toBe('default');
+    expect(doc).not.toHaveProperty('backend');
+    expect(doc).not.toHaveProperty('codeHost');
   });
 
   it('prints live YAML with vector comment, quoted URL, and empty image list', () => {
@@ -89,106 +69,13 @@ describe('landing-config', () => {
     expect(yaml).toContain('buildOs: linux');
     expect(yaml).toContain('buildTool: gradle');
     expect(yaml).toContain('buildWrapper: wrapper');
-    expect(yaml).toContain('ciCache: true');
-    expect(yaml).toContain('testops: selfhosted');
-    expect(yaml).toContain('jira: selfhosted');
-    expect(yaml).toContain('confluence: selfhosted');
-    expect(yaml).toContain('sonar: selfhosted');
-    expect(yaml).toContain('backendLanguage: java');
-    expect(yaml).toContain('backendFramework: spring');
-    expect(yaml).toContain('frontendLanguage: typescript');
-    expect(yaml).toContain('frontendFramework: react');
-    expect(yaml).toContain('testsLanguage: java');
-    expect(yaml).toContain('testsBuild: gradle');
-    expect(yaml).toContain('backend: backend-java-spring');
-    expect(yaml).toContain('frontend: frontend-typescript-react');
-    expect(yaml).toContain('tests: tests-java-gradle-junit5-allure3-selenide');
+    expect(yaml).toContain('allureReportMode: allure3');
+    expect(yaml).toContain('testopsEnabled: false');
+    expect(yaml).not.toContain('codeHost:');
+    expect(yaml).not.toContain('backendLanguage:');
   });
 
-  it('composes catalog module ids from stack axes and skips empty test fields', () => {
-    const kotlin = applyBackendLanguage(cloneConfig(DEFAULTS), 'kotlin');
-    expect(kotlin.backendFramework).toBe('spring');
-    expect(kotlin.backend).toBe('backend-kotlin-spring');
-
-    const python = applyBackendLanguage(kotlin, 'python');
-    expect(python.backendFramework).toBe('flask');
-    expect(python.backend).toBe('backend-python-flask');
-
-    const fastapi = applyBackendFramework(python, 'fastapi');
-    expect(fastapi.backend).toBe('backend-python-fastapi');
-
-    const unknownBackend = applyBackendLanguage(cloneConfig(DEFAULTS), 'cobol');
-    expect(unknownBackend.backendFramework).toBe('');
-    expect(unknownBackend.backend).toBe('');
-
-    const fallbackFramework = applyBackendFramework(cloneConfig(DEFAULTS), 'missing');
-    expect(fallbackFramework.backend).toBe('backend-java-spring');
-
-    const jsFrontend = applyFrontendLanguage(cloneConfig(DEFAULTS), 'javascript');
-    expect(jsFrontend.frontendFramework).toBe('react');
-    expect(jsFrontend.frontend).toBe('frontend-javascript-react');
-
-    const vue = applyFrontendFramework(jsFrontend, 'vue');
-    expect(vue.frontend).toBe('frontend-javascript-vue');
-
-    expect(TEST_MODULES.find((module) => module.id === 'tests-typescript-playwright')?.status).toBe(
-      'active',
-    );
-    expect(TEST_MODULES.some((module) => module.id === 'tests-go-cdp')).toBe(false);
-
-    const jsTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'javascript');
-    expect(jsTests.tests).toBe('tests-javascript-playwright');
-    const tsTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'typescript');
-    expect(tsTests.tests).toBe('tests-typescript-playwright');
-    expect(jsTests.testsBuild).toBe('');
-    const jsDoc = toDocument(jsTests);
-    expect(jsDoc.tests).toBe('tests-javascript-playwright');
-    expect(jsDoc).not.toHaveProperty('testsBuild');
-    expect(jsDoc).not.toHaveProperty('testsRunner');
-    expect(jsDoc).not.toHaveProperty('testsAllure');
-    expect(jsDoc).toHaveProperty('testsUi', 'playwright');
-
-    const goTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'go');
-    expect(goTests.tests).toBe('tests-go-testing-allure3-net_http');
-    const goDoc = toDocument(goTests);
-    expect(goDoc).not.toHaveProperty('testsBuild');
-    expect(goDoc).not.toHaveProperty('testsUi');
-    expect(goDoc).toHaveProperty('testsRunner', 'testing');
-    expect(goDoc).toHaveProperty('testsAllure', 'allure3');
-
-    const maven = applyTestsAxis(cloneConfig(DEFAULTS), 'build', 'maven');
-    expect(maven.tests).toBe('tests-java-maven-junit5-allure3-selenide');
-
-    const junit4 = applyTestsAxis(cloneConfig(DEFAULTS), 'runner', 'junit4');
-    expect(junit4.tests).toBe('tests-java-gradle-junit4-allure2-selenium');
-    expect(junit4.testsAllure).toBe('allure2');
-    expect(junit4.testsUi).toBe('selenium');
-
-    const allure2 = applyTestsAxis(cloneConfig(DEFAULTS), 'allure', 'allure2');
-    expect(allure2.tests).toBe('tests-java-gradle-junit5-allure2-selenide');
-
-    const selenium = applyTestsAxis(cloneConfig(DEFAULTS), 'ui', 'selenium');
-    expect(selenium.tests).toBe('tests-java-gradle-junit5-allure3-selenium');
-
-    const mixed = applyTestsAxis(allure2, 'ui', 'selenium');
-    expect(mixed.testsUi).toBe('selenium');
-    expect(mixed.tests).toMatch(/selenium$/);
-
-    const pinnedMiss = applyTestsAxis(cloneConfig(DEFAULTS), 'ui', 'cypress');
-    expect(pinnedMiss.tests).toBe('tests-java-gradle-junit5-allure3-selenide');
-
-    const unknownTests = applyTestsLanguage(cloneConfig(DEFAULTS), 'cobol');
-    expect(unknownTests.tests).toBe('tests-java-gradle-junit5-allure3-selenide');
-    expect(unknownTests.testsLanguage).toBe('java');
-
-    expect(backendFrameworks('go').map((option) => option.value)).toEqual(['gin', 'stdlib']);
-    expect(frontendFrameworks('typescript').map((option) => option.value)).toContain('react');
-    expect(testAxisOptions('javascript', 'ui').map((option) => option.value)).toEqual([
-      'playwright',
-      'cypress',
-    ]);
-    expect(testAxisOptions('javascript', 'build')).toEqual([]);
-    expect(testAxisOptions('go', 'runner').map((option) => option.label)).toEqual(['testing']);
+  it('labels build wrappers from the selected tool', () => {
     expect(buildWrapperOptions('gradle').map((option) => option.label)).toEqual([
       './gradlew',
       'gradle',
@@ -212,16 +99,9 @@ describe('landing-config', () => {
     expect(json.headless).toBe(false);
   });
 
-  it('picks download names for YAML, JSON, and CI tabs', () => {
+  it('picks download names for YAML and JSON tabs', () => {
     expect(outputFilename('yaml')).toBe('config.yaml');
     expect(outputFilename('json')).toBe('config.json');
-    expect(outputFilename('ci')).toBe('ci.yml');
-    expect(outputFilename('ci', { ...cloneConfig(DEFAULTS), ciRunner: 'gitlab-hosted' })).toBe(
-      '.gitlab-ci.yml',
-    );
-    expect(outputFilename('ci', { ...cloneConfig(DEFAULTS), ciRunner: 'jenkins' })).toBe(
-      'Jenkinsfile',
-    );
   });
 
   it('copies when clipboard exists and no-ops when it does not', async () => {

@@ -6,13 +6,12 @@ export interface Dictionary {
     stack: string;
   };
   home: {
-    panelStack: string;
     panelBuild: string;
-    panelCi: string;
-    panelIntegrations: string;
+    panelAllure: string;
     panelDriver: string;
     panelRemote: string;
     panelConsole: string;
+    panelTestops: string;
     outputFormat: string;
     reset: string;
     download: string;

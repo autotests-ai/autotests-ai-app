@@ -98,9 +98,9 @@ describe('App', { tags: ['smoke'] }, () => {
     const remount = window.__designSystemRemountHeader as ReturnType<typeof vi.fn>;
     renderApp('/');
 
-    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent('Stack');
+    expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');
     dispatchLang('ru');
-    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent(ru.home.panelStack);
+    expect(screen.getByTestId('landing-build-title')).toHaveTextContent(ru.home.panelBuild);
     await waitFor(() => expect(remount).toHaveBeenCalledTimes(1));
 
     dispatchLang('ru');

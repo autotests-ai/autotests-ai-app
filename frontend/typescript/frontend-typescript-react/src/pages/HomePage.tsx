@@ -13,17 +13,11 @@ import {
   PlaqueTagstrip,
   usePlaqueFieldMagnet,
 } from '@zero-design-system/react';
-import { type ChangeEvent, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
-  applyBackendFramework,
-  applyBackendLanguage,
-  applyCodeHost,
-  applyFrontendFramework,
-  applyFrontendLanguage,
-  applyTestsAxis,
-  applyTestsLanguage,
-  BACKEND_LANGUAGES,
+  ALLURE_REPORT_MODES,
+  ALLURE_VERSIONS,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -32,19 +26,12 @@ import {
   BUILD_OS_VERSIONS,
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
-  backendFrameworks,
   buildWrapperOptions,
-  CI_CACHE_OPTIONS,
-  CI_RUNNERS,
-  CODE_HOSTS,
   cloneConfig,
   copyText,
   DEFAULTS,
   downloadText,
-  FRONTEND_LANGUAGES,
   fingerprint,
-  frontendFrameworks,
-  HOSTING_OPTIONS,
   IMAGES,
   LANGUAGE_VERSIONS,
   type LandingConfig,
@@ -54,30 +41,11 @@ import {
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
-  TEST_LANGUAGES,
-  type TestAxis,
-  testAxisOptions,
-  toCiYaml,
   toJson,
   toYaml,
 } from '../lib/landing-config';
 
 type AxisChoice = { value: string; label: string };
-
-const TEST_AXIS_FIELDS: ReadonlyArray<{ axis: TestAxis; paramId: string }> = [
-  { axis: 'build', paramId: 'testsBuild' },
-  { axis: 'runner', paramId: 'testsRunner' },
-  { axis: 'allure', paramId: 'testsAllure' },
-  { axis: 'ui', paramId: 'testsUi' },
-];
-
-function pairRows<T>(items: readonly T[]): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) {
-    rows.push(items.slice(i, i + 2));
-  }
-  return rows;
-}
 
 function AxisField({
   label,
@@ -119,20 +87,44 @@ function AxisField({
   );
 }
 
+function ConfigPanel({
+  title,
+  testId,
+  titleTestId,
+  stackTestId,
+  children,
+}: {
+  title: string;
+  testId: string;
+  titleTestId: string;
+  stackTestId: string;
+  children: ReactNode;
+}) {
+  return (
+    <Panel title={title} testId={testId} titleTestId={titleTestId}>
+      <div
+        className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
+        data-testid={stackTestId}
+      >
+        {children}
+      </div>
+    </Panel>
+  );
+}
+
 export function HomePage() {
   const { copy } = useI18n();
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
 
   usePlaqueFieldMagnet({
-    syncKey: `${config.backendLanguage}:${config.frontendLanguage}:${config.testsLanguage}:${config.images.length}:${activeTab}`,
+    syncKey: `${config.images.length}:${config.buildTool}:${activeTab}`,
   });
 
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId);
   const json = toJson(config, vectorId);
-  const ci = toCiYaml(config, vectorId);
-  const activeOutput = activeTab === 'json' ? json : activeTab === 'ci' ? ci : yaml;
+  const activeOutput = activeTab === 'json' ? json : yaml;
   const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
   const highlightedHtml = highlightOutput(activeOutput, highlightKind);
 
@@ -159,38 +151,6 @@ export function HomePage() {
     }));
   };
 
-  const setCodeHost = (value: string) => {
-    setConfig((prev) => applyCodeHost(prev, value));
-  };
-
-  const setBackendLanguage = (value: string) => {
-    setConfig((prev) => applyBackendLanguage(prev, value));
-  };
-
-  const setBackendFramework = (value: string) => {
-    setConfig((prev) => applyBackendFramework(prev, value));
-  };
-
-  const setFrontendLanguage = (value: string) => {
-    setConfig((prev) => applyFrontendLanguage(prev, value));
-  };
-
-  const setFrontendFramework = (value: string) => {
-    setConfig((prev) => applyFrontendFramework(prev, value));
-  };
-
-  const setTestsLanguage = (value: string) => {
-    setConfig((prev) => applyTestsLanguage(prev, value));
-  };
-
-  const setTestsAxis = (axis: TestAxis) => (value: string) => {
-    setConfig((prev) => applyTestsAxis(prev, axis, value));
-  };
-
-  const visibleTestAxes = TEST_AXIS_FIELDS.filter(
-    (field) => testAxisOptions(config.testsLanguage, field.axis).length > 0,
-  );
-
   const resetConfig = () => {
     setConfig(cloneConfig(DEFAULTS));
   };
@@ -206,452 +166,423 @@ export function HomePage() {
       >
         <div className="configurator__main">
           <div className="stack stack--lg">
-            <Panel
-              title={copy.home.panelStack}
-              testId="landing-stack-panel"
-              titleTestId="landing-stack-title"
-            >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-stack-stack"
-              >
-                <PlaqueFieldGrid layout="duo" aria-label="backend language and framework">
-                  <AxisField
-                    label="backendLanguage"
-                    paramId="backendLanguage"
-                    value={config.backendLanguage}
-                    options={BACKEND_LANGUAGES}
-                    onChange={setBackendLanguage}
-                  />
-                  <AxisField
-                    label="backendFramework"
-                    paramId="backendFramework"
-                    value={config.backendFramework}
-                    options={backendFrameworks(config.backendLanguage)}
-                    onChange={setBackendFramework}
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="frontend language and framework">
-                  <AxisField
-                    label="frontendLanguage"
-                    paramId="frontendLanguage"
-                    value={config.frontendLanguage}
-                    options={FRONTEND_LANGUAGES}
-                    onChange={setFrontendLanguage}
-                  />
-                  <AxisField
-                    label="frontendFramework"
-                    paramId="frontendFramework"
-                    value={config.frontendFramework}
-                    options={frontendFrameworks(config.frontendLanguage)}
-                    onChange={setFrontendFramework}
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="tests language">
-                  <AxisField
-                    label="testsLanguage"
-                    paramId="testsLanguage"
-                    value={config.testsLanguage}
-                    options={TEST_LANGUAGES}
-                    onChange={setTestsLanguage}
-                  />
-                </PlaqueFieldGrid>
-                {pairRows(visibleTestAxes).map((row) => (
-                  <PlaqueFieldGrid
-                    key={row.map((field) => field.paramId).join('-')}
-                    layout={row.length === 1 ? 'solo' : 'duo'}
-                    aria-label={row.map((field) => field.paramId).join(' and ')}
-                  >
-                    {row.map((field) => (
-                      <AxisField
-                        key={field.paramId}
-                        label={field.paramId}
-                        paramId={field.paramId}
-                        value={
-                          field.axis === 'build'
-                            ? config.testsBuild
-                            : field.axis === 'runner'
-                              ? config.testsRunner
-                              : field.axis === 'allure'
-                                ? config.testsAllure
-                                : config.testsUi
-                        }
-                        options={testAxisOptions(config.testsLanguage, field.axis)}
-                        onChange={setTestsAxis(field.axis)}
-                      />
-                    ))}
-                  </PlaqueFieldGrid>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel
+            <ConfigPanel
               title={copy.home.panelBuild}
               testId="landing-build-panel"
               titleTestId="landing-build-title"
+              stackTestId="landing-build-stack"
             >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-build-stack"
-              >
-                <PlaqueFieldGrid layout="duo" aria-label="OS and OS version">
-                  <PlaqueSelect
-                    label="OS"
-                    paramId="buildOs"
-                    value={config.buildOs}
-                    options={BUILD_OS}
-                    onChange={setField('buildOs')}
-                    data-testid="landing-select-buildOs"
-                  />
-                  <PlaqueSelect
-                    label="OS Version"
-                    paramId="buildOsVersion"
-                    value={config.buildOsVersion}
-                    options={BUILD_OS_VERSIONS}
-                    onChange={setField('buildOsVersion')}
-                    data-testid="landing-select-buildOsVersion"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Language and version">
-                  <PlaqueSelect
-                    label="Language"
-                    paramId="buildLanguage"
-                    value={config.buildLanguage}
-                    options={BUILD_LANGUAGES}
-                    onChange={setField('buildLanguage')}
-                    data-testid="landing-select-buildLanguage"
-                  />
-                  <PlaqueSelect
-                    label="Language Version"
-                    paramId="javaVersion"
-                    value={config.javaVersion}
-                    options={LANGUAGE_VERSIONS}
-                    onChange={setField('javaVersion')}
-                    data-testid="landing-select-javaVersion"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Build tool and wrapper">
-                  <AxisField
-                    label="buildTool"
-                    paramId="buildTool"
-                    value={config.buildTool}
-                    options={BUILD_TOOLS}
-                    onChange={setField('buildTool')}
-                  />
-                  <AxisField
-                    label="buildWrapper"
-                    paramId="buildWrapper"
-                    value={config.buildWrapper}
-                    options={buildWrapperOptions(config.buildTool)}
-                    onChange={setField('buildWrapper')}
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="Build tool version">
-                  <PlaqueSelect
-                    label="Build Tool Version"
-                    paramId="buildToolVersion"
-                    value={config.buildToolVersion}
-                    options={BUILD_TOOL_VERSIONS}
-                    onChange={setField('buildToolVersion')}
-                    data-testid="landing-select-buildToolVersion"
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
+              <PlaqueFieldGrid layout="duo" aria-label="OS and OS version">
+                <PlaqueSelect
+                  label="OS"
+                  paramId="buildOs"
+                  value={config.buildOs}
+                  options={BUILD_OS}
+                  onChange={setField('buildOs')}
+                  data-testid="landing-select-buildOs"
+                />
+                <PlaqueSelect
+                  label="OS Version"
+                  paramId="buildOsVersion"
+                  value={config.buildOsVersion}
+                  options={BUILD_OS_VERSIONS}
+                  onChange={setField('buildOsVersion')}
+                  data-testid="landing-select-buildOsVersion"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" aria-label="Language and version">
+                <PlaqueSelect
+                  label="Language"
+                  paramId="buildLanguage"
+                  value={config.buildLanguage}
+                  options={BUILD_LANGUAGES}
+                  onChange={setField('buildLanguage')}
+                  data-testid="landing-select-buildLanguage"
+                />
+                <PlaqueSelect
+                  label="Language Version"
+                  paramId="javaVersion"
+                  value={config.javaVersion}
+                  options={LANGUAGE_VERSIONS}
+                  onChange={setField('javaVersion')}
+                  data-testid="landing-select-javaVersion"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" aria-label="Build tool and wrapper">
+                <AxisField
+                  label="buildTool"
+                  paramId="buildTool"
+                  value={config.buildTool}
+                  options={BUILD_TOOLS}
+                  onChange={setField('buildTool')}
+                />
+                <AxisField
+                  label="buildWrapper"
+                  paramId="buildWrapper"
+                  value={config.buildWrapper}
+                  options={buildWrapperOptions(config.buildTool)}
+                  onChange={setField('buildWrapper')}
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="Build tool version">
+                <PlaqueSelect
+                  label="Build Tool Version"
+                  paramId="buildToolVersion"
+                  value={config.buildToolVersion}
+                  options={BUILD_TOOL_VERSIONS}
+                  onChange={setField('buildToolVersion')}
+                  data-testid="landing-select-buildToolVersion"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
 
-            <Panel
-              title={copy.home.panelCi}
-              testId="landing-ci-panel"
-              titleTestId="landing-ci-title"
+            <ConfigPanel
+              title={copy.home.panelAllure}
+              testId="landing-allure-panel"
+              titleTestId="landing-allure-title"
+              stackTestId="landing-allure-stack"
             >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-ci-stack"
+              <PlaqueFieldGrid layout="duo" aria-label="Allure report mode and CLI version">
+                <PlaqueSelect
+                  label="allureReportMode"
+                  paramId="allureReportMode"
+                  value={config.allureReportMode}
+                  options={ALLURE_REPORT_MODES}
+                  onChange={setField('allureReportMode')}
+                  data-testid="landing-select-allureReportMode"
+                />
+                <PlaqueSelect
+                  label="allureVersion"
+                  paramId="allureVersion"
+                  value={config.allureVersion}
+                  options={ALLURE_VERSIONS}
+                  onChange={setField('allureVersion')}
+                  data-testid="landing-select-allureVersion"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" aria-label="Allure agent and quality gate">
+                <PlaqueFieldSeg
+                  label="allureAgentMode"
+                  paramId="allureAgentMode"
+                  value={config.allureAgentMode}
+                  onValueChange={setField('allureAgentMode')}
+                  options={[
+                    { value: 'none', title: 'post-test hook off' },
+                    { value: 'inspect', title: 'allure agent inspect → build/agent-output/' },
+                  ]}
+                  data-testid="landing-seg-allureAgentMode"
+                />
+                <PlaqueFieldSeg
+                  label="allureQualityGate"
+                  paramId="allureQualityGate"
+                  value={config.allureQualityGate}
+                  onValueChange={setField('allureQualityGate')}
+                  data-testid="landing-seg-allureQualityGate"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid
+                layout="duo"
+                cellSpan="lg"
+                aria-label="Allure runtime — Selenide listener and last screenshot"
               >
-                <PlaqueFieldGrid layout="duo" aria-label="Code host and CI runner">
-                  <PlaqueSelect
-                    label="codeHost"
-                    paramId="codeHost"
-                    value={config.codeHost}
-                    options={CODE_HOSTS}
-                    onChange={setCodeHost}
-                    data-testid="landing-select-codeHost"
-                  />
-                  <PlaqueSelect
-                    label="ciRunner"
-                    paramId="ciRunner"
-                    value={config.ciRunner}
-                    options={CI_RUNNERS}
-                    onChange={setField('ciRunner')}
-                    data-testid="landing-select-ciRunner"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="CI cache">
-                  <AxisField
-                    label="ciCache"
-                    paramId="ciCache"
-                    value={config.ciCache}
-                    options={CI_CACHE_OPTIONS}
-                    onChange={setField('ciCache')}
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
-
-            <Panel
-              title={copy.home.panelIntegrations}
-              testId="landing-integrations-panel"
-              titleTestId="landing-integrations-title"
-            >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-integrations-stack"
+                <PlaqueFieldSeg
+                  label="enableAllureSelenideListener"
+                  paramId="enableAllureSelenideListener"
+                  value={config.enableAllureSelenideListener}
+                  onValueChange={setField('enableAllureSelenideListener')}
+                  data-testid="landing-seg-enableAllureSelenideListener"
+                />
+                <PlaqueFieldSeg
+                  label="attachLastScreenshot"
+                  paramId="attachLastScreenshot"
+                  value={config.attachLastScreenshot}
+                  onValueChange={setField('attachLastScreenshot')}
+                  data-testid="landing-seg-attachLastScreenshot"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid
+                layout="duo"
+                cellSpan="lg"
+                aria-label="Allure runtime — page source and browser console"
               >
-                <PlaqueFieldGrid layout="duo" aria-label="TestOps and Jira">
-                  <AxisField
-                    label="testops"
-                    paramId="testops"
-                    value={config.testops}
-                    options={HOSTING_OPTIONS}
-                    onChange={setField('testops')}
-                  />
-                  <AxisField
-                    label="jira"
-                    paramId="jira"
-                    value={config.jira}
-                    options={HOSTING_OPTIONS}
-                    onChange={setField('jira')}
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Confluence and Sonar">
-                  <AxisField
-                    label="confluence"
-                    paramId="confluence"
-                    value={config.confluence}
-                    options={HOSTING_OPTIONS}
-                    onChange={setField('confluence')}
-                  />
-                  <AxisField
-                    label="sonar"
-                    paramId="sonar"
-                    value={config.sonar}
-                    options={HOSTING_OPTIONS}
-                    onChange={setField('sonar')}
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
+                <PlaqueFieldSeg
+                  label="attachPageSource"
+                  paramId="attachPageSource"
+                  value={config.attachPageSource}
+                  onValueChange={setField('attachPageSource')}
+                  data-testid="landing-seg-attachPageSource"
+                />
+                <PlaqueFieldSeg
+                  label="attachBrowserConsoleLogs"
+                  paramId="attachBrowserConsoleLogs"
+                  value={config.attachBrowserConsoleLogs}
+                  onValueChange={setField('attachBrowserConsoleLogs')}
+                  data-testid="landing-seg-attachBrowserConsoleLogs"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" aria-label="Allure runtime — video and HAR logs">
+                <PlaqueFieldSeg
+                  label="attachVideo"
+                  paramId="attachVideo"
+                  value={config.attachVideo}
+                  onValueChange={setField('attachVideo')}
+                  data-testid="landing-seg-attachVideo"
+                />
+                <PlaqueFieldSeg
+                  label="attachHarLogs"
+                  paramId="attachHarLogs"
+                  value={config.attachHarLogs}
+                  onValueChange={setField('attachHarLogs')}
+                  data-testid="landing-seg-attachHarLogs"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid
+                layout="duo"
+                cellSpan="lg"
+                aria-label="Allure runtime — REST Assured listener and style"
+              >
+                <PlaqueFieldSeg
+                  label="enableAllureRestAssuredListener"
+                  paramId="enableAllureRestAssuredListener"
+                  value={config.enableAllureRestAssuredListener}
+                  onValueChange={setField('enableAllureRestAssuredListener')}
+                  data-testid="landing-seg-enableAllureRestAssuredListener"
+                />
+                <PlaqueFieldSeg
+                  label="allureRestAssuredListenerStyle"
+                  paramId="allureRestAssuredListenerStyle"
+                  value={config.allureRestAssuredListenerStyle}
+                  onValueChange={setField('allureRestAssuredListenerStyle')}
+                  options={[
+                    { value: 'default', title: 'stock AllureRestAssured templates' },
+                    { value: 'colored', title: 'tpl/request.ftl + tpl/response.ftl' },
+                  ]}
+                  data-testid="landing-seg-allureRestAssuredListenerStyle"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
 
-            <Panel
+            <ConfigPanel
               title={copy.home.panelDriver}
               testId="landing-driver-panel"
               titleTestId="landing-driver-title"
+              stackTestId="landing-driver-stack"
             >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-driver-stack"
+              <PlaqueFieldGrid layout="solo" aria-label="driverEngine">
+                <PlaqueFieldSeg
+                  label="driverEngine"
+                  paramId="driverEngine"
+                  value={config.driverEngine}
+                  onValueChange={setField('driverEngine')}
+                  options={[
+                    { value: 'webdriver', title: copy.home.driverWebdriver },
+                    { value: 'playwright', title: copy.home.driverPlaywright },
+                  ]}
+                  data-testid="landing-seg-driverEngine"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid
+                layout="duo"
+                cellSpan="lg"
+                aria-label="Browser identity"
+                data-testid="landing-driver-browser"
               >
-                <PlaqueFieldGrid layout="solo" aria-label="driverEngine">
-                  <PlaqueFieldSeg
-                    label="driverEngine"
-                    paramId="driverEngine"
-                    value={config.driverEngine}
-                    onValueChange={setField('driverEngine')}
-                    options={[
-                      { value: 'webdriver', title: copy.home.driverWebdriver },
-                      { value: 'playwright', title: copy.home.driverPlaywright },
-                    ]}
-                    data-testid="landing-seg-driverEngine"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid
-                  layout="duo"
-                  cellSpan="lg"
-                  aria-label="Browser identity"
-                  data-testid="landing-driver-browser"
-                >
-                  <PlaqueSelect
-                    label="browser"
-                    paramId="browser"
-                    value={config.browser}
-                    options={BROWSERS}
-                    onChange={setField('browser')}
-                    data-testid="landing-select-browser"
-                  />
-                  <PlaqueSelect
-                    label="browserVersion"
-                    paramId="browserVersion"
-                    value={config.browserVersion}
-                    options={BROWSER_VERSIONS}
-                    onChange={setField('browserVersion')}
-                    data-testid="landing-select-browserVersion"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Driver runtime">
-                  <PlaqueSelect
-                    label="browserSize"
-                    paramId="browserSize"
-                    value={config.browserSize}
-                    options={BROWSER_SIZES}
-                    onChange={setField('browserSize')}
-                    data-testid="landing-select-browserSize"
-                  />
-                  <PlaqueFieldSeg
-                    label="headless"
-                    paramId="headless"
-                    value={config.headless}
-                    onValueChange={setField('headless')}
-                    data-testid="landing-seg-headless"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="images">
-                  <PlaqueTagstrip
-                    label="images"
-                    paramId="images"
-                    options={IMAGES}
-                    values={config.images}
-                    onToggle={toggleImage}
-                    data-testid="landing-tagstrip-images"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="closeBrowserAfterEach">
-                  <PlaqueFieldSeg
-                    label="closeBrowserAfterEach"
-                    paramId="closeBrowserAfterEach"
-                    value={config.closeBrowserAfterEach}
-                    onValueChange={setField('closeBrowserAfterEach')}
-                    data-testid="landing-seg-closeBrowserAfterEach"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="closeBrowserAfterAll">
-                  <PlaqueFieldSeg
-                    label="closeBrowserAfterAll"
-                    paramId="closeBrowserAfterAll"
-                    value={config.closeBrowserAfterAll}
-                    onValueChange={setField('closeBrowserAfterAll')}
-                    data-testid="landing-seg-closeBrowserAfterAll"
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
+                <PlaqueSelect
+                  label="browser"
+                  paramId="browser"
+                  value={config.browser}
+                  options={BROWSERS}
+                  onChange={setField('browser')}
+                  data-testid="landing-select-browser"
+                />
+                <PlaqueSelect
+                  label="browserVersion"
+                  paramId="browserVersion"
+                  value={config.browserVersion}
+                  options={BROWSER_VERSIONS}
+                  onChange={setField('browserVersion')}
+                  data-testid="landing-select-browserVersion"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="Driver viewport">
+                <PlaqueSelect
+                  label="browserSize"
+                  paramId="browserSize"
+                  value={config.browserSize}
+                  options={BROWSER_SIZES}
+                  onChange={setField('browserSize')}
+                  data-testid="landing-select-browserSize"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="Driver runtime">
+                <PlaqueFieldSeg
+                  label="headless"
+                  paramId="headless"
+                  value={config.headless}
+                  onValueChange={setField('headless')}
+                  data-testid="landing-seg-headless"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="images">
+                <PlaqueTagstrip
+                  label="images"
+                  paramId="images"
+                  options={IMAGES}
+                  values={config.images}
+                  onToggle={toggleImage}
+                  data-testid="landing-tagstrip-images"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="closeBrowserAfterEach">
+                <PlaqueFieldSeg
+                  label="closeBrowserAfterEach"
+                  paramId="closeBrowserAfterEach"
+                  value={config.closeBrowserAfterEach}
+                  onValueChange={setField('closeBrowserAfterEach')}
+                  data-testid="landing-seg-closeBrowserAfterEach"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="closeBrowserAfterAll">
+                <PlaqueFieldSeg
+                  label="closeBrowserAfterAll"
+                  paramId="closeBrowserAfterAll"
+                  value={config.closeBrowserAfterAll}
+                  onValueChange={setField('closeBrowserAfterAll')}
+                  data-testid="landing-seg-closeBrowserAfterAll"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
 
-            <Panel
+            <ConfigPanel
               title={copy.home.panelRemote}
               testId="landing-remote-panel"
               titleTestId="landing-remote-title"
+              stackTestId="landing-remote-stack"
             >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-remote-stack"
+              <PlaqueFieldGrid layout="solo" aria-label="Remote URL">
+                <PlaqueField
+                  label="remoteUrl"
+                  paramId="remoteUrl"
+                  labelVariant="param"
+                  value={config.remoteUrl}
+                  placeholder={copy.home.remotePlaceholder}
+                  onChange={setFromInput('remoteUrl')}
+                  data-testid="landing-field-remoteUrl"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" aria-label="Session identity">
+                <PlaqueSelect
+                  label="sessionTimeout"
+                  paramId="sessionTimeout"
+                  value={config.sessionTimeout}
+                  options={SESSION_TIMEOUTS}
+                  onChange={setField('sessionTimeout')}
+                  data-testid="landing-select-sessionTimeout"
+                />
+                <PlaqueField
+                  label="name"
+                  paramId="name"
+                  labelVariant="param"
+                  value={config.name}
+                  onChange={setFromInput('name')}
+                  data-testid="landing-field-name"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="Screen resolution">
+                <PlaqueSelect
+                  label="screenResolution"
+                  paramId="screenResolution"
+                  value={config.screenResolution}
+                  options={SCREEN_RESOLUTIONS}
+                  onChange={setField('screenResolution')}
+                  data-testid="landing-select-screenResolution"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid
+                layout="pair"
+                aria-label="Remote hub flags"
+                data-testid="landing-remote-flags"
               >
-                <PlaqueFieldGrid layout="solo" aria-label="Remote URL">
-                  <PlaqueField
-                    label="remoteUrl"
-                    paramId="remoteUrl"
-                    labelVariant="param"
-                    value={config.remoteUrl}
-                    placeholder={copy.home.remotePlaceholder}
-                    onChange={setFromInput('remoteUrl')}
-                    data-testid="landing-field-remoteUrl"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="duo" aria-label="Session identity">
-                  <PlaqueSelect
-                    label="sessionTimeout"
-                    paramId="sessionTimeout"
-                    value={config.sessionTimeout}
-                    options={SESSION_TIMEOUTS}
-                    onChange={setField('sessionTimeout')}
-                    data-testid="landing-select-sessionTimeout"
-                  />
-                  <PlaqueField
-                    label="name"
-                    paramId="name"
-                    labelVariant="param"
-                    value={config.name}
-                    onChange={setFromInput('name')}
-                    data-testid="landing-field-name"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="Screen resolution">
-                  <PlaqueSelect
-                    label="screenResolution"
-                    paramId="screenResolution"
-                    value={config.screenResolution}
-                    options={SCREEN_RESOLUTIONS}
-                    onChange={setField('screenResolution')}
-                    data-testid="landing-select-screenResolution"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid
-                  layout="pair"
-                  aria-label="Remote hub flags"
-                  data-testid="landing-remote-flags"
-                >
-                  <PlaqueFieldSeg
-                    label="enableVnc"
-                    paramId="enableVnc"
-                    value={config.enableVnc}
-                    onValueChange={setField('enableVnc')}
-                    data-testid="landing-seg-enableVnc"
-                  />
-                  <PlaqueFieldSeg
-                    label="enableVideo"
-                    paramId="enableVideo"
-                    value={config.enableVideo}
-                    onValueChange={setField('enableVideo')}
-                    data-testid="landing-seg-enableVideo"
-                  />
-                  <PlaqueFieldSeg
-                    label="enableHar"
-                    paramId="enableHar"
-                    value={config.enableHar}
-                    onValueChange={setField('enableHar')}
-                    data-testid="landing-seg-enableHar"
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
+                <PlaqueFieldSeg
+                  label="enableVnc"
+                  paramId="enableVnc"
+                  value={config.enableVnc}
+                  onValueChange={setField('enableVnc')}
+                  data-testid="landing-seg-enableVnc"
+                />
+                <PlaqueFieldSeg
+                  label="enableVideo"
+                  paramId="enableVideo"
+                  value={config.enableVideo}
+                  onValueChange={setField('enableVideo')}
+                  data-testid="landing-seg-enableVideo"
+                />
+                <PlaqueFieldSeg
+                  label="enableHar"
+                  paramId="enableHar"
+                  value={config.enableHar}
+                  onValueChange={setField('enableHar')}
+                  data-testid="landing-seg-enableHar"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
 
-            <Panel
+            <ConfigPanel
               title={copy.home.panelConsole}
               testId="landing-console-panel"
               titleTestId="landing-console-title"
+              stackTestId="landing-console-stack"
             >
-              <div
-                className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-                data-testid="landing-console-stack"
-              >
-                <PlaqueFieldGrid layout="solo" aria-label="logToConsole">
-                  <PlaqueFieldSeg
-                    label="logToConsole"
-                    paramId="logToConsole"
-                    value={config.logToConsole}
-                    onValueChange={setField('logToConsole')}
-                    data-testid="landing-seg-logToConsole"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="selenideLogToConsole">
-                  <PlaqueFieldSeg
-                    label="selenideLogToConsole"
-                    paramId="selenideLogToConsole"
-                    value={config.selenideLogToConsole}
-                    onValueChange={setField('selenideLogToConsole')}
-                    data-testid="landing-seg-selenideLogToConsole"
-                  />
-                </PlaqueFieldGrid>
-                <PlaqueFieldGrid layout="solo" aria-label="rootLogLevel">
-                  <PlaqueSelect
-                    label="rootLogLevel"
-                    paramId="rootLogLevel"
-                    value={config.rootLogLevel}
-                    options={ROOT_LOG_LEVELS}
-                    onChange={setField('rootLogLevel')}
-                    data-testid="landing-select-rootLogLevel"
-                  />
-                </PlaqueFieldGrid>
-              </div>
-            </Panel>
+              <PlaqueFieldGrid layout="solo" aria-label="logToConsole">
+                <PlaqueFieldSeg
+                  label="logToConsole"
+                  paramId="logToConsole"
+                  value={config.logToConsole}
+                  onValueChange={setField('logToConsole')}
+                  data-testid="landing-seg-logToConsole"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="selenideLogToConsole">
+                <PlaqueFieldSeg
+                  label="selenideLogToConsole"
+                  paramId="selenideLogToConsole"
+                  value={config.selenideLogToConsole}
+                  onValueChange={setField('selenideLogToConsole')}
+                  data-testid="landing-seg-selenideLogToConsole"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="rootLogLevel">
+                <PlaqueSelect
+                  label="rootLogLevel"
+                  paramId="rootLogLevel"
+                  value={config.rootLogLevel}
+                  options={ROOT_LOG_LEVELS}
+                  onChange={setField('rootLogLevel')}
+                  data-testid="landing-select-rootLogLevel"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
+
+            <ConfigPanel
+              title={copy.home.panelTestops}
+              testId="landing-testops-panel"
+              titleTestId="landing-testops-title"
+              stackTestId="landing-testops-stack"
+            >
+              <PlaqueFieldGrid layout="solo" aria-label="testopsEnabled">
+                <PlaqueFieldSeg
+                  label="testopsEnabled"
+                  paramId="testopsEnabled"
+                  value={config.testopsEnabled}
+                  onValueChange={setField('testopsEnabled')}
+                  options={[
+                    { value: 'true', label: 'on', title: 'allurectl watch + export ALLURE_*' },
+                    { value: 'false', label: 'off' },
+                  ]}
+                  data-testid="landing-seg-testopsEnabled"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
           </div>
         </div>
 
@@ -700,7 +631,7 @@ export function HomePage() {
                   {
                     icon: <IconDownload />,
                     label: copy.home.download,
-                    onClick: () => downloadText(activeOutput, outputFilename(activeTab, config)),
+                    onClick: () => downloadText(activeOutput, outputFilename(activeTab)),
                     'data-testid': 'landing-terminal-download',
                   },
                   {

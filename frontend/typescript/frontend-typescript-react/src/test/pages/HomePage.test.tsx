@@ -34,13 +34,14 @@ describe('HomePage', () => {
       'grid--2x1',
       'configurator__layout--terminal',
     );
-    expect(screen.getByTestId('landing-stack-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
-    expect(screen.getByTestId('landing-ci-panel')).toHaveClass('panel--content');
-    expect(screen.getByTestId('landing-integrations-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-allure-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-driver-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-remote-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-console-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-testops-panel')).toHaveClass('panel--content');
+    expect(screen.queryByTestId('landing-git-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-backend-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('landing-driver-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
@@ -57,43 +58,14 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'buildWrapper: wrapper',
     );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: true');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('codeHost: github.com');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'ciRunner: github-hosted',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testops: selfhosted');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('jira: selfhosted');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'confluence: selfhosted',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('sonar: selfhosted');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backendLanguage: java',
+      'allureReportMode: allure3',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backendFramework: spring',
+      'testopsEnabled: false',
     );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'frontendLanguage: typescript',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'frontendFramework: react',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsLanguage: java');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsBuild: gradle');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsRunner: junit5');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsAllure: allure3');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testsUi: selenide');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backend: backend-java-spring',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'frontend: frontend-typescript-react',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'tests: tests-java-gradle-junit5-allure3-selenide',
-    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('codeHost:');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('backendLanguage:');
   });
 
   it('updates the terminal YAML when a seg is clicked', async () => {
@@ -111,103 +83,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-vector')).not.toHaveTextContent(before);
   });
 
-  it('writes matrix module ids for backend, frontend, and tests into YAML', async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'backendLanguage' }), 'kotlin');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backend: backend-kotlin-spring',
-    );
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'backendLanguage' }), 'python');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'backendFramework' }), 'django');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backend: backend-python-django',
-    );
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-frontendLanguage')).getByRole('button', {
-        name: 'JavaScript',
-      }),
-    );
-    await user.selectOptions(screen.getByRole('combobox', { name: 'frontendFramework' }), 'vue');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'frontend: frontend-javascript-vue',
-    );
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-testsBuild')).getByRole('button', { name: 'Maven' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'tests: tests-java-maven-junit5-allure3-selenide',
-    );
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'testsRunner' }), 'junit4');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'tests: tests-java-gradle-junit4-allure2-selenium',
-    );
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'testsLanguage' }), 'javascript');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'tests: tests-javascript-playwright',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('testsBuild:');
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-testsUi')).getByRole('button', { name: 'Cypress' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'tests: tests-javascript-cypress',
-    );
-  });
-
-  it('writes GitLab host and Jenkins runner into the terminal YAML', async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'codeHost' }), 'gitlab.qa.guru');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'codeHost: gitlab.qa.guru',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'ciRunner: gitlab-self-hosted',
-    );
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'ciRunner' }), 'jenkins');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-testops')).getByRole('button', { name: 'cloud' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testops: cloud');
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-jira')).getByRole('button', { name: 'cloud' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('jira: cloud');
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-confluence')).getByRole('button', { name: 'cloud' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('confluence: cloud');
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-sonar')).getByRole('button', { name: 'cloud' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('sonar: cloud');
-
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'codeHost' }),
-      'gitlab.com/qa-guru',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'codeHost: "gitlab.com/qa-guru"',
-    );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciRunner: jenkins');
-  });
-
-  it('writes build wrapper and CI cache into the terminal YAML', async () => {
+  it('writes build wrapper and Allure / TestOps segs into the terminal YAML', async () => {
     const user = userEvent.setup();
     render(<HomePage />);
 
@@ -229,9 +105,20 @@ describe('HomePage', () => {
     ).toBeInTheDocument();
 
     await user.click(
-      within(screen.getByTestId('landing-seg-ciCache')).getByRole('button', { name: 'no-cache' }),
+      within(screen.getByTestId('landing-seg-allureAgentMode')).getByRole('button', {
+        name: 'inspect',
+      }),
     );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'allureAgentMode: inspect',
+    );
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-testopsEnabled')).getByRole('button', {
+        name: 'on',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testopsEnabled: true');
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -271,39 +158,10 @@ describe('HomePage', () => {
       screen.getByTestId('landing-terminal-output').querySelector('.ch-tok-key'),
     ).not.toBeNull();
 
-    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
-    expect(screen.getByRole('tab', { name: 'ci.yml' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('name: ci');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('run: ./gradlew test');
-
     await user.click(screen.getByRole('tab', { name: 'YAML' }));
     expect(screen.getByRole('tab', { name: 'YAML' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('browser: firefox');
-  });
-
-  it('rewrites the live CI preview when host, runner, and cache change', async () => {
-    const user = userEvent.setup();
-    render(<HomePage />);
-
-    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('name: ci');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('cache: gradle');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'live preview; not the teaching orchestrator',
-    );
-
-    await user.click(
-      within(screen.getByTestId('landing-seg-ciCache')).getByRole('button', { name: 'no-cache' }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('cache: gradle');
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'codeHost' }), 'gitlab.qa.guru');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('image:');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('self-hosted');
-
-    await user.selectOptions(screen.getByRole('combobox', { name: 'ciRunner' }), 'jenkins');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('pipeline {');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('ciCache: off');
+    expect(screen.queryByRole('tab', { name: 'ci.yml' })).not.toBeInTheDocument();
   });
 
   it('resets, copies, and downloads the live output', async () => {
@@ -340,15 +198,10 @@ describe('HomePage', () => {
     await user.click(screen.getByTestId('landing-terminal-download'));
     expect(click).toHaveBeenCalled();
     expect(createObjectURL).toHaveBeenCalled();
-
-    await user.click(screen.getByRole('tab', { name: 'ci.yml' }));
-    await user.click(screen.getByTestId('landing-terminal-download'));
-    expect(click).toHaveBeenCalledTimes(2);
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
     render(<HomePage />);
-    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent('Stack');
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent('Driver');
 
@@ -357,18 +210,13 @@ describe('HomePage', () => {
     });
 
     expect(document.documentElement.lang).toBe('ru');
-    expect(screen.getByTestId('landing-stack-title')).toHaveTextContent(ru.home.panelStack);
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent(ru.home.panelBuild);
-    expect(screen.getByTestId('landing-ci-title')).toHaveTextContent(ru.home.panelCi);
-    expect(screen.getByTestId('landing-integrations-title')).toHaveTextContent(
-      ru.home.panelIntegrations,
-    );
+    expect(screen.getByTestId('landing-allure-title')).toHaveTextContent(ru.home.panelAllure);
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent(ru.home.panelDriver);
     expect(screen.getByTestId('landing-remote-title')).toHaveTextContent(ru.home.panelRemote);
     expect(screen.getByTestId('landing-console-title')).toHaveTextContent(ru.home.panelConsole);
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
-      'backend: backend-java-spring',
-    );
-    expect(screen.getByRole('combobox', { name: 'backendLanguage' })).toBeInTheDocument();
+    expect(screen.getByTestId('landing-testops-title')).toHaveTextContent(ru.home.panelTestops);
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
+    expect(screen.getByRole('combobox', { name: 'browser' })).toBeInTheDocument();
   });
 });
