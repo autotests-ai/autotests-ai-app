@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSEMBLE_ZIP_ORIGIN,
   buildWrapperOptions,
+  CLOUD_GITHUB_ORG,
   catalogDocument,
   catalogHref,
   catalogProfileId,
   cloneConfig,
+  cloudDocument,
   copyText,
   DEFAULTS,
   downloadLandingOutput,
@@ -74,6 +76,7 @@ describe('landing-config', () => {
     expect(doc.coverageProfile).toEqual(DEFAULTS.coverageProfile);
     expect(doc.coverageProfile).not.toBe(DEFAULTS.coverageProfile);
     expect(doc).not.toHaveProperty('catalog');
+    expect(doc).not.toHaveProperty('cloud');
     expect(doc).not.toHaveProperty('backend');
     expect(doc).not.toHaveProperty('codeHost');
   });
@@ -147,6 +150,30 @@ describe('landing-config', () => {
       url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
     });
     expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncatalog:');
+  });
+
+  it('prints cloud org and created false when destination is cloud', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const yaml = toYaml(config, 'vector#cloud');
+    expect(yaml).toContain('destination: cloud');
+    expect(yaml).toContain('cloud:');
+    expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
+    expect(yaml).toContain('created: false');
+    expect(yaml).not.toContain('\ncatalog:');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml).not.toContain('unknown');
+    const json = JSON.parse(toJson(config, 'vector#cloud')) as {
+      destination: string;
+      cloud: { org: string; created: boolean };
+      catalog?: unknown;
+      url?: string;
+    };
+    expect(json.destination).toBe('cloud');
+    expect(json.cloud).toEqual(cloudDocument());
+    expect(json.cloud.created).toBe(false);
+    expect(json).not.toHaveProperty('catalog');
+    expect(json).not.toHaveProperty('url');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncloud:');
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -427,5 +454,42 @@ describe('landing-config', () => {
     expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
     expect(fetchMock).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
+  });
+
+  it('downloads cloud as yaml and does not POST assemble-zip or open catalog', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:cloud');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const yaml = toYaml({ ...cloneConfig(DEFAULTS), destination: 'cloud' }, 'vector#cloud');
+    const kind = await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      catalogUrl: catalogHref(TAKEAWAY_TESTS_STACK),
+    });
+
+    expect(kind).toBe('text');
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
   });
 });

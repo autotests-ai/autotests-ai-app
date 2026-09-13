@@ -49,6 +49,11 @@ export type CatalogHref = {
   profile: string;
   url: string;
 };
+
+export type CloudContract = {
+  org: string;
+  created: false;
+};
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
 
@@ -197,6 +202,9 @@ export function isDestinationId(value: string): value is DestinationId {
 /** matrix.yaml defaults.generation.github_org — frozen, not invent. */
 export const CATALOG_GITHUB_ORG = 'autotests-ai';
 
+/** School contour org. No {login} in URL until IdP. */
+export const CLOUD_GITHUB_ORG = 'autotests-cloud';
+
 /** Frozen tests stack → github.com/autotests-ai/<e2e.stack>. */
 export function catalogProfileId(profile: CoverageProfile): string {
   return profile.automation.e2e.stack;
@@ -209,6 +217,10 @@ export function catalogHref(profileId: string, org: string = CATALOG_GITHUB_ORG)
 export function catalogDocument(profile: CoverageProfile): CatalogHref {
   const id = catalogProfileId(profile);
   return { profile: id, url: catalogHref(id) };
+}
+
+export function cloudDocument(): CloudContract {
+  return { org: CLOUD_GITHUB_ORG, created: false };
 }
 
 export function openCatalogHref(url: string): void {
@@ -444,6 +456,9 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
   if (config.destination === 'catalog') {
     doc.catalog = catalogDocument(config.coverageProfile);
   }
+  if (config.destination === 'cloud') {
+    doc.cloud = cloudDocument();
+  }
   return doc;
 }
 
@@ -506,6 +521,15 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
         'catalog:',
         `  profile: ${yamlScalar(catalog.profile)}`,
         `  url: ${yamlScalar(catalog.url)}`,
+      );
+      continue;
+    }
+    if (key === 'cloud' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const cloud = value as CloudContract;
+      lines.push(
+        'cloud:',
+        `  org: ${yamlScalar(cloud.org)}`,
+        `  created: ${yamlScalar(cloud.created)}`,
       );
       continue;
     }
@@ -619,6 +643,10 @@ export async function downloadLandingOutput(input: {
   if (input.destination === 'catalog') {
     openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
     return 'catalog';
+  }
+  if (input.destination === 'cloud') {
+    downloadText(input.text, input.textFilename);
+    return 'text';
   }
   if (shouldAssembleZip(input.destination, input.hostname)) {
     const assembled = await postAssembleZip(input.yaml, input.origin ?? ASSEMBLE_ZIP_ORIGIN);

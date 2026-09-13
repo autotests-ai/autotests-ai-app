@@ -211,6 +211,10 @@ describe('HomePage', () => {
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('catalog:');
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -400,6 +404,47 @@ describe('HomePage', () => {
       '_blank',
       'noopener',
     );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('downloads cloud as yaml and does not POST assemble-zip or open catalog', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:cloud');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'https://github.com/autotests-ai/',
+    );
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(open).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
