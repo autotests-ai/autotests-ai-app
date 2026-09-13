@@ -42,11 +42,10 @@ import {
   copyText,
   DEFAULTS,
   DESTINATIONS,
+  type DestinationId,
   downloadLandingOutput,
   fingerprint,
   IMAGES,
-  isAgentId,
-  isDestinationId,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
@@ -59,6 +58,7 @@ import {
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
   TESTS_STACKS,
+  toggleAgentAccess,
   toJson,
   toYaml,
   writeAgentIds,
@@ -67,7 +67,7 @@ import { GITHUB_MARK_PATH } from '../lib/stack-matrix';
 
 type AxisChoice = { value: string; label: string };
 
-function AxisField({
+export function AxisField({
   label,
   paramId,
   value,
@@ -173,24 +173,14 @@ export function HomePage() {
   };
 
   const setDestination = (value: string) => {
-    if (isDestinationId(value)) {
-      patch({ destination: value });
-    }
+    patch({ destination: value as DestinationId });
   };
 
   const toggleAgent = (value: string) => {
-    if (!isAgentId(value)) {
-      return;
-    }
-    setConfig((prev) => {
-      const next = cloneConfig(prev);
-      const current = next.coverageProfile.harness.agents[value];
-      if (!current) {
-        return prev;
-      }
-      current.access = current.access === 'write' ? 'none' : 'write';
-      return next;
-    });
+    setConfig((prev) => ({
+      ...prev,
+      coverageProfile: toggleAgentAccess(prev.coverageProfile, value),
+    }));
   };
 
   const toggleImage = (value: string) => {
@@ -827,6 +817,10 @@ export function HomePage() {
                         text: activeOutput,
                         textFilename: outputFilename(activeTab),
                         catalogUrl: catalog.url,
+                        githubUser: config.destination === 'user' ? githubUser : null,
+                        landingConfig: config,
+                        vectorId,
+                        outputTab: activeTab,
                       }),
                     'data-testid': 'landing-terminal-download',
                   },

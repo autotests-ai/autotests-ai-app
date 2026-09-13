@@ -13,6 +13,9 @@ import {
   downloadLandingOutput,
   downloadText,
   fingerprint,
+  isAgentAccess,
+  isAgentId,
+  isDestinationId,
   isLoopbackHostname,
   type LandingConfig,
   outputFilename,
@@ -20,6 +23,7 @@ import {
   TAKEAWAY_COVERAGE_PROFILE,
   TAKEAWAY_TESTS_STACK,
   toDocument,
+  toggleAgentAccess,
   toJson,
   toYaml,
   userDocument,
@@ -31,6 +35,14 @@ describe('landing-config', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('omits a harness agent from YAML when the profile has no entry', () => {
+    const config = cloneConfig(DEFAULTS);
+    delete config.coverageProfile.harness.agents.cline;
+    const yaml = toYaml(config, 'vector#agents');
+    expect(yaml).not.toContain('cline:');
+    expect(yaml).toContain('cursor:');
   });
 
   it('clones images so mutations stay local', () => {
@@ -46,6 +58,26 @@ describe('landing-config', () => {
     copy.destination = 'cloud';
     expect(DEFAULTS.coverageProfile.harness.agents.cursor.access).toBe('write');
     expect(DEFAULTS.destination).toBe('zip');
+  });
+
+  it('toggles agent access and ignores unknown or missing agents', () => {
+    expect(isAgentAccess('write')).toBe(true);
+    expect(isAgentAccess('none')).toBe(true);
+    expect(isAgentAccess('read')).toBe(false);
+    expect(isAgentId('cursor')).toBe(true);
+    expect(isAgentId('not-an-agent')).toBe(false);
+    expect(isDestinationId('user')).toBe(true);
+    expect(isDestinationId('zip')).toBe(true);
+    expect(isDestinationId('nope')).toBe(false);
+    const profile = cloneConfig(DEFAULTS).coverageProfile;
+    expect(toggleAgentAccess(profile, 'not-an-agent')).toBe(profile);
+    const missing = cloneConfig(DEFAULTS).coverageProfile;
+    delete missing.harness.agents.cursor;
+    expect(toggleAgentAccess(missing, 'cursor')).toBe(missing);
+    const toggled = toggleAgentAccess(profile, 'cursor');
+    expect(toggled).not.toBe(profile);
+    expect(toggled.harness.agents.cursor.access).toBe('none');
+    expect(toggleAgentAccess(toggled, 'cursor').harness.agents.cursor.access).toBe('write');
   });
 
   it('fingerprints the selection as vector# plus 8 hex chars', () => {
@@ -230,6 +262,52 @@ describe('landing-config', () => {
     expect(toYaml(config, 'vector#user', { githubUser: { login: 'unknown' } })).not.toContain(
       'login:',
     );
+  });
+
+  it('prints created true and the user repo URL only after GitHub create', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const createdRepo = {
+      login: 'octocat',
+      url: `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`,
+      created: true as const,
+    };
+    const yaml = toYaml(config, 'vector#user', {
+      githubUser: { login: 'octocat' },
+      createdRepo,
+    });
+    expect(yaml).toContain('created: true');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).toContain('login: octocat');
+    expect(yaml).toContain(`url: "https://github.com/octocat/${TAKEAWAY_TESTS_STACK}"`);
+    expect(yaml).not.toContain('token');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('autotests-cloud');
+    expect(userDocument({ login: 'octocat' }, createdRepo)).toEqual({
+      created: true,
+      via: 'oauth',
+      login: 'octocat',
+      url: createdRepo.url,
+    });
+    expect(
+      userDocument(
+        { login: 'octocat' },
+        {
+          login: 'octocat',
+          url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+          created: true,
+        },
+      ),
+    ).toEqual(userDocument({ login: 'octocat' }));
+    expect(
+      userDocument({ login: 'octocat' }, { login: 'unknown', url: createdRepo.url, created: true }),
+    ).toEqual(userDocument({ login: 'octocat' }));
+    expect(
+      userDocument({ login: 'octocat' }, {
+        login: 'octocat',
+        url: createdRepo.url,
+        created: false,
+      } as unknown as Parameters<typeof userDocument>[1]),
+    ).toEqual(userDocument({ login: 'octocat' }));
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -510,6 +588,15 @@ describe('landing-config', () => {
     expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
     expect(fetchMock).not.toHaveBeenCalled();
     expect(createObjectURL).not.toHaveBeenCalled();
+
+    await downloadLandingOutput({
+      destination: 'catalog',
+      hostname: 'localhost',
+      yaml: 'destination: catalog\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+    });
+    expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
   });
 
   it('downloads cloud as yaml and does not POST assemble-zip or open catalog', async () => {
@@ -586,5 +673,160 @@ describe('landing-config', () => {
     expect(yaml).toContain('via: oauth');
     expect(yaml).not.toContain('\ncloud:');
     expect(yaml).not.toContain('\ncatalog:');
+  });
+
+  it('POSTs create repo when dest user has a session and writes created true', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi.fn(async () =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:user-created');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
+    const kind = await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+    });
+
+    expect(kind).toBe('text');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/oauth/github/repos'),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
+  it('keeps created false when dest user create fails and downloads JSON after success', async () => {
+    const createObjectURL = vi.fn(() => 'blob:user-json');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+    });
+    expect(blobs[0]).toContain('created: false');
+    expect(blobs[0]).toContain('login: octocat');
+
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: '{}',
+      textFilename: 'config.json',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+      outputTab: 'json',
+    });
+    expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain(repoUrl);
+  });
+
+  it('does not POST create when dest user has no session or emit ids', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:user'), revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+    });
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      vectorId: 'vector#user',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
   });
 });

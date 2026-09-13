@@ -1,10 +1,11 @@
-/** GitHub OAuth for dest user. Session is login only — never a PAT. */
+/** GitHub OAuth for dest user. Session is login only — never a PAT. Token is an httpOnly cookie. */
 
 import { apiUrl } from './appBase';
 
 export const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 export const GITHUB_OAUTH_CALLBACK_PATH = '/oauth/github/callback';
-export const GITHUB_OAUTH_SCOPE = 'read:user';
+export const GITHUB_OAUTH_SCOPE = 'public_repo';
+export const GITHUB_USER_REPO_NAME = 'java-junit5-rest_assured-selenide';
 export const GITHUB_USER_SESSION_KEY = 'autotests-ai.github-user';
 export const GITHUB_OAUTH_STATE_KEY = 'autotests-ai.github-oauth-state';
 
@@ -13,6 +14,12 @@ const SECRET_KEYS = ['token', 'access_token', 'pat', 'password', 'refresh_token'
 
 export type GithubUserSession = {
   login: string;
+};
+
+export type GithubCreatedRepo = {
+  login: string;
+  url: string;
+  created: true;
 };
 
 export type GithubOAuthCallbackQuery = {
@@ -41,6 +48,10 @@ export function githubOAuthExchangeUrl(): string {
   return apiUrl('/oauth/github');
 }
 
+export function githubOAuthReposUrl(): string {
+  return apiUrl('/oauth/github/repos');
+}
+
 export function githubOAuthRedirectUri(origin: string): string {
   return `${origin.replace(/\/$/, '')}${GITHUB_OAUTH_CALLBACK_PATH}`;
 }
@@ -55,6 +66,14 @@ export function githubUserUrl(login: string): string {
     return '';
   }
   return `https://github.com/${login}`;
+}
+
+/** Frozen e2e.stack repo in the user account. Never org or unknown. */
+export function githubUserRepoUrl(login: string, repo: string = GITHUB_USER_REPO_NAME): string {
+  if (!isGithubLogin(login) || !repo) {
+    return '';
+  }
+  return `https://github.com/${login}/${repo}`;
 }
 
 export function githubAuthorizeUrl(input: {
@@ -199,6 +218,7 @@ export async function completeGithubOAuthCallback(input: {
   const response = await fetchImpl(input.exchangeUrl ?? githubOAuthExchangeUrl(), {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ code: parsed.code, state: parsed.state }),
   });
   if (!response.ok) {
@@ -216,4 +236,40 @@ export async function completeGithubOAuthCallback(input: {
   writeGithubUserSession(session, storage);
   clearOauthState(storage);
   return session;
+}
+
+export async function createGithubUserRepo(
+  input: { fetchImpl?: typeof fetch; reposUrl?: string } = {},
+): Promise<GithubCreatedRepo | null> {
+  try {
+    const fetchImpl = input.fetchImpl ?? fetch;
+    const response = await fetchImpl(input.reposUrl ?? githubOAuthReposUrl(), {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body: unknown = await response.json();
+    if (payloadHasSecret(body)) {
+      return null;
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return null;
+    }
+    const rec = body as { login?: unknown; url?: unknown; created?: unknown };
+    if (rec.created !== true) {
+      return null;
+    }
+    if (typeof rec.login !== 'string' || !isGithubLogin(rec.login)) {
+      return null;
+    }
+    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login)) {
+      return null;
+    }
+    return { login: rec.login, url: rec.url, created: true };
+  } catch {
+    return null;
+  }
 }

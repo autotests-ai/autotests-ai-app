@@ -1,6 +1,13 @@
 /** Home configurator selection — cfg-keys + harvested presets. Not a matrix profile id. */
 
-import { type GithubUserSession, githubUserUrl, isGithubLogin } from './github-oauth';
+import {
+  createGithubUserRepo,
+  type GithubCreatedRepo,
+  type GithubUserSession,
+  githubUserRepoUrl,
+  githubUserUrl,
+  isGithubLogin,
+} from './github-oauth';
 
 export type LandingConfig = {
   buildOs: string;
@@ -58,7 +65,7 @@ export type CloudContract = {
 };
 
 export type UserContract = {
-  created: false;
+  created: boolean;
   via: 'oauth';
   login?: string;
   url?: string;
@@ -66,6 +73,7 @@ export type UserContract = {
 
 export type LandingEmitOptions = {
   githubUser?: GithubUserSession | null;
+  createdRepo?: GithubCreatedRepo | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -236,7 +244,23 @@ export function cloudDocument(): CloudContract {
   return { org: CLOUD_GITHUB_ORG, created: false };
 }
 
-export function userDocument(session?: GithubUserSession | null): UserContract {
+export function userDocument(
+  session?: GithubUserSession | null,
+  createdRepo?: GithubCreatedRepo | null,
+): UserContract {
+  if (
+    createdRepo &&
+    createdRepo.created === true &&
+    isGithubLogin(createdRepo.login) &&
+    createdRepo.url === githubUserRepoUrl(createdRepo.login)
+  ) {
+    return {
+      created: true,
+      via: 'oauth',
+      login: createdRepo.login,
+      url: createdRepo.url,
+    };
+  }
   const doc: UserContract = { created: false, via: 'oauth' };
   if (session && isGithubLogin(session.login)) {
     doc.login = session.login;
@@ -251,6 +275,19 @@ export function openCatalogHref(url: string): void {
 
 export function isAgentAccess(value: string): value is AgentAccess {
   return value === 'write' || value === 'none';
+}
+
+export function toggleAgentAccess(profile: CoverageProfile, value: string): CoverageProfile {
+  if (!isAgentId(value)) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  const current = next.harness.agents[value];
+  if (!current) {
+    return profile;
+  }
+  current.access = current.access === 'write' ? 'none' : 'write';
+  return next;
 }
 
 export function cloneCoverageProfile(profile: CoverageProfile): CoverageProfile {
@@ -485,7 +522,7 @@ export function toDocument(
     doc.cloud = cloudDocument();
   }
   if (config.destination === 'user') {
-    doc.user = userDocument(options?.githubUser);
+    doc.user = userDocument(options?.githubUser, options?.createdRepo);
   }
   return doc;
 }
@@ -690,13 +727,30 @@ export async function downloadLandingOutput(input: {
   textFilename: string;
   origin?: string;
   catalogUrl?: string;
+  githubUser?: GithubUserSession | null;
+  landingConfig?: LandingConfig;
+  vectorId?: string;
+  outputTab?: OutputTabId;
 }): Promise<'zip' | 'catalog' | 'text'> {
   if (input.destination === 'catalog') {
     openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
     return 'catalog';
   }
-  if (input.destination === 'cloud' || input.destination === 'user') {
+  if (input.destination === 'cloud') {
     downloadText(input.text, input.textFilename);
+    return 'text';
+  }
+  if (input.destination === 'user') {
+    let output = input.text;
+    if (input.githubUser && input.landingConfig && input.vectorId) {
+      const createdRepo = await createGithubUserRepo();
+      const options = { githubUser: input.githubUser, createdRepo };
+      output =
+        input.outputTab === 'json'
+          ? toJson(input.landingConfig, input.vectorId, options)
+          : toYaml(input.landingConfig, input.vectorId, options);
+    }
+    downloadText(output, input.textFilename);
     return 'text';
   }
   if (shouldAssembleZip(input.destination, input.hostname)) {

@@ -10,7 +10,7 @@ import {
   fingerprint,
   TAKEAWAY_TESTS_STACK,
 } from '../../lib/landing-config';
-import { HomePage } from '../../pages/HomePage';
+import { AxisField, HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
   beforeEach(() => {
@@ -25,6 +25,24 @@ describe('HomePage', () => {
     localStorage.clear();
     sessionStorage.clear();
     document.documentElement.lang = 'en';
+  });
+
+  it('renders AxisField as a select when there are more than two options', () => {
+    const onChange = vi.fn();
+    render(
+      <AxisField
+        label="lang"
+        paramId="lang"
+        value="21"
+        options={[
+          { value: '17', label: '17' },
+          { value: '21', label: '21' },
+          { value: '25', label: '25' },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByTestId('landing-select-lang')).toBeInTheDocument();
   });
 
   it('renders the configurator shell and sticky terminal, not an empty page-shell', () => {
@@ -520,7 +538,7 @@ describe('HomePage', () => {
     const href = String(go.mock.calls[0]?.[0]);
     expect(href).toContain('https://github.com/login/oauth/authorize');
     expect(href).toContain('client_id=test-github-oauth-client');
-    expect(href).toContain('scope=read%3Auser');
+    expect(href).toContain('scope=public_repo');
     expect(href).not.toContain('token');
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
@@ -549,6 +567,62 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('token');
     expect(go).not.toHaveBeenCalled();
+  });
+
+  it('downloads created true after dest user create and never a PAT', async () => {
+    writeGithubUserSession({ login: 'octocat' });
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi.fn(async () =>
+      Promise.resolve({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:home-user');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/oauth/github/repos'),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {

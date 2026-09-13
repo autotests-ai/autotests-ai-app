@@ -4,16 +4,20 @@ import {
   clearGithubUserSession,
   clearOauthState,
   completeGithubOAuthCallback,
+  createGithubUserRepo,
   createOauthState,
   GITHUB_AUTHORIZE_URL,
   GITHUB_OAUTH_CALLBACK_PATH,
   GITHUB_OAUTH_SCOPE,
+  GITHUB_USER_REPO_NAME,
   GITHUB_USER_SESSION_KEY,
   githubAuthorizeUrl,
   githubOAuthAssign,
   githubOAuthClientId,
   githubOAuthExchangeUrl,
   githubOAuthRedirectUri,
+  githubOAuthReposUrl,
+  githubUserRepoUrl,
   githubUserUrl,
   isGithubLogin,
   parseGithubOAuthCallback,
@@ -23,6 +27,7 @@ import {
   writeGithubUserSession,
   writeOauthState,
 } from '../../lib/github-oauth';
+import { TAKEAWAY_TESTS_STACK } from '../../lib/landing-config';
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
   const map = new Map(Object.entries(initial));
@@ -96,12 +101,21 @@ describe('github-oauth', () => {
     expect(githubUserUrl('octocat')).toBe('https://github.com/octocat');
     expect(githubUserUrl('unknown')).toBe('');
     expect(githubUserUrl('')).toBe('');
+    expect(githubUserRepoUrl('octocat')).toBe(
+      `https://github.com/octocat/${GITHUB_USER_REPO_NAME}`,
+    );
+    expect(GITHUB_USER_REPO_NAME).toBe(TAKEAWAY_TESTS_STACK);
+    expect(githubUserRepoUrl('unknown')).toBe('');
+    expect(githubUserRepoUrl('octocat', '')).toBe('');
+    expect(githubUserRepoUrl('octocat')).not.toContain('autotests-cloud');
+    expect(githubUserRepoUrl('octocat')).not.toContain('autotests-ai/');
   });
 
   it('builds the GitHub authorize URL without a PAT', () => {
     expect(githubOAuthClientId()).toBe('test-github-oauth-client');
     expect(githubOAuthClientId({})).toBe('');
     expect(githubOAuthExchangeUrl()).toBe(apiUrl('/oauth/github'));
+    expect(githubOAuthReposUrl()).toBe(apiUrl('/oauth/github/repos'));
     expect(githubOAuthRedirectUri('http://localhost:8081/')).toBe(
       `http://localhost:8081${GITHUB_OAUTH_CALLBACK_PATH}`,
     );
@@ -228,6 +242,7 @@ describe('github-oauth', () => {
       '/api/oauth/github',
       expect.objectContaining({
         method: 'POST',
+        credentials: 'include',
         body: JSON.stringify({ code: 'gh-code', state: 'csrf' }),
       }),
     );
@@ -325,5 +340,81 @@ describe('github-oauth', () => {
         storage,
       }),
     ).rejects.toThrow('oauth login missing');
+  });
+
+  it('creates the frozen user repo from the httpOnly cookie and never keeps a PAT', async () => {
+    const url = githubUserRepoUrl('octocat');
+    const fetchImpl = vi.fn(async () => jsonResponse({ login: 'octocat', url, created: true }));
+    await expect(
+      createGithubUserRepo({ fetchImpl, reposUrl: '/api/oauth/github/repos' }),
+    ).resolves.toEqual({
+      login: 'octocat',
+      url,
+      created: true,
+    });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/oauth/github/repos',
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+  });
+
+  it('uses the default fetch and repos URL on create success', async () => {
+    const url = githubUserRepoUrl('octocat');
+    const fetchMock = vi.fn(async () => jsonResponse({ login: 'octocat', url, created: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(createGithubUserRepo()).resolves.toEqual({
+      login: 'octocat',
+      url,
+      created: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      githubOAuthReposUrl(),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+  });
+
+  it('refuses create secrets, invented logins, org URLs, and HTTP errors', async () => {
+    const url = githubUserRepoUrl('octocat');
+    const fetchImpl = vi.fn();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, created: true }, false));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({ login: 'octocat', url, created: true, token: 'secret' }),
+    );
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown', url, created: true }));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'octocat',
+        url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+        created: true,
+      }),
+    );
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'octocat',
+        url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+        created: true,
+      }),
+    );
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, created: false }));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url }));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse(null));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse([]));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12, url, created: true }));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url: 12, created: true }));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse('octocat'));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    fetchImpl.mockRejectedValueOnce(new Error('network'));
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
   });
 });
