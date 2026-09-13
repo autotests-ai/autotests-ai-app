@@ -453,11 +453,7 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
   for (const layer of AUTOMATION_LAYERS) {
     lines.push(`    ${layer}: ${yamlFlowMap(profile.automation[layer])}`);
   }
-  lines.push(
-    `  load: ${yamlFlowMap(profile.load)}`,
-    '  harness:',
-    '    agents:',
-  );
+  lines.push(`  load: ${yamlFlowMap(profile.load)}`, '  harness:', '    agents:');
   for (const agent of AGENT_CATALOG) {
     const entry = profile.harness.agents[agent.value];
     if (entry) {
@@ -499,6 +495,29 @@ export function outputFilename(tab: OutputTabId): string {
   return tab === 'json' ? 'config.json' : 'config.yaml';
 }
 
+/** Registry `assemble-zip` bind (scripts/stands/registry.json). Not window.location. */
+export const ASSEMBLE_ZIP_ORIGIN = 'http://127.0.0.1:3032';
+
+export function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1';
+}
+
+export function shouldAssembleZip(destination: DestinationId, hostname: string): boolean {
+  return destination === 'zip' && isLoopbackHostname(hostname);
+}
+
+export function zipFilenameFromDisposition(
+  header: string | null,
+  fallback = 'assemble.zip',
+): string {
+  const match = /filename="([^"]+\.zip)"/i.exec(header ?? '');
+  const name = match?.[1]?.trim();
+  if (!name || name.includes('/') || name.includes('\\')) {
+    return fallback;
+  }
+  return name;
+}
+
 export function copyText(contents: string): void {
   const clipboard = navigator.clipboard;
   if (!clipboard) {
@@ -507,12 +526,64 @@ export function copyText(contents: string): void {
   void clipboard.writeText(contents);
 }
 
-export function downloadText(contents: string, filename: string): void {
-  const blob = new Blob([contents], { type: 'text/plain;charset=utf-8' });
+export function downloadBlob(blob: Blob, filename: string): void {
   const href = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = href;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(href);
+}
+
+export function downloadText(contents: string, filename: string): void {
+  downloadBlob(new Blob([contents], { type: 'text/plain;charset=utf-8' }), filename);
+}
+
+export async function postAssembleZip(
+  yaml: string,
+  origin: string = ASSEMBLE_ZIP_ORIGIN,
+): Promise<{ blob: Blob; filename: string } | null> {
+  try {
+    const response = await fetch(`${origin}/assemble`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/yaml' },
+      body: yaml,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const type = (response.headers.get('content-type') || '').toLowerCase();
+    if (!type.includes('application/zip')) {
+      return null;
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      return null;
+    }
+    return {
+      blob,
+      filename: zipFilenameFromDisposition(response.headers.get('content-disposition')),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function downloadLandingOutput(input: {
+  destination: DestinationId;
+  hostname: string;
+  yaml: string;
+  text: string;
+  textFilename: string;
+  origin?: string;
+}): Promise<'zip' | 'text'> {
+  if (shouldAssembleZip(input.destination, input.hostname)) {
+    const assembled = await postAssembleZip(input.yaml, input.origin ?? ASSEMBLE_ZIP_ORIGIN);
+    if (assembled) {
+      downloadBlob(assembled.blob, assembled.filename);
+      return 'zip';
+    }
+  }
+  downloadText(input.text, input.textFilename);
+  return 'text';
 }

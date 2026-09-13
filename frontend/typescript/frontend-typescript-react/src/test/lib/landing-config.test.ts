@@ -1,17 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  ASSEMBLE_ZIP_ORIGIN,
   buildWrapperOptions,
   cloneConfig,
   copyText,
   DEFAULTS,
+  downloadLandingOutput,
   downloadText,
   fingerprint,
+  isLoopbackHostname,
   type LandingConfig,
   outputFilename,
+  shouldAssembleZip,
   toDocument,
   toJson,
   toYaml,
   vectorHash,
+  zipFilenameFromDisposition,
 } from '../../lib/landing-config';
 
 describe('landing-config', () => {
@@ -173,5 +178,192 @@ describe('landing-config', () => {
     expect(createObjectURL).toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:landing');
+  });
+
+  it('assembles a zip only on loopback dest zip', () => {
+    expect(isLoopbackHostname('localhost')).toBe(true);
+    expect(isLoopbackHostname('127.0.0.1')).toBe(true);
+    expect(isLoopbackHostname('autotests.ai')).toBe(false);
+    expect(shouldAssembleZip('zip', 'localhost')).toBe(true);
+    expect(shouldAssembleZip('zip', 'autotests.ai')).toBe(false);
+    expect(shouldAssembleZip('catalog', 'localhost')).toBe(false);
+    expect(shouldAssembleZip('cloud', '127.0.0.1')).toBe(false);
+    expect(shouldAssembleZip('user', 'localhost')).toBe(false);
+  });
+
+  it('reads a zip filename from Content-Disposition and rejects paths', () => {
+    expect(zipFilenameFromDisposition(null)).toBe('assemble.zip');
+    expect(zipFilenameFromDisposition('attachment; filename="assemble-java-default.zip"')).toBe(
+      'assemble-java-default.zip',
+    );
+    expect(zipFilenameFromDisposition('inline; filename="../../evil.zip"')).toBe('assemble.zip');
+    expect(zipFilenameFromDisposition('attachment; filename="foo\\bar.zip"')).toBe('assemble.zip');
+    expect(zipFilenameFromDisposition('attachment; filename="config.yaml"')).toBe('assemble.zip');
+  });
+
+  it('POSTs YAML to assemble-zip and downloads the zip body', async () => {
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:zip');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const yaml = 'destination: zip\n';
+    const fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="assemble-java-default.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+      } as Response),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const kind = await downloadLandingOutput({
+      destination: 'zip',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+    });
+
+    expect(kind).toBe('zip');
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${ASSEMBLE_ZIP_ORIGIN}/assemble`,
+      expect.objectContaining({
+        method: 'POST',
+        body: yaml,
+        headers: { 'Content-Type': 'application/yaml' },
+      }),
+    );
+    expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('falls back to text when prod, dest is not zip, stand is dead, or body is not zip', async () => {
+    const createObjectURL = vi.fn(() => 'blob:text');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: 'autotests.ai',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    expect(
+      await downloadLandingOutput({
+        destination: 'catalog',
+        hostname: 'localhost',
+        yaml: 'destination: catalog\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: '127.0.0.1',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+        origin: 'http://127.0.0.1:9',
+      }),
+    ).toBe('text');
+
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob(['{"ok":false}']),
+    } as Response);
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: 'localhost',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob(['{"ok":true}']),
+    } as Response);
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: 'localhost',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+    } as Response);
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: 'localhost',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/zip' }),
+      blob: async () => new Blob([]),
+    } as Response);
+    expect(
+      await downloadLandingOutput({
+        destination: 'zip',
+        hostname: 'localhost',
+        yaml: 'destination: zip\n',
+        text: 'kind: yaml',
+        textFilename: 'config.yaml',
+      }),
+    ).toBe('text');
+    expect(click).toHaveBeenCalled();
   });
 });

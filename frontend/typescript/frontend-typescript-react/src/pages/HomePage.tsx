@@ -34,7 +34,7 @@ import {
   copyText,
   DEFAULTS,
   DESTINATIONS,
-  downloadText,
+  downloadLandingOutput,
   fingerprint,
   IMAGES,
   isAgentId,
@@ -755,7 +755,14 @@ export function HomePage() {
                   {
                     icon: <IconDownload />,
                     label: copy.home.download,
-                    onClick: () => downloadText(activeOutput, outputFilename(activeTab)),
+                    onClick: () =>
+                      downloadLandingOutput({
+                        destination: config.destination,
+                        hostname: window.location.hostname,
+                        yaml,
+                        text: activeOutput,
+                        textFilename: outputFilename(activeTab),
+                      }),
                     'data-testid': 'landing-terminal-download',
                   },
                   {

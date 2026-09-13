@@ -1,9 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
-import { DEFAULTS, fingerprint } from '../../lib/landing-config';
+import { ASSEMBLE_ZIP_ORIGIN, DEFAULTS, fingerprint } from '../../lib/landing-config';
 import { HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
@@ -267,6 +267,8 @@ describe('HomePage', () => {
       }
       return el;
     });
+    const fetchMock = vi.fn(() => Promise.reject(new TypeError('Failed to fetch')));
+    vi.stubGlobal('fetch', fetchMock);
 
     render(<HomePage />);
     await user.click(
@@ -307,8 +309,55 @@ describe('HomePage', () => {
     expect(String(writeText.mock.calls[0]?.[0])).toContain('headless: false');
 
     await user.click(screen.getByTestId('landing-terminal-download'));
-    expect(click).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
     expect(createObjectURL).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it('POSTs YAML to assemble-zip and downloads a .zip when dest is zip', async () => {
+    const user = userEvent.setup();
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:assemble');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(`${ASSEMBLE_ZIP_ORIGIN}/assemble`);
+      expect(init?.method).toBe('POST');
+      expect(String(init?.body)).toContain('destination: zip');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="assemble-java-default.zip"',
+        }),
+        blob: async () =>
+          new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], { type: 'application/zip' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    await user.click(screen.getByTestId('landing-terminal-download'));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+      expect(click).toHaveBeenCalled();
+    });
+    expect(anchors[0]?.download).toBe('assemble-java-default.zip');
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
