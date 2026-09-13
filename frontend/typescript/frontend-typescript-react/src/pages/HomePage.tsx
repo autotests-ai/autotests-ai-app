@@ -8,7 +8,9 @@ import {
   Panel,
   PlaqueField,
   PlaqueFieldGrid,
+  PlaqueFieldGridStack,
   PlaqueFieldSeg,
+  PlaqueFieldSegN,
   PlaqueSelect,
   PlaqueTagstrip,
   usePlaqueFieldMagnet,
@@ -16,8 +18,10 @@ import {
 import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
+  AGENT_ACCESS,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
+  BACKEND_MODULES,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -30,17 +34,25 @@ import {
   cloneConfig,
   copyText,
   DEFAULTS,
+  DESTINATIONS,
   downloadText,
+  FRONTEND_MODULES,
   fingerprint,
   IMAGES,
+  isAgentAccess,
+  isDestinationId,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   OUTPUT_TABS,
   type OutputTabId,
   outputFilename,
+  PRODUCT_BACKEND_STACKS,
+  PRODUCT_FRONTEND_STACKS,
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
+  TESTS_MODULES,
+  TESTS_STACKS,
   toJson,
   toYaml,
 } from '../lib/landing-config';
@@ -92,22 +104,21 @@ function ConfigPanel({
   testId,
   titleTestId,
   stackTestId,
+  magnetSyncKey,
   children,
 }: {
   title: string;
   testId: string;
   titleTestId: string;
   stackTestId: string;
+  magnetSyncKey: string;
   children: ReactNode;
 }) {
   return (
     <Panel title={title} testId={testId} titleTestId={titleTestId}>
-      <div
-        className="plaque-field-grid-stack plaque-field-grid-stack--magnet"
-        data-testid={stackTestId}
-      >
+      <PlaqueFieldGridStack align="magnet" syncKey={magnetSyncKey} data-testid={stackTestId}>
         {children}
-      </div>
+      </PlaqueFieldGridStack>
     </Panel>
   );
 }
@@ -117,8 +128,17 @@ export function HomePage() {
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
 
+  const magnetSyncKey = [
+    config.images.length,
+    config.buildTool,
+    activeTab,
+    config.destination,
+    config.coverageProfile.harness.agents.cline.access,
+    config.coverageProfile.harness.agents.cursor.access,
+  ].join(':');
+
   usePlaqueFieldMagnet({
-    syncKey: `${config.images.length}:${config.buildTool}:${activeTab}`,
+    syncKey: magnetSyncKey,
   });
 
   const vectorId = fingerprint(config);
@@ -140,6 +160,23 @@ export function HomePage() {
 
   const setFromInput = (key: 'remoteUrl' | 'name') => (event: ChangeEvent<HTMLInputElement>) => {
     patch({ [key]: event.target.value });
+  };
+
+  const setDestination = (value: string) => {
+    if (isDestinationId(value)) {
+      patch({ destination: value });
+    }
+  };
+
+  const setAgentAccess = (agent: 'cline' | 'cursor') => (value: string) => {
+    if (!isAgentAccess(value)) {
+      return;
+    }
+    setConfig((prev) => {
+      const next = cloneConfig(prev);
+      next.coverageProfile.harness.agents[agent].access = value;
+      return next;
+    });
   };
 
   const toggleImage = (value: string) => {
@@ -167,10 +204,116 @@ export function HomePage() {
         <div className="configurator__main">
           <div className="stack stack--lg">
             <ConfigPanel
+              title={copy.home.panelProject}
+              testId="landing-project-panel"
+              titleTestId="landing-project-title"
+              stackTestId="landing-project-stack"
+              magnetSyncKey={magnetSyncKey}
+            >
+              <PlaqueFieldGrid layout="duo" aria-label="Product stacks">
+                <PlaqueSelect
+                  label="backend.stack"
+                  paramId="backendStack"
+                  value={config.coverageProfile.product.backend.stack}
+                  options={PRODUCT_BACKEND_STACKS}
+                  data-testid="landing-select-backendStack"
+                />
+                <PlaqueSelect
+                  label="frontend.stack"
+                  paramId="frontendStack"
+                  value={config.coverageProfile.product.frontend.stack}
+                  options={PRODUCT_FRONTEND_STACKS}
+                  data-testid="landing-select-frontendStack"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label="Tests stack">
+                <PlaqueSelect
+                  label="tests.stack"
+                  paramId="testsStack"
+                  value={config.coverageProfile.automation.api.stack}
+                  options={TESTS_STACKS}
+                  data-testid="landing-select-testsStack"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="duo" cellSpan="lg" aria-label="Product modules">
+                <PlaqueSelect
+                  label="backend.module"
+                  paramId="backendModule"
+                  value={config.coverageProfile.automation.unit.module}
+                  options={BACKEND_MODULES}
+                  data-testid="landing-select-backendModule"
+                />
+                <PlaqueSelect
+                  label="frontend.module"
+                  paramId="frontendModule"
+                  value={config.coverageProfile.automation.component.module}
+                  options={FRONTEND_MODULES}
+                  data-testid="landing-select-frontendModule"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" cellSpan="lg" aria-label="Tests module">
+                <PlaqueSelect
+                  label="tests.module"
+                  paramId="testsModule"
+                  value={config.coverageProfile.automation.api.module}
+                  options={TESTS_MODULES}
+                  data-testid="landing-select-testsModule"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
+
+            <ConfigPanel
+              title={copy.home.panelAgents}
+              testId="landing-agents-panel"
+              titleTestId="landing-agents-title"
+              stackTestId="landing-agents-stack"
+              magnetSyncKey={magnetSyncKey}
+            >
+              <PlaqueFieldGrid layout="duo" aria-label="Harness agents">
+                <PlaqueFieldSeg
+                  label="cline"
+                  paramId="clineAccess"
+                  value={config.coverageProfile.harness.agents.cline.access}
+                  onValueChange={setAgentAccess('cline')}
+                  options={AGENT_ACCESS}
+                  data-testid="landing-seg-clineAccess"
+                />
+                <PlaqueFieldSeg
+                  label="cursor"
+                  paramId="cursorAccess"
+                  value={config.coverageProfile.harness.agents.cursor.access}
+                  onValueChange={setAgentAccess('cursor')}
+                  options={AGENT_ACCESS}
+                  data-testid="landing-seg-cursorAccess"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
+
+            <ConfigPanel
+              title={copy.home.panelDestination}
+              testId="landing-destination-panel"
+              titleTestId="landing-destination-title"
+              stackTestId="landing-destination-stack"
+              magnetSyncKey={magnetSyncKey}
+            >
+              <PlaqueFieldGrid layout="solo" aria-label="destination">
+                <PlaqueFieldSegN
+                  label="destination"
+                  paramId="destination"
+                  value={config.destination}
+                  onValueChange={setDestination}
+                  options={DESTINATIONS}
+                  data-testid="landing-seg-destination"
+                />
+              </PlaqueFieldGrid>
+            </ConfigPanel>
+
+            <ConfigPanel
               title={copy.home.panelBuild}
               testId="landing-build-panel"
               titleTestId="landing-build-title"
               stackTestId="landing-build-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="duo" aria-label="OS and OS version">
                 <PlaqueSelect
@@ -241,6 +384,7 @@ export function HomePage() {
               testId="landing-allure-panel"
               titleTestId="landing-allure-title"
               stackTestId="landing-allure-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="duo" aria-label="Allure report mode and CLI version">
                 <PlaqueSelect
@@ -367,6 +511,7 @@ export function HomePage() {
               testId="landing-driver-panel"
               titleTestId="landing-driver-title"
               stackTestId="landing-driver-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="solo" aria-label="driverEngine">
                 <PlaqueFieldSeg
@@ -458,6 +603,7 @@ export function HomePage() {
               testId="landing-remote-panel"
               titleTestId="landing-remote-title"
               stackTestId="landing-remote-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="solo" aria-label="Remote URL">
                 <PlaqueField
@@ -532,6 +678,7 @@ export function HomePage() {
               testId="landing-console-panel"
               titleTestId="landing-console-title"
               stackTestId="landing-console-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="solo" aria-label="logToConsole">
                 <PlaqueFieldSeg
@@ -568,6 +715,7 @@ export function HomePage() {
               testId="landing-testops-panel"
               titleTestId="landing-testops-title"
               stackTestId="landing-testops-stack"
+              magnetSyncKey={magnetSyncKey}
             >
               <PlaqueFieldGrid layout="solo" aria-label="testopsEnabled">
                 <PlaqueFieldSeg

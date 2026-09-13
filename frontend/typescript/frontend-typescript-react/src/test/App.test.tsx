@@ -42,7 +42,11 @@ describe('App', { tags: ['smoke'] }, () => {
     expect(screen.getByTestId('landing-configurator')).toHaveClass(
       'configurator__layout--terminal',
     );
+    expect(screen.getByTestId('landing-project-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-agents-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-destination-panel')).toBeInTheDocument();
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
   });
 
   it('mounts the stack board on /stack/', async () => {

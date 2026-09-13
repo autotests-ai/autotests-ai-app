@@ -12,6 +12,9 @@ export interface Dictionary {
     panelRemote: string;
     panelConsole: string;
     panelTestops: string;
+    panelProject: string;
+    panelAgents: string;
+    panelDestination: string;
     outputFormat: string;
     reset: string;
     download: string;

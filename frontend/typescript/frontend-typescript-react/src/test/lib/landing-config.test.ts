@@ -27,12 +27,24 @@ describe('landing-config', () => {
     expect(copy.images).toEqual(['chrome:148', 'edge:120']);
   });
 
+  it('clones coverage profile so agent mutations stay local', () => {
+    const copy = cloneConfig(DEFAULTS);
+    copy.coverageProfile.harness.agents.cursor.access = 'none';
+    copy.destination = 'cloud';
+    expect(DEFAULTS.coverageProfile.harness.agents.cursor.access).toBe('write');
+    expect(DEFAULTS.destination).toBe('zip');
+  });
+
   it('fingerprints the selection as vector# plus 8 hex chars', () => {
     const id = fingerprint(DEFAULTS);
     expect(id).toMatch(/^vector#[0-9a-f]{8}$/);
     expect(vectorHash(DEFAULTS)).toHaveLength(8);
     expect(fingerprint(DEFAULTS)).toBe(id);
     expect(fingerprint({ ...DEFAULTS, headless: 'true' })).not.toBe(id);
+    const withCursorNone = cloneConfig(DEFAULTS);
+    withCursorNone.coverageProfile.harness.agents.cursor.access = 'none';
+    expect(fingerprint(withCursorNone)).not.toBe(id);
+    expect(fingerprint({ ...cloneConfig(DEFAULTS), destination: 'catalog' })).not.toBe(id);
   });
 
   it('maps cfg-keys booleans in the document and keeps empty remoteUrl', () => {
@@ -48,6 +60,9 @@ describe('landing-config', () => {
     expect(doc.allureReportMode).toBe('allure3');
     expect(doc.allureAgentMode).toBe('none');
     expect(doc.allureRestAssuredListenerStyle).toBe('default');
+    expect(doc.destination).toBe('zip');
+    expect(doc.coverageProfile).toEqual(DEFAULTS.coverageProfile);
+    expect(doc.coverageProfile).not.toBe(DEFAULTS.coverageProfile);
     expect(doc).not.toHaveProperty('backend');
     expect(doc).not.toHaveProperty('codeHost');
   });
@@ -71,8 +86,18 @@ describe('landing-config', () => {
     expect(yaml).toContain('buildWrapper: wrapper');
     expect(yaml).toContain('allureReportMode: allure3');
     expect(yaml).toContain('testopsEnabled: false');
+    expect(yaml).toContain('destination: zip');
+    expect(yaml).toContain('coverageProfile:');
+    expect(yaml).toContain('backend: { stack: java-spring, access: write }');
+    expect(yaml).toContain('frontend: { stack: typescript-react, access: write }');
+    expect(yaml).toContain(
+      'unit: { access: write, stack: java-spring, module: backend/java/backend-java-spring }',
+    );
+    expect(yaml).toContain('cline: { access: write, module: .clinerules }');
+    expect(yaml).toContain('cursor: { access: write, module: .cursor/rules }');
     expect(yaml).not.toContain('codeHost:');
     expect(yaml).not.toContain('backendLanguage:');
+    expect(yaml.indexOf('destination: zip')).toBeGreaterThan(yaml.indexOf('testopsEnabled: false'));
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -94,9 +119,13 @@ describe('landing-config', () => {
     const json = JSON.parse(toJson(DEFAULTS, 'vector#abcd1234')) as {
       vector: string;
       headless: boolean;
+      destination: string;
+      coverageProfile: { harness: { agents: { cursor: { access: string } } } };
     };
     expect(json.vector).toBe('vector#abcd1234');
     expect(json.headless).toBe(false);
+    expect(json.destination).toBe('zip');
+    expect(json.coverageProfile.harness.agents.cursor.access).toBe('write');
   });
 
   it('picks download names for YAML and JSON tabs', () => {

@@ -15,6 +15,29 @@ const DS_MIME: Record<string, string> = {
   '.css': 'text/css',
 };
 
+/**
+ * Vendor plaque-field.css cache-busts sibling sheets (`?v=segcol4`). Vite
+ * leaves those @imports in the bundle, so the browser requests /assets/*.css and
+ * gets HTML. Strip the query so Vite inlines the real vendor files.
+ */
+function stripCssImportCacheBust(): Plugin {
+  return {
+    name: 'strip-css-import-cache-bust',
+    enforce: 'pre',
+    transform(code, id) {
+      const file = id.split('?')[0];
+      if (!file.endsWith('.css')) {
+        return null;
+      }
+      const next = code.replace(
+        /@import\s+(?:url\()?["']([^"']+\.css)\?v=[^"']+["']\)?/g,
+        '@import url("$1")',
+      );
+      return next === code ? null : next;
+    },
+  };
+}
+
 /** Compose overlay in prod. Vite-dev needs the same /js + /templates URLs. */
 function serveVendorDs(): Plugin {
   return {
@@ -48,6 +71,7 @@ export default defineConfig({
   root: resolve(__dirname),
   base: mountBase,
   plugins: [
+    stripCssImportCacheBust(),
     serveVendorDs(),
     react(),
     VitePWA({

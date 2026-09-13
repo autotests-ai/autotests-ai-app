@@ -34,6 +34,9 @@ describe('HomePage', () => {
       'grid--2x1',
       'configurator__layout--terminal',
     );
+    expect(screen.getByTestId('landing-project-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-agents-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-destination-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-allure-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-driver-panel')).toHaveClass('panel--content');
@@ -42,6 +45,18 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-testops-panel')).toHaveClass('panel--content');
     expect(screen.queryByTestId('landing-git-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('landing-backend-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-project-stack')).toHaveClass(
+      'plaque-field-grid-stack',
+      'plaque-field-grid-stack--magnet',
+    );
+    expect(screen.getByTestId('landing-agents-stack')).toHaveClass(
+      'plaque-field-grid-stack',
+      'plaque-field-grid-stack--magnet',
+    );
+    expect(screen.getByTestId('landing-destination-stack')).toHaveClass(
+      'plaque-field-grid-stack',
+      'plaque-field-grid-stack--magnet',
+    );
     expect(screen.getByTestId('landing-driver-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
@@ -63,6 +78,17 @@ describe('HomePage', () => {
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'testopsEnabled: false',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('coverageProfile:');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'backend: { stack: java-spring, access: write }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cline: { access: write, module: .clinerules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cursor: { access: write, module: .cursor/rules }',
     );
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('codeHost:');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('backendLanguage:');
@@ -119,6 +145,42 @@ describe('HomePage', () => {
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('testopsEnabled: true');
+  });
+
+  it('puts Project, Agents, and Destination above Build and live-updates YAML', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    const project = screen.getByTestId('landing-project-panel');
+    const agents = screen.getByTestId('landing-agents-panel');
+    const destination = screen.getByTestId('landing-destination-panel');
+    const build = screen.getByTestId('landing-build-panel');
+    expect(project.compareDocumentPosition(agents) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      agents.compareDocumentPosition(destination) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      destination.compareDocumentPosition(build) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-cursorAccess')).getByRole('button', {
+        name: 'none',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cursor: { access: none, module: .cursor/rules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cline: { access: write, module: .clinerules }',
+    );
+
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -185,10 +247,31 @@ describe('HomePage', () => {
     await user.click(
       within(screen.getByTestId('landing-seg-headless')).getByRole('button', { name: 'true' }),
     );
+    await user.click(
+      within(screen.getByTestId('landing-seg-cursorAccess')).getByRole('button', {
+        name: 'none',
+      }),
+    );
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: true');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cursor: { access: none, module: .cursor/rules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: user');
 
     await user.click(screen.getByTestId('landing-terminal-reset'));
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cline: { access: write, module: .clinerules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cursor: { access: write, module: .cursor/rules }',
+    );
     expect(screen.getByTestId('landing-terminal-vector')).toHaveTextContent(fingerprint(DEFAULTS));
 
     await user.click(screen.getByTestId('landing-terminal-copy'));
@@ -203,6 +286,7 @@ describe('HomePage', () => {
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
     render(<HomePage />);
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');
+    expect(screen.getByTestId('landing-project-title')).toHaveTextContent('Project');
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent('Driver');
 
     act(() => {
@@ -210,6 +294,11 @@ describe('HomePage', () => {
     });
 
     expect(document.documentElement.lang).toBe('ru');
+    expect(screen.getByTestId('landing-project-title')).toHaveTextContent(ru.home.panelProject);
+    expect(screen.getByTestId('landing-agents-title')).toHaveTextContent(ru.home.panelAgents);
+    expect(screen.getByTestId('landing-destination-title')).toHaveTextContent(
+      ru.home.panelDestination,
+    );
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent(ru.home.panelBuild);
     expect(screen.getByTestId('landing-allure-title')).toHaveTextContent(ru.home.panelAllure);
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent(ru.home.panelDriver);

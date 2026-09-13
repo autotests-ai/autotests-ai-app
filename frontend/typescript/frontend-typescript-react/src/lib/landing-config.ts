@@ -39,7 +39,125 @@ export type LandingConfig = {
   selenideLogToConsole: string;
   rootLogLevel: string;
   testopsEnabled: string;
+  destination: DestinationId;
+  coverageProfile: CoverageProfile;
 };
+
+export type DestinationId = 'zip' | 'catalog' | 'cloud' | 'user';
+export type AgentAccess = 'write' | 'none';
+export type LayerAccess = 'write';
+
+export type ProductSurface = {
+  stack: string;
+  access: LayerAccess;
+};
+
+export type AutomationLayer = {
+  access: LayerAccess;
+  stack: string;
+  module: string;
+};
+
+export type AgentModule = {
+  access: AgentAccess;
+  module: string;
+};
+
+export type CoverageProfile = {
+  product: {
+    backend: ProductSurface;
+    frontend: ProductSurface;
+  };
+  automation: {
+    unit: AutomationLayer;
+    integration: AutomationLayer;
+    component: AutomationLayer;
+    api: AutomationLayer;
+    ui: AutomationLayer;
+    e2e: AutomationLayer;
+    manual: AutomationLayer;
+  };
+  harness: {
+    agents: {
+      cline: AgentModule;
+      cursor: AgentModule;
+    };
+  };
+};
+
+const AUTOMATION_LAYERS = [
+  'unit',
+  'integration',
+  'component',
+  'api',
+  'ui',
+  'e2e',
+  'manual',
+] as const;
+
+/** Frozen takeaway cell — not the matrix catalog. */
+export const TAKEAWAY_BACKEND_STACK = 'java-spring';
+export const TAKEAWAY_FRONTEND_STACK = 'typescript-react';
+export const TAKEAWAY_TESTS_STACK = 'java-junit5-rest_assured-selenide';
+export const TAKEAWAY_BACKEND_MODULE = 'backend/java/backend-java-spring';
+export const TAKEAWAY_FRONTEND_MODULE = 'frontend/typescript/frontend-typescript-react';
+export const TAKEAWAY_TESTS_MODULE = 'tests/java/tests-java-junit5-rest_assured-selenide';
+export const TAKEAWAY_CLINE_MODULE = '.clinerules';
+export const TAKEAWAY_CURSOR_MODULE = '.cursor/rules';
+
+function takeawayLayer(stack: string, module: string): AutomationLayer {
+  return { access: 'write', stack, module };
+}
+
+export const TAKEAWAY_COVERAGE_PROFILE: CoverageProfile = {
+  product: {
+    backend: { stack: TAKEAWAY_BACKEND_STACK, access: 'write' },
+    frontend: { stack: TAKEAWAY_FRONTEND_STACK, access: 'write' },
+  },
+  automation: {
+    unit: takeawayLayer(TAKEAWAY_BACKEND_STACK, TAKEAWAY_BACKEND_MODULE),
+    integration: takeawayLayer(TAKEAWAY_BACKEND_STACK, TAKEAWAY_BACKEND_MODULE),
+    component: takeawayLayer(TAKEAWAY_FRONTEND_STACK, TAKEAWAY_FRONTEND_MODULE),
+    api: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
+    ui: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
+    e2e: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
+    manual: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
+  },
+  harness: {
+    agents: {
+      cline: { access: 'write', module: TAKEAWAY_CLINE_MODULE },
+      cursor: { access: 'write', module: TAKEAWAY_CURSOR_MODULE },
+    },
+  },
+};
+
+export const PRODUCT_BACKEND_STACKS = [{ value: TAKEAWAY_BACKEND_STACK }] as const;
+export const PRODUCT_FRONTEND_STACKS = [{ value: TAKEAWAY_FRONTEND_STACK }] as const;
+export const TESTS_STACKS = [{ value: TAKEAWAY_TESTS_STACK }] as const;
+export const BACKEND_MODULES = [{ value: TAKEAWAY_BACKEND_MODULE }] as const;
+export const FRONTEND_MODULES = [{ value: TAKEAWAY_FRONTEND_MODULE }] as const;
+export const TESTS_MODULES = [{ value: TAKEAWAY_TESTS_MODULE }] as const;
+
+export const DESTINATIONS = [
+  { value: 'zip' },
+  { value: 'catalog' },
+  { value: 'cloud' },
+  { value: 'user' },
+] as const;
+
+export const AGENT_ACCESS = [{ value: 'write' }, { value: 'none' }] as const;
+
+export function isDestinationId(value: string): value is DestinationId {
+  return DESTINATIONS.some((option) => option.value === value);
+}
+
+export function isAgentAccess(value: string): value is AgentAccess {
+  return value === 'write' || value === 'none';
+}
+
+export function cloneCoverageProfile(profile: CoverageProfile): CoverageProfile {
+  return structuredClone(profile);
+}
 
 export type OutputTabId = 'yaml' | 'json';
 
@@ -109,6 +227,8 @@ export const DEFAULTS: LandingConfig = {
   selenideLogToConsole: 'true',
   rootLogLevel: 'info',
   testopsEnabled: 'false',
+  destination: 'zip',
+  coverageProfile: cloneCoverageProfile(TAKEAWAY_COVERAGE_PROFILE),
 };
 
 export const BUILD_OS = [
@@ -216,7 +336,11 @@ export const OUTPUT_TABS: ReadonlyArray<{
 ];
 
 export function cloneConfig(config: LandingConfig): LandingConfig {
-  return { ...config, images: [...config.images] };
+  return {
+    ...config,
+    images: [...config.images],
+    coverageProfile: cloneCoverageProfile(config.coverageProfile),
+  };
 }
 
 /** Same 8-hex fingerprint as autotests-builder `simpleHash` / `vector#…`. */
@@ -237,6 +361,9 @@ export function fingerprint(config: LandingConfig): string {
 export function toDocument(config: LandingConfig): Record<string, unknown> {
   const doc: Record<string, unknown> = {};
   for (const key of Object.keys(DEFAULTS) as (keyof LandingConfig)[]) {
+    if (key === 'destination' || key === 'coverageProfile') {
+      continue;
+    }
     const value = config[key];
     if (key === 'images') {
       doc[key] = [...config.images];
@@ -248,6 +375,8 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
     }
     doc[key] = value;
   }
+  doc.destination = config.destination;
+  doc.coverageProfile = cloneCoverageProfile(config.coverageProfile);
   return doc;
 }
 
@@ -262,16 +391,47 @@ function yamlScalar(value: unknown): string {
   if (/^(true|false)$/i.test(s)) {
     return JSON.stringify(s);
   }
-  if (/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(s)) {
+  if (/^[A-Za-z0-9._][A-Za-z0-9_./-]*$/.test(s)) {
     return s;
   }
   return JSON.stringify(s);
+}
+
+function yamlFlowMap(record: Record<string, string>): string {
+  const body = Object.entries(record)
+    .map(([key, value]) => `${key}: ${yamlScalar(value)}`)
+    .join(', ');
+  return `{ ${body} }`;
+}
+
+function yamlCoverageProfile(profile: CoverageProfile): string[] {
+  const lines = [
+    'coverageProfile:',
+    '  product:',
+    `    backend: ${yamlFlowMap(profile.product.backend)}`,
+    `    frontend: ${yamlFlowMap(profile.product.frontend)}`,
+    '  automation:',
+  ];
+  for (const layer of AUTOMATION_LAYERS) {
+    lines.push(`    ${layer}: ${yamlFlowMap(profile.automation[layer])}`);
+  }
+  lines.push(
+    '  harness:',
+    '    agents:',
+    `      cline: ${yamlFlowMap(profile.harness.agents.cline)}`,
+    `      cursor: ${yamlFlowMap(profile.harness.agents.cursor)}`,
+  );
+  return lines;
 }
 
 export function toYaml(config: LandingConfig, vectorId: string): string {
   const lines = [`# ${vectorId}`];
   const doc = toDocument(config);
   for (const [key, value] of Object.entries(doc)) {
+    if (key === 'coverageProfile') {
+      lines.push(...yamlCoverageProfile(value as CoverageProfile));
+      continue;
+    }
     if (Array.isArray(value)) {
       if (value.length === 0) {
         lines.push(`${key}: []`);
