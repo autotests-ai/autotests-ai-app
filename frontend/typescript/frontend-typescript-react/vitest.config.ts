@@ -28,6 +28,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts', 'allure-vitest/setup'],
     include: ['src/test/**/*.test.{ts,tsx}'],
+    env: {
+      VITE_GITHUB_OAUTH_CLIENT_ID: 'test-github-oauth-client',
+    },
     // Vitest 4 tags. Declared here because `strictTags` (default) rejects any tag
     // the config does not know about, so a typo fails the run instead of silently
     // matching nothing. Filter with `npm run test:smoke`.

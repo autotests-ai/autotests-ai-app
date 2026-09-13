@@ -19,6 +19,7 @@ export const en: Dictionary = {
     reset: 'Reset',
     download: 'Download',
     catalogHref: 'Open catalog cell',
+    githubOauth: 'Continue with GitHub',
     copy: 'Copy',
     remotePlaceholder: 'empty = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',

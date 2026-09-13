@@ -19,6 +19,7 @@ export const ru: Dictionary = {
     reset: 'Сброс',
     download: 'Скачать',
     catalogHref: 'Открыть ячейку каталога',
+    githubOauth: 'Войти через GitHub',
     copy: 'Копировать',
     remotePlaceholder: 'пусто = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',

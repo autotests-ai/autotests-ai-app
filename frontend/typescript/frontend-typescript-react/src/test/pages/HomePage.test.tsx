@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
+import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oauth';
 import {
   ASSEMBLE_ZIP_ORIGIN,
   DEFAULTS,
@@ -14,6 +15,7 @@ import { HomePage } from '../../pages/HomePage';
 describe('HomePage', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     document.documentElement.lang = 'en';
   });
 
@@ -21,6 +23,7 @@ describe('HomePage', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     document.documentElement.lang = 'en';
   });
 
@@ -483,6 +486,13 @@ describe('HomePage', () => {
       'https://github.com/autotests-ai/',
     );
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-user-oauth')).toHaveAttribute(
+      'aria-label',
+      'Continue with GitHub',
+    );
+    expect(screen.queryByLabelText(/token/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/pat/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /token/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('landing-terminal-download'));
     await waitFor(() => {
@@ -490,6 +500,55 @@ describe('HomePage', () => {
     });
     expect(open).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('starts GitHub OAuth from dest user and does not keep a PAT', async () => {
+    const user = userEvent.setup();
+    const go = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    await user.click(screen.getByTestId('landing-user-oauth'));
+    expect(go).toHaveBeenCalledTimes(1);
+    const href = String(go.mock.calls[0]?.[0]);
+    expect(href).toContain('https://github.com/login/oauth/authorize');
+    expect(href).toContain('client_id=test-github-oauth-client');
+    expect(href).toContain('scope=read%3Auser');
+    expect(href).not.toContain('token');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: oauth');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+  });
+
+  it('prints the GitHub profile URL only after a real login', async () => {
+    writeGithubUserSession({ login: 'octocat' });
+    const user = userEvent.setup();
+    const go = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    const oauth = screen.getByTestId('landing-user-oauth');
+    expect(oauth).toHaveAttribute('href', 'https://github.com/octocat');
+    expect(oauth).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: octocat');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'https://github.com/octocat',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('token');
+    expect(go).not.toHaveBeenCalled();
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {

@@ -19,6 +19,12 @@ import {
 import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
+  githubOAuthClientId,
+  githubUserUrl,
+  readGithubUserSession,
+  startGithubOAuth,
+} from '../lib/github-oauth';
+import {
   AGENT_CATALOG,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
@@ -129,6 +135,8 @@ export function HomePage() {
   const { copy } = useI18n();
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
+  const githubUser = readGithubUserSession();
+  const emitOptions = { githubUser };
 
   const magnetSyncKey = [
     config.images.length,
@@ -143,8 +151,8 @@ export function HomePage() {
   });
 
   const vectorId = fingerprint(config);
-  const yaml = toYaml(config, vectorId);
-  const json = toJson(config, vectorId);
+  const yaml = toYaml(config, vectorId, emitOptions);
+  const json = toJson(config, vectorId, emitOptions);
   const catalog = catalogDocument(config.coverageProfile);
   const activeOutput = activeTab === 'json' ? json : yaml;
   const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
@@ -301,6 +309,41 @@ export function HomePage() {
                       <path d={GITHUB_MARK_PATH} />
                     </svg>
                   </IconBtn>
+                </PlaqueFieldGrid>
+              ) : null}
+              {config.destination === 'user' ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.githubOauth}>
+                  {githubUser ? (
+                    <IconBtn
+                      as="a"
+                      href={githubUserUrl(githubUser.login)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={copy.home.githubOauth}
+                      title={githubUserUrl(githubUser.login)}
+                      data-testid="landing-user-oauth"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={GITHUB_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  ) : (
+                    <IconBtn
+                      aria-label={copy.home.githubOauth}
+                      title={copy.home.githubOauth}
+                      data-testid="landing-user-oauth"
+                      onClick={() =>
+                        startGithubOAuth({
+                          clientId: githubOAuthClientId(),
+                          origin: window.location.origin,
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={GITHUB_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  )}
                 </PlaqueFieldGrid>
               ) : null}
             </ConfigPanel>

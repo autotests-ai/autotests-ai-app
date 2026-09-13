@@ -1,5 +1,7 @@
 /** Home configurator selection — cfg-keys + harvested presets. Not a matrix profile id. */
 
+import { type GithubUserSession, githubUserUrl, isGithubLogin } from './github-oauth';
+
 export type LandingConfig = {
   buildOs: string;
   buildOsVersion: string;
@@ -58,6 +60,12 @@ export type CloudContract = {
 export type UserContract = {
   created: false;
   via: 'oauth';
+  login?: string;
+  url?: string;
+};
+
+export type LandingEmitOptions = {
+  githubUser?: GithubUserSession | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -228,8 +236,13 @@ export function cloudDocument(): CloudContract {
   return { org: CLOUD_GITHUB_ORG, created: false };
 }
 
-export function userDocument(): UserContract {
-  return { created: false, via: 'oauth' };
+export function userDocument(session?: GithubUserSession | null): UserContract {
+  const doc: UserContract = { created: false, via: 'oauth' };
+  if (session && isGithubLogin(session.login)) {
+    doc.login = session.login;
+    doc.url = githubUserUrl(session.login);
+  }
+  return doc;
 }
 
 export function openCatalogHref(url: string): void {
@@ -443,7 +456,10 @@ export function fingerprint(config: LandingConfig): string {
   return `vector#${vectorHash(config)}`;
 }
 
-export function toDocument(config: LandingConfig): Record<string, unknown> {
+export function toDocument(
+  config: LandingConfig,
+  options?: LandingEmitOptions,
+): Record<string, unknown> {
   const doc: Record<string, unknown> = {};
   for (const key of Object.keys(DEFAULTS) as (keyof LandingConfig)[]) {
     if (key === 'destination' || key === 'coverageProfile') {
@@ -469,7 +485,7 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
     doc.cloud = cloudDocument();
   }
   if (config.destination === 'user') {
-    doc.user = userDocument();
+    doc.user = userDocument(options?.githubUser);
   }
   return doc;
 }
@@ -519,9 +535,13 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
   return lines;
 }
 
-export function toYaml(config: LandingConfig, vectorId: string): string {
+export function toYaml(
+  config: LandingConfig,
+  vectorId: string,
+  options?: LandingEmitOptions,
+): string {
   const lines = [`# ${vectorId}`];
-  const doc = toDocument(config);
+  const doc = toDocument(config, options);
   for (const [key, value] of Object.entries(doc)) {
     if (key === 'coverageProfile') {
       lines.push(...yamlCoverageProfile(value as CoverageProfile));
@@ -552,6 +572,12 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
         `  created: ${yamlScalar(user.created)}`,
         `  via: ${yamlScalar(user.via)}`,
       );
+      if (user.login) {
+        lines.push(`  login: ${yamlScalar(user.login)}`);
+      }
+      if (user.url) {
+        lines.push(`  url: ${yamlScalar(user.url)}`);
+      }
       continue;
     }
     if (Array.isArray(value)) {
@@ -570,8 +596,12 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
   return lines.join('\n');
 }
 
-export function toJson(config: LandingConfig, vectorId: string): string {
-  return JSON.stringify({ ...toDocument(config), vector: vectorId }, null, 2);
+export function toJson(
+  config: LandingConfig,
+  vectorId: string,
+  options?: LandingEmitOptions,
+): string {
+  return JSON.stringify({ ...toDocument(config, options), vector: vectorId }, null, 2);
 }
 
 export function outputFilename(tab: OutputTabId): string {

@@ -19,6 +19,7 @@ export interface Dictionary {
     reset: string;
     download: string;
     catalogHref: string;
+    githubOauth: string;
     copy: string;
     remotePlaceholder: string;
     driverWebdriver: string;

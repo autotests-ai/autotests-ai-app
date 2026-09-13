@@ -210,6 +210,28 @@ describe('landing-config', () => {
     expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\nuser:');
   });
 
+  it('prints user login URL only after a real GitHub login', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).toContain('login: octocat');
+    expect(yaml).toContain('url: "https://github.com/octocat"');
+    expect(yaml).not.toContain('unknown');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('token');
+    const json = JSON.parse(
+      toJson(config, 'vector#user', { githubUser: { login: 'octocat' } }),
+    ) as {
+      user: { created: boolean; via: string; login: string; url: string };
+    };
+    expect(json.user).toEqual(userDocument({ login: 'octocat' }));
+    expect(json.user.created).toBe(false);
+    expect(toYaml(config, 'vector#user', { githubUser: { login: 'unknown' } })).not.toContain(
+      'login:',
+    );
+  });
+
   it('labels build wrappers from the selected tool', () => {
     expect(buildWrapperOptions('gradle').map((option) => option.label)).toEqual([
       './gradlew',
