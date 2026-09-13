@@ -738,7 +738,7 @@ describe('HomePage', () => {
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });
 
-  it('downloads created true after dest cloud create and never push or a PAT', async () => {
+  it('downloads created true after dest cloud create and push and never a PAT', async () => {
     writeIdpSession({ login: 'qaguru' });
     const user = userEvent.setup();
     const open = vi.fn();
@@ -746,8 +746,11 @@ describe('HomePage', () => {
     const repoUrl = `https://github.com/autotests-cloud/qaguru-${TAKEAWAY_TESTS_STACK}`;
     const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
       const href = String(url);
-      if (href.includes('/repos/contents') || href.includes('/oauth/github')) {
-        return { ok: false, json: async () => ({}) } as Response;
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
+        } as Response;
       }
       return {
         ok: true,
@@ -788,8 +791,8 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
       expect.stringMatching(/\/cloud\/repos$/),
       expect.objectContaining({
         method: 'POST',
@@ -798,22 +801,31 @@ describe('HomePage', () => {
         headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
       }),
     );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/cloud/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+      }),
+    );
     const createInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(String(createInit?.body)).toContain(`stack: ${TAKEAWAY_TESTS_STACK}`);
     expect(String(createInit?.body)).toContain('coverageProfile:');
     expect(String(createInit?.body)).toContain('destination: zip');
     expect(String(createInit?.body)).not.toContain('destination: cloud');
+    const pushInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(String(pushInit?.body)).toContain('coverageProfile:');
+    expect(String(pushInit?.body)).not.toContain('destination: cloud');
     expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
       '/oauth/github',
     );
-    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
-      '/contents',
-    );
     expect(open).not.toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
     expect(blobs[0]).toContain(repoUrl);
     expect(blobs[0]).toContain('via: idp');
-    expect(blobs[0]).not.toContain('pushed:');
     expect(blobs[0]).not.toContain('token');
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });

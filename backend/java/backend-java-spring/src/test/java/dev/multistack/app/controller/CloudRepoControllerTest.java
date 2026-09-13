@@ -3,6 +3,7 @@ package dev.multistack.app.controller;
 import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.config.CorsConfig;
 import dev.multistack.app.config.SecurityConfig;
+import dev.multistack.app.dto.CloudRepoPushResponse;
 import dev.multistack.app.dto.CloudRepoResponse;
 import dev.multistack.app.exception.AuthException;
 import dev.multistack.app.service.CloudRepoService;
@@ -155,5 +156,116 @@ class CloudRepoControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.message").value("oauth create failed"))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.url").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents returns pushed true and the org URL, never a token")
+    void pushTreeReturnsPushedUrl() throws Exception {
+        when(cloudRepoService.pushTree(TOKEN, YAML))
+                .thenReturn(new CloudRepoPushResponse("qaguru", REPO_URL, true));
+
+        String body = mockMvc.perform(post("/api/cloud/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
+                        .cookie(new Cookie(IdpOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value("qaguru"))
+                .andExpect(jsonPath("$.url").value(REPO_URL))
+                .andExpect(jsonPath("$.pushed").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.access_token").doesNotExist())
+                .andExpect(jsonPath("$.pat").doesNotExist())
+                .andExpect(jsonPath("$.created").doesNotExist())
+                .andExpect(content().string(not(containsString(TOKEN))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertEquals(
+                "{\"login\":\"qaguru\",\"url\":\"" + REPO_URL + "\",\"pushed\":true}",
+                body);
+        assertFalse(body.contains("octocat"));
+        assertFalse(body.contains("/user/"));
+        assertFalse(body.contains("autotests-ai/"));
+        assertFalse(body.contains("java-junit5-rest_assured-selenide"));
+        verify(cloudRepoService).pushTree(TOKEN, YAML);
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is 503 without GitHub env")
+    void pushTreeMapsMissingGithubEnv() throws Exception {
+        when(cloudRepoService.pushTree(isNull(), nullable(String.class)))
+                .thenThrow(new AuthException(503, "GitHub cloud is not configured"));
+
+        mockMvc.perform(post("/api/cloud/repos/contents"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("GitHub cloud is not configured"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))))
+                .andExpect(content().string(not(containsString("ghs_"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is 401 without the IdP cookie")
+    void pushTreeRequiresCookie() throws Exception {
+        when(cloudRepoService.pushTree(isNull(), nullable(String.class)))
+                .thenThrow(new AuthException(401, "oauth cookie missing"));
+
+        mockMvc.perform(post("/api/cloud/repos/contents"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth cookie missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is 400 without YAML and never a classpath stub")
+    void pushTreeRequiresYamlBody() throws Exception {
+        when(cloudRepoService.pushTree(eq(TOKEN), nullable(String.class)))
+                .thenThrow(new AuthException(400, "assemble yaml missing"));
+
+        mockMvc.perform(post("/api/cloud/repos/contents")
+                        .cookie(new Cookie(IdpOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("assemble yaml missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))))
+                .andExpect(content().string(not(containsString("assemble-landing.yaml"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents maps GitHub failure without leaking a token")
+    void pushTreeMapsGithubFailure() throws Exception {
+        when(cloudRepoService.pushTree(TOKEN, YAML))
+                .thenThrow(new AuthException(401, "oauth push failed"));
+
+        mockMvc.perform(post("/api/cloud/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
+                        .cookie(new Cookie(IdpOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth push failed"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.url").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is 503 without ASSEMBLE_URL")
+    void pushTreeMapsMissingAssembleUrl() throws Exception {
+        when(cloudRepoService.pushTree(eq(TOKEN), eq(YAML)))
+                .thenThrow(new AuthException(503, "assemble url missing"));
+
+        mockMvc.perform(post("/api/cloud/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
+                        .cookie(new Cookie(IdpOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("assemble url missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))));
     }
 }

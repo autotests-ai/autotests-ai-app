@@ -35,7 +35,7 @@ public record IdpOAuthProperties(
                 return false;
             }
             String host = url.getHost();
-            if (host == null || host.isBlank()) {
+            if (!hasText(host)) {
                 return false;
             }
             String normalized = host.toLowerCase();

@@ -1,5 +1,6 @@
 package dev.multistack.app.controller;
 
+import dev.multistack.app.dto.CloudRepoPushResponse;
 import dev.multistack.app.dto.CloudRepoResponse;
 import dev.multistack.app.service.CloudRepoService;
 import dev.multistack.app.service.IdpOAuthService;
@@ -24,5 +25,12 @@ public class CloudRepoController {
             @CookieValue(name = IdpOAuthService.COOKIE_NAME, required = false) String accessToken,
             @RequestBody(required = false) String yaml) {
         return cloudRepoService.createRepo(accessToken, yaml);
+    }
+
+    @PostMapping("/repos/contents")
+    public CloudRepoPushResponse pushTree(
+            @CookieValue(name = IdpOAuthService.COOKIE_NAME, required = false) String accessToken,
+            @RequestBody(required = false) String yaml) {
+        return cloudRepoService.pushTree(accessToken, yaml);
     }
 }

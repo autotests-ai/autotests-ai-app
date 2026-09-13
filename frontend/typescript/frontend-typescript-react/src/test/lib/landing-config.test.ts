@@ -40,6 +40,22 @@ describe('landing-config', () => {
     vi.restoreAllMocks();
   });
 
+  function oauthDestCloudFetch(repoUrl: string) {
+    return vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response;
+    });
+  }
+
   function oauthDestUserFetch(repoUrl: string) {
     return vi.fn(async (url: string, _init?: RequestInit) => {
       const href = String(url);
@@ -287,6 +303,45 @@ describe('landing-config', () => {
       login: 'qaguru',
       url: createdCloudRepo.url,
     });
+    const pushedCloudRepo = { login: 'qaguru', url: createdCloudRepo.url, pushed: true as const };
+    const yamlPushed = toYaml(config, 'vector#cloud', {
+      idpSession: { login: 'qaguru' },
+      createdCloudRepo,
+      pushedCloudRepo,
+    });
+    expect(yamlPushed).toContain('pushed: true');
+    expect(yamlPushed).not.toContain('token');
+    expect(yamlPushed.toLowerCase()).not.toContain('pat');
+    expect(yamlPushed).not.toContain('via: oauth');
+    expect(cloudDocument({ login: 'qaguru' }, createdCloudRepo, pushedCloudRepo)).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: true,
+      via: 'idp',
+      login: 'qaguru',
+      url: createdCloudRepo.url,
+      pushed: true,
+    });
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'qaguru',
+        url: 'https://github.com/qaguru/python-pytest',
+        pushed: true,
+      }),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'hubot',
+        url: createdCloudRepo.url,
+        pushed: true,
+      }),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'qaguru',
+        url: createdCloudRepo.url,
+        pushed: false,
+      } as unknown as Parameters<typeof cloudDocument>[2]),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
     expect(
       cloudDocument(
         { login: 'qaguru' },
@@ -889,20 +944,11 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('github.com/login');
   });
 
-  it('POSTs create when dest cloud has a session and writes created true without push', async () => {
+  it('POSTs create then push when dest cloud has a session and writes created true', async () => {
     const open = vi.fn();
     vi.stubGlobal('open', open);
     const repoUrl = 'https://github.com/autotests-cloud/qaguru-python-pytest';
-    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
-      const href = String(url);
-      if (href.includes('/repos/contents') || href.includes('/oauth/github')) {
-        return { ok: false, json: async () => ({}) } as Response;
-      }
-      return {
-        ok: true,
-        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
-      } as Response;
-    });
+    const fetchMock = oauthDestCloudFetch(repoUrl);
     vi.stubGlobal('fetch', fetchMock);
     const blobs: string[] = [];
     vi.stubGlobal(
@@ -942,8 +988,8 @@ describe('landing-config', () => {
     });
 
     expect(kind).toBe('text');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
       expect.stringMatching(/\/cloud\/repos$/),
       expect.objectContaining({
         method: 'POST',
@@ -952,6 +998,25 @@ describe('landing-config', () => {
         headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
       }),
     );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/cloud/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(pushBody).toContain('coverageProfile:');
+    expect(pushBody).toContain('stack: python-pytest');
+    expect(pushBody).toContain('cursor:');
+    expect(pushBody).not.toContain('destination: cloud');
+    expect(pushBody).not.toContain('destination: user');
+    expect(pushBody).not.toContain('3032');
+    expect(pushBody).not.toContain('assemble-landing.yaml');
+    expect(pushBody).toContain('e2e: { access: write, stack: python-pytest');
     const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
     expect(createBody).toContain('destination: zip');
     expect(createBody).toContain('e2e: { access: write, stack: python-pytest');
@@ -961,9 +1026,9 @@ describe('landing-config', () => {
     expect(open).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
     expect(blobs[0]).toContain(repoUrl);
     expect(blobs[0]).toContain('via: idp');
-    expect(blobs[0]).not.toContain('pushed:');
     expect(blobs[0]).not.toContain('token');
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });
@@ -996,6 +1061,10 @@ describe('landing-config', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
       } as Response);
     vi.stubGlobal('fetch', fetchMock);
     const config = cloneConfig(DEFAULTS);
@@ -1028,8 +1097,8 @@ describe('landing-config', () => {
       outputTab: 'json',
     });
     expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain('"pushed": true');
     expect(blobs[1]).toContain(repoUrl);
-    expect(blobs[1]).not.toContain('pushed');
   });
 
   it('does not POST create when dest cloud has no session or emit ids', async () => {

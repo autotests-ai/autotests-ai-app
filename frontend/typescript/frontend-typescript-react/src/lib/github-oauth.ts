@@ -87,8 +87,8 @@ export function e2eStackFromYaml(yaml: string): string {
   for (const line of yaml.split(/\r?\n/)) {
     const e2e = E2E_LINE.exec(line);
     if (e2e) {
-      const rest = (e2e[2] ?? '').trim();
-      e2eIndent = e2e[1]?.length ?? 0;
+      const rest = e2e[2].trim();
+      e2eIndent = e2e[1].length;
       if (rest.startsWith('{')) {
         const flow = FLOW_STACK.exec(rest);
         found = flow?.[1];
@@ -102,13 +102,13 @@ export function e2eStackFromYaml(yaml: string): string {
     if (!line.trim()) {
       continue;
     }
-    const indent = line.match(/^[ \t]*/)?.[0].length ?? 0;
+    const indent = (/^[ \t]*/.exec(line) as RegExpExecArray)[0].length;
     if (indent <= e2eIndent) {
       break;
     }
     const stack = STACK_LINE.exec(line);
     if (stack) {
-      found = stack[1] ?? '';
+      found = stack[1];
       break;
     }
   }

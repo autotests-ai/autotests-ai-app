@@ -8,6 +8,7 @@ import dev.multistack.app.controller.CloudRepoController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
 import dev.multistack.app.dto.AssembleZip;
+import dev.multistack.app.dto.CloudRepoPushResponse;
 import dev.multistack.app.dto.CloudRepoResponse;
 import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
@@ -204,6 +205,29 @@ class SecurityChainTest extends SliceTestBase {
                 .andExpect(jsonPath("$.pushed").doesNotExist())
                 .andExpect(content().string(not(containsString("gho_secret"))))
                 .andExpect(content().string(not(containsString("idp_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is public (IdP cookie, not JWT)")
+    void cloudPushTreePermitAll() throws Exception {
+        when(cloudRepoService.pushTree(nullable(String.class), nullable(String.class)))
+                .thenReturn(new CloudRepoPushResponse(
+                        "qaguru",
+                        CloudRepoService.htmlUrl("qaguru", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/cloud/repos/contents")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pushed").value(true))
+                .andExpect(jsonPath("$.url").value(
+                        "https://github.com/autotests-cloud/qaguru-python-pytest"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.created").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("idp_secret"))))
+                .andExpect(content().string(not(containsString("octocat"))));
     }
 
     @Test

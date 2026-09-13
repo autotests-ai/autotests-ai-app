@@ -33,6 +33,12 @@ export type CloudCreatedRepo = {
   created: true;
 };
 
+export type CloudPushedRepo = {
+  login: string;
+  url: string;
+  pushed: true;
+};
+
 export type IdpCallbackQuery = {
   code?: string;
   state?: string;
@@ -99,6 +105,10 @@ export function idpExchangeUrl(): string {
 
 export function idpCloudReposUrl(): string {
   return apiUrl('/cloud/repos');
+}
+
+export function idpCloudContentsUrl(): string {
+  return apiUrl('/cloud/repos/contents');
 }
 
 export function idpRedirectUri(origin: string): string {
@@ -352,6 +362,48 @@ export async function createCloudRepo(
       return null;
     }
     return { login: rec.login, url: rec.url, created: true };
+  } catch {
+    return null;
+  }
+}
+
+export async function pushCloudRepo(
+  input: { yaml?: string; fetchImpl?: typeof fetch; contentsUrl?: string } = {},
+): Promise<CloudPushedRepo | null> {
+  const yaml = typeof input.yaml === 'string' ? input.yaml : '';
+  const stack = e2eStackFromYaml(yaml);
+  if (!stack) {
+    return null;
+  }
+  try {
+    const fetchImpl = input.fetchImpl ?? fetch;
+    const response = await fetchImpl(input.contentsUrl ?? idpCloudContentsUrl(), {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/yaml' },
+      credentials: 'include',
+      body: yaml,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body: unknown = await response.json();
+    if (payloadHasSecret(body)) {
+      return null;
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return null;
+    }
+    const rec = body as { login?: unknown; url?: unknown; pushed?: unknown };
+    if (rec.pushed !== true) {
+      return null;
+    }
+    if (typeof rec.login !== 'string' || !isSchoolLogin(rec.login)) {
+      return null;
+    }
+    if (typeof rec.url !== 'string' || rec.url !== cloudRepoUrl(rec.login, stack)) {
+      return null;
+    }
+    return { login: rec.login, url: rec.url, pushed: true };
   } catch {
     return null;
   }

@@ -302,6 +302,46 @@ paths:
         "503":
           description: GITHUB_CLOUD_TOKEN is not configured
 
+  /api/cloud/repos/contents:
+    post:
+      operationId: cloudPushTree
+      summary: Push unzip of dest zip from Home YAML onto autotests-cloud/{idp-login}-{coverageProfile.automation.e2e.stack}. Same zip as dest user. Never a PAT. Never dest user. Never nested git push.
+      tags: [oauth]
+      security:
+        - idpOAuthCookie: []
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+            example: |
+              destination: zip
+              coverageProfile:
+                automation:
+                  e2e:
+                    stack: python-pytest
+          text/plain:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Org repo URL; pushed is true even when GitHub already had the same tree
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloudRepoPushResponse"
+              example:
+                login: qaguru
+                url: https://github.com/autotests-cloud/qaguru-python-pytest
+                pushed: true
+        "400":
+          description: YAML body missing or coverageProfile.automation.e2e.stack missing. Never a classpath assemble-landing.yaml stub. Never a frozen stack.
+        "401":
+          description: Missing or invalid IdP cookie or empty assemble zip
+        "503":
+          description: GITHUB_CLOUD_TOKEN is not configured, ASSEMBLE_URL missing, or assemble-zip stand did not return a zip
+
   /api/assemble:
     post:
       operationId: assembleDestZip
@@ -526,6 +566,22 @@ components:
           type: boolean
           example: true
       description: Never token, access_token, or PAT. created is true if the org repo exists after this call. Never a dest user URL.
+
+    CloudRepoPushResponse:
+      type: object
+      required: [login, url, pushed]
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          example: qaguru
+        url:
+          type: string
+          example: https://github.com/autotests-cloud/qaguru-python-pytest
+        pushed:
+          type: boolean
+          example: true
+      description: Never token, access_token, or PAT. pushed is true if the assemble tree is on main. Never a dest user URL.
 
   securitySchemes:
     bearerAuth:

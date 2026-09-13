@@ -15,7 +15,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * Product auth is Bearer JWT. GitHub OAuth uses an httpOnly cookie, so credentialed
  * CORS must be allowed for {@code POST /api/oauth/github}, {@code /repos}, and
  * {@code /repos/contents}. School IdP uses an httpOnly cookie on {@code /api/cloud}
- * ({@code POST /api/oauth/idp} and {@code POST /api/cloud/repos}).
+ * ({@code POST /api/oauth/idp}, {@code POST /api/cloud/repos}, and {@code /repos/contents}).
  *
  * <p>Matrix deployments serve UI and API from one public host (different paths, same origin).
  * Browsers still send an {@code Origin} header on POST, so Spring validates it against this

@@ -13,10 +13,12 @@ import {
 } from './github-oauth';
 import {
   type CloudCreatedRepo,
+  type CloudPushedRepo,
   createCloudRepo,
   type IdpSession,
   isCloudRepoUrl,
   isSchoolLogin,
+  pushCloudRepo,
 } from './idp-login';
 
 export type LandingConfig = {
@@ -75,6 +77,7 @@ export type CloudContract = {
   via: 'idp';
   login?: string;
   url?: string;
+  pushed?: true;
 };
 
 export type UserContract = {
@@ -91,6 +94,7 @@ export type LandingEmitOptions = {
   pushedRepo?: GithubPushedRepo | null;
   idpSession?: IdpSession | null;
   createdCloudRepo?: CloudCreatedRepo | null;
+  pushedCloudRepo?: CloudPushedRepo | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -260,6 +264,7 @@ export function catalogDocument(profile: CoverageProfile): CatalogHref {
 export function cloudDocument(
   session?: IdpSession | null,
   createdRepo?: CloudCreatedRepo | null,
+  pushedRepo?: CloudPushedRepo | null,
 ): CloudContract {
   if (
     createdRepo &&
@@ -267,13 +272,22 @@ export function cloudDocument(
     isSchoolLogin(createdRepo.login) &&
     isCloudRepoUrl(createdRepo.login, createdRepo.url)
   ) {
-    return {
+    const doc: CloudContract = {
       org: CLOUD_GITHUB_ORG,
       created: true,
       via: 'idp',
       login: createdRepo.login,
       url: createdRepo.url,
     };
+    if (
+      pushedRepo &&
+      pushedRepo.pushed === true &&
+      pushedRepo.login === createdRepo.login &&
+      pushedRepo.url === createdRepo.url
+    ) {
+      doc.pushed = true;
+    }
+    return doc;
   }
   const doc: CloudContract = { org: CLOUD_GITHUB_ORG, created: false, via: 'idp' };
   if (session && isSchoolLogin(session.login)) {
@@ -567,7 +581,11 @@ export function toDocument(
     doc.catalog = catalogDocument(config.coverageProfile);
   }
   if (config.destination === 'cloud') {
-    doc.cloud = cloudDocument(options?.idpSession, options?.createdCloudRepo);
+    doc.cloud = cloudDocument(
+      options?.idpSession,
+      options?.createdCloudRepo,
+      options?.pushedCloudRepo,
+    );
   }
   if (config.destination === 'user') {
     doc.user = userDocument(options?.githubUser, options?.createdRepo, options?.pushedRepo);
@@ -654,6 +672,9 @@ export function toYaml(
       }
       if (cloud.url) {
         lines.push(`  url: ${yamlScalar(cloud.url)}`);
+      }
+      if (cloud.pushed === true) {
+        lines.push(`  pushed: ${yamlScalar(cloud.pushed)}`);
       }
       continue;
     }
@@ -814,7 +835,8 @@ export async function downloadLandingOutput(input: {
     if (input.idpSession && input.landingConfig && input.vectorId) {
       const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
       const createdCloudRepo = await createCloudRepo({ yaml });
-      const options = { idpSession: input.idpSession, createdCloudRepo };
+      const pushedCloudRepo = createdCloudRepo ? await pushCloudRepo({ yaml }) : null;
+      const options = { idpSession: input.idpSession, createdCloudRepo, pushedCloudRepo };
       output =
         input.outputTab === 'json'
           ? toJson(input.landingConfig, input.vectorId, options)

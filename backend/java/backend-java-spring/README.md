@@ -41,6 +41,9 @@ behavioral tests; entity plumbing is executed by the persistence slice, not by r
 | POST | `/api/oauth/github` | — | 200 | `{"login"}` + httpOnly cookie (never token/PAT) |
 | POST | `/api/oauth/github/repos` | cookie + YAML | 200 | `{"login","url","created":true}` — repo name = `coverageProfile.automation.e2e.stack`; empty YAML = 400, never frozen |
 | POST | `/api/oauth/github/repos/contents` | cookie + YAML | 200 | `{"login","url","pushed":true}` — Home dump, dest zip for assemble-zip, same e2e.stack name; empty YAML = 400, not classpath |
+| POST | `/api/oauth/idp` | — | 200 | `{"login"}` + httpOnly cookie on `/api/cloud` (never token/PAT) |
+| POST | `/api/cloud/repos` | IdP cookie + YAML | 200 | `{"login","url","created":true}` — `autotests-cloud/{idp-login}-{e2e.stack}`; never PAT; empty YAML = 400 |
+| POST | `/api/cloud/repos/contents` | IdP cookie + YAML | 200 | `{"login","url","pushed":true}` — same dest zip as dest user; `GITHUB_CLOUD_TOKEN`; never nested git push |
 
 Logout is **stateless by design**: it never invalidates the JWT server-side — the token keeps
 verifying until it expires or the account is deleted. `DELETE /api/auth/me` is the authenticated

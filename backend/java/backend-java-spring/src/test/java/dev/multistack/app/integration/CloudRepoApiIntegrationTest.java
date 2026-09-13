@@ -52,4 +52,26 @@ class CloudRepoApiIntegrationTest extends IntegrationTestBase {
         assertFalse(response.getBody().contains("ghp_"));
         assertFalse(response.getHeaders().containsKey("Set-Cookie"));
     }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is 503 without GitHub env and never returns a token")
+    void pushWithoutGithubEnvIsUnavailable() {
+        ResponseEntity<String> response = rest.postForEntity(
+                "/api/cloud/repos/contents",
+                null,
+                String.class);
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertNotNull(response.getHeaders().getContentType());
+        assertTrue(response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON));
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("GitHub cloud is not configured"));
+        assertFalse(response.getBody().contains("access_token"));
+        assertFalse(response.getBody().contains("\"token\""));
+        assertFalse(response.getBody().contains("\"pushed\""));
+        assertFalse(response.getBody().contains("\"login\""));
+        assertFalse(response.getBody().contains("ghs_"));
+        assertFalse(response.getBody().contains("ghp_"));
+        assertFalse(response.getHeaders().containsKey("Set-Cookie"));
+    }
 }

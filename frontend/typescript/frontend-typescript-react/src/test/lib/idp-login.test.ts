@@ -18,6 +18,7 @@ import {
   idpAuthorizeHref,
   idpAuthorizeUrl,
   idpClientId,
+  idpCloudContentsUrl,
   idpCloudReposUrl,
   idpConfigured,
   idpExchangeUrl,
@@ -27,6 +28,7 @@ import {
   isIdpAuthorizeUrl,
   isSchoolLogin,
   parseIdpCallback,
+  pushCloudRepo,
   readIdpSession,
   readIdpState,
   startIdpLogin,
@@ -401,6 +403,7 @@ describe('idp-login', () => {
 
   it('builds the autotests-cloud repo URL from IdP login and YAML e2e.stack', () => {
     expect(idpCloudReposUrl()).toBe(apiUrl('/cloud/repos'));
+    expect(idpCloudContentsUrl()).toBe(apiUrl('/cloud/repos/contents'));
     expect(cloudRepoName('qaguru', 'python-pytest')).toBe('qaguru-python-pytest');
     expect(cloudRepoUrl('qaguru', 'python-pytest')).toBe(
       'https://github.com/autotests-cloud/qaguru-python-pytest',
@@ -537,6 +540,123 @@ describe('idp-login', () => {
     await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
     fetchImpl.mockRejectedValueOnce(new Error('network'));
     await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+  });
+
+  it('pushes the assemble tree from Home YAML and never keeps a PAT', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchImpl = vi.fn(async () => jsonResponse({ login: 'qaguru', url, pushed: true }));
+    await expect(
+      pushCloudRepo({ fetchImpl, contentsUrl: '/api/cloud/repos/contents', yaml }),
+    ).resolves.toEqual({ login: 'qaguru', url, pushed: true });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/cloud/repos/contents',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: yaml,
+        headers: expect.objectContaining({
+          Accept: 'application/json',
+          'Content-Type': 'application/yaml',
+        }),
+      }),
+    );
+    expect(yaml).toContain('destination: zip');
+    expect(yaml).not.toContain('destination: user');
+  });
+
+  it('uses the default fetch and cloud contents URL on push success', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchMock = vi.fn(async () => jsonResponse({ login: 'qaguru', url, pushed: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(pushCloudRepo({ yaml })).resolves.toEqual({
+      login: 'qaguru',
+      url,
+      pushed: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      idpCloudContentsUrl(),
+      expect.objectContaining({ method: 'POST', credentials: 'include', body: yaml }),
+    );
+  });
+
+  it('refuses push without YAML instead of a frozen stack', async () => {
+    const fetchImpl = vi.fn();
+    await expect(pushCloudRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(pushCloudRepo({ fetchImpl, yaml: '  ' })).resolves.toBeNull();
+    await expect(pushCloudRepo({ fetchImpl, yaml: 'destination: cloud\n' })).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('refuses push secrets, dest user URLs, and HTTP errors', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchImpl = vi.fn();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url, pushed: true }, false));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({ login: 'qaguru', url, pushed: true, token: 'secret' }),
+    );
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown', url, pushed: true }));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/qaguru/python-pytest',
+        pushed: true,
+      }),
+    );
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/autotests-cloud/python-pytest',
+        pushed: true,
+      }),
+    );
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/autotests-cloud/qaguru-java-junit5-rest_assured-selenide',
+        pushed: true,
+      }),
+    );
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url, pushed: false }));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url }));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse(null));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse([]));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12, url, pushed: true }));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url: 12, pushed: true }));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockRejectedValueOnce(new Error('network'));
+    await expect(pushCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
   });
 });
 

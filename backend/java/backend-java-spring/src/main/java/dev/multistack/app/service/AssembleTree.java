@@ -29,10 +29,10 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Dest user push YAML = Home dump; classpath is not canon.
+ * Dest user and dest cloud push YAML = Home dump; classpath is not canon.
  * Tree = unzip of the dest zip (POST YAML to {@code ASSEMBLE_URL}, destination forced zip).
  * Dest zip download = the same POST, zip bytes on {@code POST /api/assemble}.
- * Never a PAT, never {@code assemble-landing.yaml}.
+ * Dest cloud push uses this same zip. Never a PAT, never {@code assemble-landing.yaml}.
  */
 @Component
 @EnableConfigurationProperties(AssembleProperties.class)
