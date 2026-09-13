@@ -133,7 +133,12 @@ paths:
               $ref: "#/components/schemas/GithubOAuthRequest"
       responses:
         "200":
-          description: GitHub login only
+          description: GitHub login only. Token is an httpOnly cookie, never the JSON body.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: httpOnly GitHub access token (github_oauth); Path=/api/oauth; SameSite=Lax
           content:
             application/json:
               schema:
@@ -146,6 +151,27 @@ paths:
           description: GitHub exchange failed or login missing
         "503":
           description: OAuth App secret is not configured
+
+  /api/oauth/github/repos:
+    post:
+      operationId: githubOAuthCreateRepo
+      summary: Create the frozen e2e.stack public repo. Never returns a token or PAT. Never pushes files.
+      tags: [oauth]
+      security:
+        - githubOAuthCookie: []
+      responses:
+        "200":
+          description: Repo URL; created is true even when the repo already existed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubOAuthRepoResponse"
+              example:
+                login: octocat
+                url: https://github.com/octocat/java-junit5-rest_assured-selenide
+                created: true
+        "401":
+          description: Missing or invalid GitHub OAuth cookie
 
 components:
   schemas:
@@ -256,11 +282,31 @@ components:
           example: octocat
       description: GitHub login only. token, access_token, and PAT must not appear.
 
+    GithubOAuthRepoResponse:
+      type: object
+      required: [login, url, created]
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          example: octocat
+        url:
+          type: string
+          example: https://github.com/octocat/java-junit5-rest_assured-selenide
+        created:
+          type: boolean
+          example: true
+      description: Never token, access_token, or PAT. created is true if the repo exists after this call.
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    githubOAuthCookie:
+      type: apiKey
+      in: cookie
+      name: github_oauth
 
 tags:
   - name: system
@@ -270,4 +316,4 @@ tags:
   - name: auth
     description: Authentication per flows/login.md
   - name: oauth
-    description: GitHub OAuth for dest user (login only, never a token)
+    description: GitHub OAuth for dest user (login cookie, never a token in JSON)

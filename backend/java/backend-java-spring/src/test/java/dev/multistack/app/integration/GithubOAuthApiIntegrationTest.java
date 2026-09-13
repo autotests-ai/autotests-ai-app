@@ -31,6 +31,10 @@ class GithubOAuthApiIntegrationTest extends IntegrationTestBase {
     static void emptyGithubOAuth(DynamicPropertyRegistry registry) {
         registry.add("github.oauth.client-id", () -> "");
         registry.add("github.oauth.client-secret", () -> "");
+        registry.add("github.oauth.token-url", () -> "https://example.test/login/oauth/access_token");
+        registry.add("github.oauth.user-url", () -> "https://example.test/user");
+        registry.add("github.oauth.repos-url", () -> "https://example.test/user/repos");
+        registry.add("github.oauth.repo-api-base", () -> "https://example.test/repos");
     }
 
     @Test
@@ -64,5 +68,23 @@ class GithubOAuthApiIntegrationTest extends IntegrationTestBase {
         assertFalse(response.getBody().contains("access_token"));
         assertFalse(response.getBody().contains("\"token\""));
         assertFalse(response.getBody().contains("\"login\""));
+        assertFalse(response.getHeaders().containsKey("Set-Cookie"));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos is 401 without the GitHub cookie and never hits GitHub")
+    void createRepoWithoutCookieIsUnauthorized() {
+        ResponseEntity<String> response = rest.postForEntity(
+                "/api/oauth/github/repos",
+                null,
+                String.class);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("oauth cookie missing"));
+        assertFalse(response.getBody().contains("access_token"));
+        assertFalse(response.getBody().contains("\"token\""));
+        assertFalse(response.getBody().contains("\"created\""));
+        assertFalse(response.getBody().contains("octocat"));
     }
 }

@@ -5,8 +5,9 @@ import dev.multistack.app.controller.ApiController;
 import dev.multistack.app.controller.AuthController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
-import dev.multistack.app.dto.GithubOAuthLoginResponse;
+import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
+import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.dto.UserProfileResponse;
 import dev.multistack.app.service.AuthService;
 import dev.multistack.app.service.GithubOAuthService;
@@ -25,12 +26,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -117,7 +120,12 @@ class SecurityChainTest extends SliceTestBase {
     @DisplayName("POST /api/oauth/github is public and returns login without a token")
     void oauthGithubPermitAllReturnsLogin() throws Exception {
         when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
-                .thenReturn(new GithubOAuthLoginResponse("octocat"));
+                .thenReturn(new GithubOAuthSession("octocat", "gho_secret"));
+        when(githubOAuthService.toCookie(any(), anyBoolean()))
+                .thenReturn(ResponseCookie.from(GithubOAuthService.COOKIE_NAME, "gho_secret")
+                        .httpOnly(true)
+                        .path(GithubOAuthService.COOKIE_PATH)
+                        .build());
 
         mockMvc.perform(post("/api/oauth/github")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,7 +133,24 @@ class SecurityChainTest extends SliceTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.login").value("octocat"))
                 .andExpect(jsonPath("$.token").doesNotExist())
-                .andExpect(content().string(not(containsString("token"))));
+                .andExpect(content().string(not(containsString("token"))))
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos is public (cookie, not JWT)")
+    void oauthCreateRepoPermitAll() throws Exception {
+        when(githubOAuthService.createRepo(any()))
+                .thenReturn(new GithubOAuthRepoResponse(
+                        "octocat",
+                        GithubOAuthService.htmlUrl("octocat"),
+                        true));
+
+        mockMvc.perform(post("/api/oauth/github/repos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))));
     }
 
     @Test
@@ -165,7 +190,8 @@ class SecurityChainTest extends SliceTestBase {
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(
-                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"));
+                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
     }
 
     @Test

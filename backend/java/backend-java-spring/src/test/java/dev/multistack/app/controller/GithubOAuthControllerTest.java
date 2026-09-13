@@ -5,7 +5,9 @@ import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.config.CorsConfig;
 import dev.multistack.app.config.SecurityConfig;
 import dev.multistack.app.dto.GithubOAuthLoginResponse;
+import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
+import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.exception.AuthException;
 import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.JwtService;
@@ -13,22 +15,28 @@ import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +48,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("GithubOAuthController")
 class GithubOAuthControllerTest extends SliceTestBase {
 
+    private static final String TOKEN = "gho_secret";
+    private static final String LOGIN_JSON = "{\"login\":\"octocat\"}";
+    private static final String REPO_URL =
+            "https://github.com/octocat/" + GithubOAuthService.REPO_NAME;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -50,10 +63,12 @@ class GithubOAuthControllerTest extends SliceTestBase {
     private JwtService jwtService;
 
     @Test
-    @DisplayName("POST /api/oauth/github returns login and never a token")
-    void exchangeReturnsLoginOnly() throws Exception {
+    @DisplayName("POST /api/oauth/github returns login, sets httpOnly cookie, never a token in JSON")
+    void exchangeReturnsLoginOnlyAndSetsCookie() throws Exception {
         when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
-                .thenReturn(new GithubOAuthLoginResponse("octocat"));
+                .thenReturn(new GithubOAuthSession("octocat", TOKEN));
+        when(githubOAuthService.toCookie(eq(TOKEN), eq(false)))
+                .thenReturn(httpOnlyCookie(false));
 
         String body = mockMvc.perform(post("/api/oauth/github")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -67,18 +82,40 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.created").doesNotExist())
                 .andExpect(jsonPath("$.via").doesNotExist())
                 .andExpect(content().string(not(containsString("token"))))
+                .andExpect(content().string(not(containsString(TOKEN))))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("github_oauth=")))
+                .andExpect(header().string(
+                        HttpHeaders.SET_COOKIE, containsString("Path=" + GithubOAuthService.COOKIE_PATH)))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
-        assertEquals("{\"login\":\"octocat\"}", body);
+        assertEquals(LOGIN_JSON, body);
         assertEquals(
-                "{\"login\":\"octocat\"}",
+                LOGIN_JSON,
                 new ObjectMapper().writeValueAsString(new GithubOAuthLoginResponse("octocat")));
     }
 
     @Test
-    @DisplayName("POST /api/oauth/github maps GitHub failure to 401 without a token")
+    @DisplayName("POST /api/oauth/github marks the cookie Secure on HTTPS")
+    void exchangeSetsSecureCookieOnHttps() throws Exception {
+        when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
+                .thenReturn(new GithubOAuthSession("octocat", TOKEN));
+        when(githubOAuthService.toCookie(eq(TOKEN), eq(true)))
+                .thenReturn(httpOnlyCookie(true));
+
+        mockMvc.perform(post("/api/oauth/github")
+                        .secure(true)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"gh-code\",\"state\":\"csrf\"}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Secure")))
+                .andExpect(content().string(LOGIN_JSON));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github maps GitHub failure to 401 without a token or cookie")
     void exchangeMapsGithubFailure() throws Exception {
         when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
                 .thenThrow(new AuthException(401, "oauth exchange failed"));
@@ -90,6 +127,7 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.message").value("oauth exchange failed"))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.login").doesNotExist())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
                 .andExpect(content().string(not(containsString("access_token"))));
     }
 
@@ -104,7 +142,8 @@ class GithubOAuthControllerTest extends SliceTestBase {
                         .content("{\"code\":\"gh-code\",\"state\":\"csrf\"}"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("GitHub OAuth is not configured"))
-                .andExpect(jsonPath("$.token").doesNotExist());
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
     }
 
     @Test
@@ -127,5 +166,70 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Request body is not valid JSON"))
                 .andExpect(jsonPath("$.token").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos returns created true and url, never a token")
+    void createRepoReturnsCreatedUrl() throws Exception {
+        when(githubOAuthService.createRepo(TOKEN))
+                .thenReturn(new GithubOAuthRepoResponse("octocat", REPO_URL, true));
+
+        String body = mockMvc.perform(post("/api/oauth/github/repos")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value("octocat"))
+                .andExpect(jsonPath("$.url").value(REPO_URL))
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.access_token").doesNotExist())
+                .andExpect(jsonPath("$.pat").doesNotExist())
+                .andExpect(content().string(not(containsString(TOKEN))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertEquals(
+                "{\"login\":\"octocat\",\"url\":\"" + REPO_URL + "\",\"created\":true}",
+                body);
+        assertFalse(body.contains("autotests-cloud"));
+        assertFalse(body.contains("autotests-ai/"));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos is 401 without the GitHub cookie")
+    void createRepoRequiresCookie() throws Exception {
+        when(githubOAuthService.createRepo(null))
+                .thenThrow(new AuthException(401, "oauth cookie missing"));
+
+        mockMvc.perform(post("/api/oauth/github/repos"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth cookie missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.created").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos maps GitHub failure without leaking a token")
+    void createRepoMapsGithubFailure() throws Exception {
+        when(githubOAuthService.createRepo(TOKEN))
+                .thenThrow(new AuthException(401, "oauth create failed"));
+
+        mockMvc.perform(post("/api/oauth/github/repos")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth create failed"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.url").doesNotExist());
+    }
+
+    private static ResponseCookie httpOnlyCookie(boolean secure) {
+        return ResponseCookie.from(GithubOAuthService.COOKIE_NAME, TOKEN)
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax")
+                .path(GithubOAuthService.COOKIE_PATH)
+                .maxAge(java.time.Duration.ofDays(1))
+                .build();
     }
 }

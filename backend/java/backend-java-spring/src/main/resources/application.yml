@@ -33,3 +33,5 @@ github:
     client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
     token-url: ${GITHUB_OAUTH_TOKEN_URL:https://github.com/login/oauth/access_token}
     user-url: ${GITHUB_OAUTH_USER_URL:https://api.github.com/user}
+    repos-url: ${GITHUB_OAUTH_REPOS_URL:https://api.github.com/user/repos}
+    repo-api-base: ${GITHUB_OAUTH_REPO_API_BASE:https://api.github.com/repos}
