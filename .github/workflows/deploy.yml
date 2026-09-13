@@ -53,6 +53,11 @@ jobs:
           context: ${{ matrix.context }}
           platforms: linux/amd64
           push: true
+          # Public IdP bake for the SPA. Empty vars → dest cloud button hidden.
+          # Backend Dockerfile ignores unused args. Never secrets / IDP_CLIENT_SECRET.
+          build-args: |
+            VITE_IDP_CLIENT_ID=${{ vars.VITE_IDP_CLIENT_ID }}
+            VITE_IDP_AUTHORIZE_URL=${{ vars.VITE_IDP_AUTHORIZE_URL }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
             ${{ env.IMAGE_NAME }}:${{ github.ref == 'refs/heads/main' && 'latest' || 'stage' }}

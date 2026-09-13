@@ -64,6 +64,9 @@ services:
         org.opencontainers.image.url: https://autotests.ai/
         org.opencontainers.image.vendor: autotests-ai
       context: ./frontend/typescript/frontend-typescript-react
+      args:
+        VITE_IDP_CLIENT_ID: ${VITE_IDP_CLIENT_ID:-}
+        VITE_IDP_AUTHORIZE_URL: ${VITE_IDP_AUTHORIZE_URL:-}
     restart: unless-stopped
     networks:
       - autotests_ai_app_internal

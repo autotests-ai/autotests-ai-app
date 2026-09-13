@@ -77,6 +77,7 @@ if [[ -n "$COMPOSE_ENV_FILE" ]]; then
 fi
 
 # Empty IMAGE_TAG → compose default :latest
+# Host .env (600) interpolates IDP_*; never cat / echo it.
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 echo "=== compose pull (${COMPOSE_PROJECT}, IMAGE_TAG=${IMAGE_TAG}) ==="

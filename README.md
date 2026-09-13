@@ -23,7 +23,7 @@ curl -sf http://127.0.0.1:8081/stack/matrix.json
 
 From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`. Dest zip (`POST /api/assemble`) and dest user push need `ASSEMBLE_URL` (compose default `http://host.docker.internal:3032` → `ensure.py assemble-zip`); empty / prod without host-gateway → 503. Browser CORS to assemble-zip is loopback fallback only.
 
-Dest cloud is school IdP, not GitHub OAuth: YAML `cloud.via: idp`, `created: true` after `POST /api/cloud/repos`. Login after a session. Frontend env `VITE_IDP_AUTHORIZE_URL` + `VITE_IDP_CLIENT_ID` — empty → Home button hidden. Backend `POST /api/oauth/idp` exchanges the code (`IDP_CLIENT_SECRET`, `IDP_TOKEN_URL`, `IDP_USERINFO_URL`) and returns `{login}` only — no token in JSON; the IdP token is an httpOnly cookie (`Path=/api/cloud`). `POST /api/cloud/repos` creates `github.com/autotests-cloud/{idp-login}-{e2e.stack}` with `GITHUB_CLOUD_TOKEN` (empty → 503). Never a PAT, never push. Redirect `/oauth/idp/callback`. Keycloak client **`autotests-ai`** lives in `auth-qa-guru-home` (`ensure-autotests-ai-client.py`), not this repo. Secret: `~/.config/auth-qa-guru/autotests-ai.env` → compose `IDP_CLIENT_SECRET`, never `VITE_`, never git.
+Dest cloud is school IdP, not GitHub OAuth: YAML `cloud.via: idp`, `created: true` after `POST /api/cloud/repos`. Login after a session. Frontend env `VITE_IDP_AUTHORIZE_URL` + `VITE_IDP_CLIENT_ID` — empty → Home button hidden. Backend `POST /api/oauth/idp` exchanges the code (`IDP_CLIENT_SECRET`, `IDP_TOKEN_URL`, `IDP_USERINFO_URL`) and returns `{login}` only — no token in JSON; the IdP token is an httpOnly cookie (`Path=/api/cloud`). `POST /api/cloud/repos` creates `github.com/autotests-cloud/{idp-login}-{e2e.stack}` with `GITHUB_CLOUD_TOKEN` (empty → 503). Never a PAT, never push. Redirect `/oauth/idp/callback`. Keycloak client **`autotests-ai`** lives in `auth-qa-guru-home` (`ensure-autotests-ai-client.py`), not this repo. Secret: `~/.config/auth-qa-guru/autotests-ai.env` → host compose `IDP_CLIENT_SECRET`, never `VITE_`, never git.
 
 Postgres has no host port. First up after replacing the old terminal Flyway history uses volume `pgdata_v2` (does not `down -v` the matrix).
 
@@ -46,7 +46,27 @@ GitHub Actions [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): b
 | `develop` | `autotests-ai-app-stage` | `deploy/stage.env` | `http://127.0.0.1:18081/api/health` | [https://stage.autotests.ai/](https://stage.autotests.ai/) |
 | `main` | `autotests-ai-app` | — | `http://127.0.0.1:8081/api/health` | [https://autotests.ai/](https://autotests.ai/) |
 
-Host clone: `/opt/autotests-ai-app`. Secrets (`DEPLOY_SSH_KEY`, `JWT_SECRET`, GHCR token) stay out of git. Optional host `.env` for `JWT_SECRET` — do not put `GATEWAY_PORT` there (it would steal prod). Manual:
+Host clone: `/opt/autotests-ai-app`. Secrets (`DEPLOY_SSH_KEY`, `JWT_SECRET`, GHCR token, `IDP_CLIENT_SECRET`) stay out of git. Optional host `.env` for `JWT_SECRET` and IdP — do not put `GATEWAY_PORT` there (it would steal prod).
+
+Dest cloud on stage/prod:
+
+1. **SPA bake (public).** GitHub repository variables (not secrets) `VITE_IDP_CLIENT_ID=autotests-ai` and `VITE_IDP_AUTHORIZE_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/auth`. `deploy.yml` passes them as frontend Docker `build-args`. Empty → dest cloud button hidden.
+2. **Backend secret (host 600).** Compose already interpolates `IDP_*`. On Box3, `/opt/autotests-ai-app/.env` mode `600` — not in git, not `cat` into a log, not a `VITE_` key:
+
+```bash
+# qaguru@box3 — editor, never cat. Do not truncate an existing JWT_SECRET.
+umask 077
+touch /opt/autotests-ai-app/.env
+chmod 600 /opt/autotests-ai-app/.env
+# IDP_CLIENT_ID=autotests-ai
+# IDP_TOKEN_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/token
+# IDP_USERINFO_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/userinfo
+# IDP_CLIENT_SECRET=<KC_CLIENT_SECRET_AUTOTESTS_AI from ~/.config/auth-qa-guru/autotests-ai.env>
+```
+
+`box3-deploy.sh` does not print `.env`. This slice is IdP env, not `GITHUB_CLOUD_TOKEN`.
+
+Manual:
 
 ```bash
 # after images exist for IMAGE_TAG
