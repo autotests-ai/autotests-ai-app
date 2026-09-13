@@ -35,3 +35,6 @@ github:
     user-url: ${GITHUB_OAUTH_USER_URL:https://api.github.com/user}
     repos-url: ${GITHUB_OAUTH_REPOS_URL:https://api.github.com/user/repos}
     repo-api-base: ${GITHUB_OAUTH_REPO_API_BASE:https://api.github.com/repos}
+
+assemble:
+  url: ${ASSEMBLE_URL:}

@@ -2,9 +2,9 @@ package dev.multistack.app.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.multistack.app.allure.UnitTestBase;
+import dev.multistack.app.config.AssembleProperties;
 import dev.multistack.app.config.GithubOAuthProperties;
 import dev.multistack.app.dto.GithubOAuthPushResponse;
-import dev.multistack.app.dto.GithubTreeBlob;
 import dev.multistack.app.exception.AuthException;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -65,8 +65,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
     private static final String TREE_SHA = "def222";
     private static final String OTHER_TREE_SHA = "ghi333";
     private static final String COMMIT_SHA = "jkl444";
-    private static final AssembleTree TREE = new AssembleTree(
-            List.of(new GithubTreeBlob("README.md", "assemble\n")));
+    private static final AssembleTree TREE = new AssembleTree(AssembleZipFixture.cellZip());
 
     private MockRestServiceServer server;
     private GithubOAuthService service;
@@ -281,6 +280,22 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectUserJson("{\"login\":\"unknown\"}");
         AuthException ex = assertThrows(AuthException.class, () -> service.pushTree("gho_secret"));
         assertEquals("oauth login missing", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("push is 503 without ASSEMBLE_URL and never a classpath stub")
+    void pushTreeRequiresAssembleUrl() {
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        GithubOAuthService missing = new GithubOAuthService(
+                configuredProperties(),
+                builder,
+                new AssembleTree(new AssembleProperties(""), builder, "destination: zip\n"));
+        expectUserJson("{\"login\":\"octocat\"}");
+        AuthException ex = assertThrows(AuthException.class, () -> missing.pushTree("gho_secret"));
+        assertEquals(503, ex.getStatus());
+        assertEquals("assemble url missing", ex.getMessage());
         server.verify();
     }
 
@@ -540,9 +555,15 @@ class GithubOAuthServicePushTest extends UnitTestBase {
                 .andExpect(content().string(allOf(
                         containsString("README.md"),
                         containsString("assemble"),
+                        containsString("backend/"),
+                        containsString("frontend/"),
+                        containsString("tests/"),
+                        containsString("_contract/"),
                         containsString("\"type\":\"blob\""),
                         containsString("\"mode\":\"100644\""),
-                        not(containsString("gho_secret")))));
+                        not(containsString("gho_secret")),
+                        not(containsString("node_modules")),
+                        not(containsString("qa-homework-check")))));
         if (status == 201) {
             expect.andRespond(withStatus(HttpStatus.CREATED)
                     .contentType(MediaType.APPLICATION_JSON)

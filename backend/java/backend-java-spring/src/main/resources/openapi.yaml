@@ -176,7 +176,7 @@ paths:
   /api/oauth/github/repos/contents:
     post:
       operationId: githubOAuthPushTree
-      summary: Push the frozen assemble tree to e2e.stack. Never returns a token or PAT.
+      summary: Push the assemble zip tree (same roots as dest zip). Never returns a token or PAT.
       tags: [oauth]
       security:
         - githubOAuthCookie: []
@@ -192,7 +192,9 @@ paths:
                 url: https://github.com/octocat/java-junit5-rest_assured-selenide
                 pushed: true
         "401":
-          description: Missing or invalid GitHub OAuth cookie
+          description: Missing or invalid GitHub OAuth cookie or empty assemble zip
+        "503":
+          description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
 
 components:
   schemas:

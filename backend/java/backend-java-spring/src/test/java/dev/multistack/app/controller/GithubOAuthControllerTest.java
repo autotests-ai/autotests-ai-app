@@ -252,6 +252,21 @@ class GithubOAuthControllerTest extends SliceTestBase {
     }
 
     @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is 503 without ASSEMBLE_URL")
+    void pushTreeMapsMissingAssembleUrl() throws Exception {
+        when(githubOAuthService.pushTree(TOKEN))
+                .thenThrow(new AuthException(503, "assemble url missing"));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("assemble url missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))));
+    }
+
+    @Test
     @DisplayName("POST /api/oauth/github/repos is 401 without the GitHub cookie")
     void createRepoRequiresCookie() throws Exception {
         when(githubOAuthService.createRepo(null))

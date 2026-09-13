@@ -50,7 +50,7 @@ public class GithubOAuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     GithubOAuthService(GithubOAuthProperties properties, RestClient.Builder restClientBuilder) {
-        this(properties, restClientBuilder, new AssembleTree());
+        this(properties, restClientBuilder, new AssembleTree(List.of()));
     }
 
     @Autowired
