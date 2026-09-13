@@ -155,10 +155,25 @@ paths:
   /api/oauth/github/repos:
     post:
       operationId: githubOAuthCreateRepo
-      summary: Create the frozen e2e.stack public repo. Never returns a token or PAT. Never pushes files.
+      summary: Create the public repo named coverageProfile.automation.e2e.stack from Home YAML. Never frozen. Never returns a token or PAT. Never pushes files.
       tags: [oauth]
       security:
         - githubOAuthCookie: []
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+            example: |
+              destination: user
+              coverageProfile:
+                automation:
+                  e2e:
+                    stack: python-pytest
+          text/plain:
+            schema:
+              type: string
       responses:
         "200":
           description: Repo URL; created is true even when the repo already existed
@@ -168,15 +183,17 @@ paths:
                 $ref: "#/components/schemas/GithubOAuthRepoResponse"
               example:
                 login: octocat
-                url: https://github.com/octocat/java-junit5-rest_assured-selenide
+                url: https://github.com/octocat/python-pytest
                 created: true
+        "400":
+          description: YAML body missing or coverageProfile.automation.e2e.stack missing. Never a frozen stack.
         "401":
           description: Missing or invalid GitHub OAuth cookie
 
   /api/oauth/github/repos/contents:
     post:
       operationId: githubOAuthPushTree
-      summary: Push unzip of dest zip from Home YAML (destination forced zip). Never classpath assemble-landing.yaml. Never a token or PAT.
+      summary: Push unzip of dest zip from Home YAML onto the repo named coverageProfile.automation.e2e.stack. Never classpath assemble-landing.yaml. Never a token or PAT.
       tags: [oauth]
       security:
         - githubOAuthCookie: []
@@ -191,7 +208,7 @@ paths:
               coverageProfile:
                 automation:
                   e2e:
-                    stack: java-junit5-rest_assured-selenide
+                    stack: python-pytest
           text/plain:
             schema:
               type: string
@@ -204,10 +221,10 @@ paths:
                 $ref: "#/components/schemas/GithubOAuthPushResponse"
               example:
                 login: octocat
-                url: https://github.com/octocat/java-junit5-rest_assured-selenide
+                url: https://github.com/octocat/python-pytest
                 pushed: true
         "400":
-          description: YAML body missing. Never a classpath assemble-landing.yaml stub.
+          description: YAML body missing or coverageProfile.automation.e2e.stack missing. Never a classpath assemble-landing.yaml stub.
         "401":
           description: Missing or invalid GitHub OAuth cookie or empty assemble zip
         "503":
@@ -332,7 +349,7 @@ components:
           example: octocat
         url:
           type: string
-          example: https://github.com/octocat/java-junit5-rest_assured-selenide
+          example: https://github.com/octocat/python-pytest
         created:
           type: boolean
           example: true
@@ -348,7 +365,7 @@ components:
           example: octocat
         url:
           type: string
-          example: https://github.com/octocat/java-junit5-rest_assured-selenide
+          example: https://github.com/octocat/python-pytest
         pushed:
           type: boolean
           example: true
