@@ -1,9 +1,19 @@
 /** School IdP for dest cloud. Session is login only — never GitHub OAuth, never a PAT. */
 
+import { apiUrl } from './appBase';
+
 export const IDP_CALLBACK_PATH = '/oauth/idp/callback';
 export const IDP_SESSION_KEY = 'autotests-ai.idp';
 export const IDP_STATE_KEY = 'autotests-ai.idp-state';
 export const IDP_SCOPE = 'openid';
+const SECRET_KEYS = [
+  'token',
+  'access_token',
+  'id_token',
+  'pat',
+  'password',
+  'refresh_token',
+] as const;
 
 /** Person mark (viewBox 0 0 24 24). Not the GitHub octocat. */
 export const IDP_MARK_PATH =
@@ -13,6 +23,12 @@ const SCHOOL_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 
 export type IdpSession = {
   login: string;
+};
+
+export type IdpCallbackQuery = {
+  code?: string;
+  state?: string;
+  error?: string;
 };
 
 /** Runtime assigner so RTL can spy without stubbing window.location. */
@@ -67,6 +83,10 @@ export function isIdpAuthorizeUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function idpExchangeUrl(): string {
+  return apiUrl('/oauth/idp');
 }
 
 export function idpRedirectUri(origin: string): string {
@@ -150,6 +170,79 @@ export function clearIdpSession(storage: Storage = sessionStorage): void {
 /** Drop state after the callback. Never invent login from the query. */
 export function finishIdpCallback(storage: Storage = sessionStorage): void {
   clearIdpState(storage);
+}
+
+export function parseIdpCallback(search: string): IdpCallbackQuery {
+  const trimmed = search.startsWith('?') ? search.slice(1) : search;
+  const params = new URLSearchParams(trimmed);
+  const error = params.get('error')?.trim() || undefined;
+  const code = params.get('code')?.trim() || undefined;
+  const state = params.get('state')?.trim() || undefined;
+  return { code, state, error };
+}
+
+function payloadHasSecret(body: unknown): boolean {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return false;
+  }
+  const rec = body as Record<string, unknown>;
+  return SECRET_KEYS.some((key) => rec[key] != null && rec[key] !== '');
+}
+
+function loginFromExchangeBody(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return undefined;
+  }
+  const login = (body as { login?: unknown }).login;
+  return typeof login === 'string' ? login : undefined;
+}
+
+export async function completeIdpCallback(input: {
+  search: string;
+  fetchImpl?: typeof fetch;
+  storage?: Storage;
+  exchangeUrl?: string;
+  origin?: string;
+}): Promise<IdpSession> {
+  const storage = input.storage ?? sessionStorage;
+  const parsed = parseIdpCallback(input.search);
+  if (parsed.error) {
+    throw new Error(parsed.error);
+  }
+  if (!parsed.code) {
+    throw new Error('missing oauth code');
+  }
+  const expected = readIdpState(storage);
+  if (!parsed.state || parsed.state !== expected) {
+    throw new Error('oauth state mismatch');
+  }
+  const origin = input.origin ?? window.location.origin;
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const response = await fetchImpl(input.exchangeUrl ?? idpExchangeUrl(), {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      code: parsed.code,
+      state: parsed.state,
+      redirectUri: idpRedirectUri(origin),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error('oauth exchange failed');
+  }
+  const body: unknown = await response.json();
+  if (payloadHasSecret(body)) {
+    throw new Error('oauth must not return a token');
+  }
+  const login = loginFromExchangeBody(body);
+  if (!login || !isSchoolLogin(login)) {
+    throw new Error('oauth login missing');
+  }
+  const session = { login };
+  writeIdpSession(session, storage);
+  clearIdpState(storage);
+  return session;
 }
 
 export function startIdpLogin(input: {

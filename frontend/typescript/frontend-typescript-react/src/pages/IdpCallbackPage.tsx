@@ -1,15 +1,21 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { finishIdpCallback } from '../lib/idp-login';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { completeIdpCallback, finishIdpCallback } from '../lib/idp-login';
 
-/** Dest cloud callback. Does not exchange code or invent login this window. */
+/** Dest cloud callback. Exchanges code for login only. Never a token, never login from the query. */
 export function IdpCallbackPage() {
+  const [params] = useSearchParams();
   const navigate = useNavigate();
+  const search = params.toString();
 
   useEffect(() => {
-    finishIdpCallback();
-    navigate('/', { replace: true });
-  }, [navigate]);
+    void completeIdpCallback({ search: `?${search}` })
+      .catch(() => undefined)
+      .finally(() => {
+        finishIdpCallback();
+        navigate('/', { replace: true });
+      });
+  }, [navigate, search]);
 
   return <main data-testid="idp-callback" />;
 }

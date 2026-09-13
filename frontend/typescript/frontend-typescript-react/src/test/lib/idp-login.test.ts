@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { apiUrl } from '../../lib/appBase';
 import {
   clearIdpSession,
   clearIdpState,
+  completeIdpCallback,
   createIdpState,
   finishIdpCallback,
   IDP_CALLBACK_PATH,
@@ -14,10 +16,12 @@ import {
   idpAuthorizeUrl,
   idpClientId,
   idpConfigured,
+  idpExchangeUrl,
   idpGate,
   idpRedirectUri,
   isIdpAuthorizeUrl,
   isSchoolLogin,
+  parseIdpCallback,
   readIdpSession,
   readIdpState,
   startIdpLogin,
@@ -74,6 +78,7 @@ function throwingStorage(): Storage {
 
 describe('idp-login', () => {
   afterEach(() => {
+    sessionStorage.clear();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -107,6 +112,7 @@ describe('idp-login', () => {
     expect(idpRedirectUri('http://localhost:8081/')).toBe(
       `http://localhost:8081${IDP_CALLBACK_PATH}`,
     );
+    expect(idpExchangeUrl()).toBe(apiUrl('/oauth/idp'));
     expect(IDP_MARK_PATH.startsWith('M12')).toBe(true);
   });
 
@@ -234,4 +240,164 @@ describe('idp-login', () => {
     finishIdpCallback(throwingStorage());
     expect(readIdpSession(storage)).toEqual({ login: 'qaguru' });
   });
+
+  it('parses the IdP callback query and ignores login in the URL', () => {
+    expect(parseIdpCallback('code=abc&state=s1&login=unknown')).toEqual({
+      code: 'abc',
+      state: 's1',
+      error: undefined,
+    });
+    expect(parseIdpCallback('?error=access_denied')).toEqual({
+      code: undefined,
+      state: undefined,
+      error: 'access_denied',
+    });
+  });
+
+  it('exchanges code for login and never keeps a token', async () => {
+    const storage = memoryStorage();
+    writeIdpState('csrf', storage);
+    const fetchImpl = vi.fn(async () => jsonResponse({ login: 'qaguru' }));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf&login=unknown',
+        fetchImpl,
+        storage,
+        exchangeUrl: '/api/oauth/idp',
+        origin: 'http://localhost:8081',
+      }),
+    ).resolves.toEqual({ login: 'qaguru' });
+    expect(readIdpSession(storage)).toEqual({ login: 'qaguru' });
+    expect(readIdpState(storage)).toBeNull();
+    expect(JSON.stringify(readIdpSession(storage))).not.toContain('token');
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/oauth/idp',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({
+          code: 'idp-code',
+          state: 'csrf',
+          redirectUri: 'http://localhost:8081/oauth/idp/callback',
+        }),
+      }),
+    );
+  });
+
+  it('uses the default fetch and exchange URL on success', async () => {
+    writeIdpState('csrf');
+    const fetchMock = vi.fn(async () => jsonResponse({ login: 'qaguru' }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(completeIdpCallback({ search: '?code=idp-code&state=csrf' })).resolves.toEqual({
+      login: 'qaguru',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      idpExchangeUrl(),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(readIdpSession()).toEqual({ login: 'qaguru' });
+  });
+
+  it('refuses callback errors, secrets, and invented logins', async () => {
+    const storage = memoryStorage();
+    const fetchImpl = vi.fn();
+    await expect(
+      completeIdpCallback({ search: '?error=access_denied', fetchImpl, storage }),
+    ).rejects.toThrow('access_denied');
+    await expect(
+      completeIdpCallback({ search: '?state=csrf', fetchImpl, storage }),
+    ).rejects.toThrow('missing oauth code');
+    writeIdpState('csrf', storage);
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=other',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth state mismatch');
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru' }, false));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth exchange failed');
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', token: 'secret' }));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth must not return a token');
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', access_token: 'idp_secret' }));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth must not return a token');
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', id_token: 'eyJ' }));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth must not return a token');
+    expect(readIdpSession(storage)).toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', access_token: '' }));
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown' }));
+    fetchImpl.mockResolvedValueOnce(jsonResponse([]));
+    fetchImpl.mockResolvedValueOnce(jsonResponse(null));
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12 }));
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).resolves.toEqual({ login: 'qaguru' });
+    writeIdpState('csrf', storage);
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth login missing');
+    writeIdpState('csrf', storage);
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth login missing');
+    writeIdpState('csrf', storage);
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth login missing');
+    writeIdpState('csrf', storage);
+    await expect(
+      completeIdpCallback({
+        search: '?code=idp-code&state=csrf',
+        fetchImpl,
+        storage,
+      }),
+    ).rejects.toThrow('oauth login missing');
+  });
 });
+
+function jsonResponse(body: unknown, ok = true): Response {
+  return {
+    ok,
+    json: async () => body,
+  } as Response;
+}

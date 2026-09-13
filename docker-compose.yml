@@ -40,6 +40,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:-autotests-ai-app-dev-secret-change-in-production-min-32-chars}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      IDP_CLIENT_ID: ${IDP_CLIENT_ID:-}
+      IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET:-}
+      IDP_TOKEN_URL: ${IDP_TOKEN_URL:-}
+      IDP_USERINFO_URL: ${IDP_USERINFO_URL:-}
       ASSEMBLE_URL: ${ASSEMBLE_URL:-http://host.docker.internal:3032}
     extra_hosts:
       - "host.docker.internal:host-gateway"

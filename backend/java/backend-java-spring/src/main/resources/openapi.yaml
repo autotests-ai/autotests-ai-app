@@ -230,6 +230,33 @@ paths:
         "503":
           description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
 
+  /api/oauth/idp:
+    post:
+      operationId: idpOAuthExchange
+      summary: Exchange a school IdP code for login. Never returns a token. Never GitHub. Never create.
+      tags: [oauth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdpOAuthRequest"
+      responses:
+        "200":
+          description: School login only. Token and id_token stay on the backend. No cookie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdpOAuthLoginResponse"
+              example:
+                login: qaguru
+        "400":
+          description: Missing code, state, or redirectUri
+        "401":
+          description: IdP exchange failed or login missing / unknown
+        "503":
+          description: IdP client secret or token/userinfo URL is not configured
+
   /api/assemble:
     post:
       operationId: assembleDestZip
@@ -413,6 +440,32 @@ components:
           example: true
       description: Never token, access_token, or PAT. pushed is true if the assemble tree is on main.
 
+    IdpOAuthRequest:
+      type: object
+      required: [code, state, redirectUri]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          example: idp-exchange-code
+        state:
+          type: string
+          example: csrf-state
+        redirectUri:
+          type: string
+          example: http://localhost:8081/oauth/idp/callback
+      description: Never a token. redirectUri matches authorize. Not a GitHub callback.
+
+    IdpOAuthLoginResponse:
+      type: object
+      required: [login]
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          example: qaguru
+      description: School login only. token, access_token, id_token, and PAT must not appear. created is not this response.
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -431,4 +484,4 @@ tags:
   - name: auth
     description: Authentication per flows/login.md
   - name: oauth
-    description: GitHub OAuth for dest user (login cookie, never a token in JSON)
+    description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login only, no cookie, never a token in JSON)

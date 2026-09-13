@@ -36,5 +36,12 @@ github:
     repos-url: ${GITHUB_OAUTH_REPOS_URL:https://api.github.com/user/repos}
     repo-api-base: ${GITHUB_OAUTH_REPO_API_BASE:https://api.github.com/repos}
 
+idp:
+  oauth:
+    client-id: ${IDP_CLIENT_ID:}
+    client-secret: ${IDP_CLIENT_SECRET:}
+    token-url: ${IDP_TOKEN_URL:}
+    userinfo-url: ${IDP_USERINFO_URL:}
+
 assemble:
   url: ${ASSEMBLE_URL:}

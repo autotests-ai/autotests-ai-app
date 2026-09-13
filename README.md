@@ -23,7 +23,7 @@ curl -sf http://127.0.0.1:8081/stack/matrix.json
 
 From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`. Dest zip (`POST /api/assemble`) and dest user push need `ASSEMBLE_URL` (compose default `http://host.docker.internal:3032` → `ensure.py assemble-zip`); empty / prod without host-gateway → 503. Browser CORS to assemble-zip is loopback fallback only.
 
-Dest cloud is school IdP, not GitHub OAuth: YAML `cloud.via: idp`, `created: false`, login only after a session. Frontend env `VITE_IDP_AUTHORIZE_URL` + `VITE_IDP_CLIENT_ID` — empty → Home button hidden. Redirect path `/oauth/idp/callback` — do not register the client in IdP from this repo.
+Dest cloud is school IdP, not GitHub OAuth: YAML `cloud.via: idp`, `created: false`, login only after a session. Frontend env `VITE_IDP_AUTHORIZE_URL` + `VITE_IDP_CLIENT_ID` — empty → Home button hidden. Backend `POST /api/oauth/idp` exchanges the code (`IDP_CLIENT_SECRET`, `IDP_TOKEN_URL`, `IDP_USERINFO_URL`) and returns `{login}` only — no token in JSON, no cookie. Redirect path `/oauth/idp/callback` — do not register the client in IdP from this repo.
 
 Postgres has no host port. First up after replacing the old terminal Flyway history uses volume `pgdata_v2` (does not `down -v` the matrix).
 

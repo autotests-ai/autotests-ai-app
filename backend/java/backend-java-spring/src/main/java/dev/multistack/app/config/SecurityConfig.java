@@ -27,6 +27,7 @@ public class SecurityConfig {
      * CSRF is disabled on purpose: product auth is Bearer JWT ({@link JwtAuthFilter}) with
      * {@link SessionCreationPolicy#STATELESS}. The GitHub OAuth cookie is httpOnly + SameSite=Lax
      * on {@code /api/oauth} only — browsers will not send it on cross-site POST.
+     * School IdP {@code POST /api/oauth/idp} has no cookie: JSON is login only.
      * Enabling CSRF would break JSON API clients that do not echo an XSRF token.
      *
      * <p>This module is API-only. UI is served by per-frontend nginx containers
@@ -46,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/assemble").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/oauth/github", "/api/oauth/github/repos",
-                                "/api/oauth/github/repos/contents")
+                                "/api/oauth/github/repos/contents", "/api/oauth/idp")
                                 .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/me").authenticated()
