@@ -37,6 +37,9 @@ behavioral tests; entity plumbing is executed by the persistence slice, not by r
 | POST | `/api/auth/logout` | — | 204 | empty |
 | GET | `/api/auth/me` | Bearer | 200 | `{"username"}` |
 | DELETE | `/api/auth/me` | Bearer | 204 | empty |
+| POST | `/api/oauth/github` | — | 200 | `{"login"}` + httpOnly cookie (never token/PAT) |
+| POST | `/api/oauth/github/repos` | cookie | 200 | `{"login","url","created":true}` |
+| POST | `/api/oauth/github/repos/contents` | cookie + YAML | 200 | `{"login","url","pushed":true}` — Home dump, dest zip for assemble-zip; empty YAML = 400, not classpath |
 
 Logout is **stateless by design**: it never invalidates the JWT server-side — the token keeps
 verifying until it expires or the account is deleted. `DELETE /api/auth/me` is the authenticated

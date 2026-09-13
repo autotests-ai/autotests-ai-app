@@ -176,10 +176,25 @@ paths:
   /api/oauth/github/repos/contents:
     post:
       operationId: githubOAuthPushTree
-      summary: Push the assemble zip tree (same roots as dest zip). Never returns a token or PAT.
+      summary: Push unzip of dest zip from Home YAML (destination forced zip). Never classpath assemble-landing.yaml. Never a token or PAT.
       tags: [oauth]
       security:
         - githubOAuthCookie: []
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+            example: |
+              destination: zip
+              coverageProfile:
+                automation:
+                  e2e:
+                    stack: java-junit5-rest_assured-selenide
+          text/plain:
+            schema:
+              type: string
       responses:
         "200":
           description: Repo URL; pushed is true even when GitHub already had the same tree
@@ -191,6 +206,8 @@ paths:
                 login: octocat
                 url: https://github.com/octocat/java-junit5-rest_assured-selenide
                 pushed: true
+        "400":
+          description: YAML body missing. Never a classpath assemble-landing.yaml stub.
         "401":
           description: Missing or invalid GitHub OAuth cookie or empty assemble zip
         "503":
