@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSEMBLE_ZIP_ORIGIN,
   buildWrapperOptions,
+  catalogDocument,
+  catalogHref,
+  catalogProfileId,
   cloneConfig,
   copyText,
   DEFAULTS,
@@ -12,6 +15,8 @@ import {
   type LandingConfig,
   outputFilename,
   shouldAssembleZip,
+  TAKEAWAY_COVERAGE_PROFILE,
+  TAKEAWAY_TESTS_STACK,
   toDocument,
   toJson,
   toYaml,
@@ -68,8 +73,20 @@ describe('landing-config', () => {
     expect(doc.destination).toBe('zip');
     expect(doc.coverageProfile).toEqual(DEFAULTS.coverageProfile);
     expect(doc.coverageProfile).not.toBe(DEFAULTS.coverageProfile);
+    expect(doc).not.toHaveProperty('catalog');
     expect(doc).not.toHaveProperty('backend');
     expect(doc).not.toHaveProperty('codeHost');
+  });
+
+  it('resolves catalog href from frozen e2e stack and matrix github_org', () => {
+    expect(catalogProfileId(TAKEAWAY_COVERAGE_PROFILE)).toBe(TAKEAWAY_TESTS_STACK);
+    expect(catalogHref(TAKEAWAY_TESTS_STACK)).toBe(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    expect(catalogDocument(TAKEAWAY_COVERAGE_PROFILE)).toEqual({
+      profile: TAKEAWAY_TESTS_STACK,
+      url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    });
   });
 
   it('prints live YAML with vector comment, quoted URL, and empty image list', () => {
@@ -109,6 +126,27 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('codeHost:');
     expect(yaml).not.toContain('backendLanguage:');
     expect(yaml.indexOf('destination: zip')).toBeGreaterThan(yaml.indexOf('testopsEnabled: false'));
+  });
+
+  it('prints catalog profile and url when destination is catalog', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'catalog' };
+    const yaml = toYaml(config, 'vector#catalog');
+    expect(yaml).toContain('destination: catalog');
+    expect(yaml).toContain('catalog:');
+    expect(yaml).toContain(`profile: ${TAKEAWAY_TESTS_STACK}`);
+    expect(yaml).toContain(
+      'url: "https://github.com/autotests-ai/java-junit5-rest_assured-selenide"',
+    );
+    const json = JSON.parse(toJson(config, 'vector#catalog')) as {
+      destination: string;
+      catalog: { profile: string; url: string };
+    };
+    expect(json.destination).toBe('catalog');
+    expect(json.catalog).toEqual({
+      profile: TAKEAWAY_TESTS_STACK,
+      url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    });
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncatalog:');
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -280,9 +318,9 @@ describe('landing-config', () => {
 
     expect(
       await downloadLandingOutput({
-        destination: 'catalog',
+        destination: 'cloud',
         hostname: 'localhost',
-        yaml: 'destination: catalog\n',
+        yaml: 'destination: cloud\n',
         text: 'kind: yaml',
         textFilename: 'config.yaml',
       }),
@@ -365,5 +403,29 @@ describe('landing-config', () => {
       }),
     ).toBe('text');
     expect(click).toHaveBeenCalled();
+  });
+
+  it('opens the catalog cell href and does not POST assemble-zip', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+
+    const url = catalogHref(TAKEAWAY_TESTS_STACK);
+    const kind = await downloadLandingOutput({
+      destination: 'catalog',
+      hostname: 'localhost',
+      yaml: 'destination: catalog\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      catalogUrl: url,
+    });
+
+    expect(kind).toBe('catalog');
+    expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
   });
 });

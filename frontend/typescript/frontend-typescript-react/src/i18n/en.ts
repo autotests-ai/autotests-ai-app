@@ -18,6 +18,7 @@ export const en: Dictionary = {
     outputFormat: 'Output format',
     reset: 'Reset',
     download: 'Download',
+    catalogHref: 'Open catalog cell',
     copy: 'Copy',
     remotePlaceholder: 'empty = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',

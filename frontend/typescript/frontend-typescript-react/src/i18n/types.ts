@@ -18,6 +18,7 @@ export interface Dictionary {
     outputFormat: string;
     reset: string;
     download: string;
+    catalogHref: string;
     copy: string;
     remotePlaceholder: string;
     driverWebdriver: string;

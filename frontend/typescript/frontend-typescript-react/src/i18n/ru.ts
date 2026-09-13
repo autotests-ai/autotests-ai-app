@@ -18,6 +18,7 @@ export const ru: Dictionary = {
     outputFormat: 'Формат вывода',
     reset: 'Сброс',
     download: 'Скачать',
+    catalogHref: 'Открыть ячейку каталога',
     copy: 'Копировать',
     remotePlaceholder: 'пусто = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',

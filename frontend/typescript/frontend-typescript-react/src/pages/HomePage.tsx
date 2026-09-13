@@ -2,6 +2,7 @@ import {
   Badge,
   type HighlightKind,
   highlightOutput,
+  IconBtn,
   IconCopy,
   IconDownload,
   IconReset,
@@ -30,6 +31,7 @@ import {
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
   buildWrapperOptions,
+  catalogDocument,
   cloneConfig,
   copyText,
   DEFAULTS,
@@ -55,6 +57,7 @@ import {
   toYaml,
   writeAgentIds,
 } from '../lib/landing-config';
+import { GITHUB_MARK_PATH } from '../lib/stack-matrix';
 
 type AxisChoice = { value: string; label: string };
 
@@ -142,6 +145,7 @@ export function HomePage() {
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId);
   const json = toJson(config, vectorId);
+  const catalog = catalogDocument(config.coverageProfile);
   const activeOutput = activeTab === 'json' ? json : yaml;
   const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
   const highlightedHtml = highlightOutput(activeOutput, highlightKind);
@@ -282,6 +286,23 @@ export function HomePage() {
                   data-testid="landing-seg-destination"
                 />
               </PlaqueFieldGrid>
+              {config.destination === 'catalog' ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.catalogHref}>
+                  <IconBtn
+                    as="a"
+                    href={catalog.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={copy.home.catalogHref}
+                    title={catalog.url}
+                    data-testid="landing-catalog-href"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d={GITHUB_MARK_PATH} />
+                    </svg>
+                  </IconBtn>
+                </PlaqueFieldGrid>
+              ) : null}
             </ConfigPanel>
 
             <ConfigPanel
@@ -762,6 +783,7 @@ export function HomePage() {
                         yaml,
                         text: activeOutput,
                         textFilename: outputFilename(activeTab),
+                        catalogUrl: catalog.url,
                       }),
                     'data-testid': 'landing-terminal-download',
                   },

@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
-import { ASSEMBLE_ZIP_ORIGIN, DEFAULTS, fingerprint } from '../../lib/landing-config';
+import {
+  ASSEMBLE_ZIP_ORIGIN,
+  DEFAULTS,
+  fingerprint,
+  TAKEAWAY_TESTS_STACK,
+} from '../../lib/landing-config';
 import { HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
@@ -358,6 +363,44 @@ describe('HomePage', () => {
       expect(click).toHaveBeenCalled();
     });
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+  });
+
+  it('opens the catalog href on Download and does not POST assemble-zip', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'catalog',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: catalog');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      `profile: ${TAKEAWAY_TESTS_STACK}`,
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    const href = screen.getByTestId('landing-catalog-href');
+    expect(href).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    expect(href).toHaveAttribute('target', '_blank');
+    expect(href).toHaveAttribute('rel', 'noopener noreferrer');
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+      '_blank',
+      'noopener',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {

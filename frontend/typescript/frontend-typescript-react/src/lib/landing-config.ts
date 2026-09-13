@@ -44,6 +44,11 @@ export type LandingConfig = {
 };
 
 export type DestinationId = 'zip' | 'catalog' | 'cloud' | 'user';
+
+export type CatalogHref = {
+  profile: string;
+  url: string;
+};
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
 
@@ -187,6 +192,27 @@ export const AGENT_ACCESS = [{ value: 'write' }, { value: 'none' }] as const;
 
 export function isDestinationId(value: string): value is DestinationId {
   return DESTINATIONS.some((option) => option.value === value);
+}
+
+/** matrix.yaml defaults.generation.github_org — frozen, not invent. */
+export const CATALOG_GITHUB_ORG = 'autotests-ai';
+
+/** Frozen tests stack → github.com/autotests-ai/<e2e.stack>. */
+export function catalogProfileId(profile: CoverageProfile): string {
+  return profile.automation.e2e.stack;
+}
+
+export function catalogHref(profileId: string, org: string = CATALOG_GITHUB_ORG): string {
+  return `https://github.com/${org}/${profileId}`;
+}
+
+export function catalogDocument(profile: CoverageProfile): CatalogHref {
+  const id = catalogProfileId(profile);
+  return { profile: id, url: catalogHref(id) };
+}
+
+export function openCatalogHref(url: string): void {
+  window.open(url, '_blank', 'noopener');
 }
 
 export function isAgentAccess(value: string): value is AgentAccess {
@@ -415,6 +441,9 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
   }
   doc.destination = config.destination;
   doc.coverageProfile = cloneCoverageProfile(config.coverageProfile);
+  if (config.destination === 'catalog') {
+    doc.catalog = catalogDocument(config.coverageProfile);
+  }
   return doc;
 }
 
@@ -469,6 +498,15 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
   for (const [key, value] of Object.entries(doc)) {
     if (key === 'coverageProfile') {
       lines.push(...yamlCoverageProfile(value as CoverageProfile));
+      continue;
+    }
+    if (key === 'catalog' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const catalog = value as CatalogHref;
+      lines.push(
+        'catalog:',
+        `  profile: ${yamlScalar(catalog.profile)}`,
+        `  url: ${yamlScalar(catalog.url)}`,
+      );
       continue;
     }
     if (Array.isArray(value)) {
@@ -576,7 +614,12 @@ export async function downloadLandingOutput(input: {
   text: string;
   textFilename: string;
   origin?: string;
-}): Promise<'zip' | 'text'> {
+  catalogUrl?: string;
+}): Promise<'zip' | 'catalog' | 'text'> {
+  if (input.destination === 'catalog') {
+    openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
+    return 'catalog';
+  }
   if (shouldAssembleZip(input.destination, input.hostname)) {
     const assembled = await postAssembleZip(input.yaml, input.origin ?? ASSEMBLE_ZIP_ORIGIN);
     if (assembled) {
