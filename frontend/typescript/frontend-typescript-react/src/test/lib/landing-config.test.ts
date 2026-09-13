@@ -37,6 +37,22 @@ describe('landing-config', () => {
     vi.restoreAllMocks();
   });
 
+  function oauthDestUserFetch(repoUrl: string) {
+    return vi.fn(async (url: string) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response;
+    });
+  }
+
   it('omits a harness agent from YAML when the profile has no entry', () => {
     const config = cloneConfig(DEFAULTS);
     delete config.coverageProfile.harness.agents.cline;
@@ -288,6 +304,43 @@ describe('landing-config', () => {
       login: 'octocat',
       url: createdRepo.url,
     });
+    const pushedRepo = { login: 'octocat', url: createdRepo.url, pushed: true as const };
+    const yamlPushed = toYaml(config, 'vector#user', {
+      githubUser: { login: 'octocat' },
+      createdRepo,
+      pushedRepo,
+    });
+    expect(yamlPushed).toContain('pushed: true');
+    expect(yamlPushed).not.toContain('token');
+    expect(yamlPushed.toLowerCase()).not.toContain('pat');
+    expect(userDocument({ login: 'octocat' }, createdRepo, pushedRepo)).toEqual({
+      created: true,
+      via: 'oauth',
+      login: 'octocat',
+      url: createdRepo.url,
+      pushed: true,
+    });
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'octocat',
+        url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+        pushed: true,
+      }),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'hubot',
+        url: createdRepo.url,
+        pushed: true,
+      }),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'octocat',
+        url: createdRepo.url,
+        pushed: false,
+      } as unknown as Parameters<typeof userDocument>[2]),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
     expect(
       userDocument(
         { login: 'octocat' },
@@ -675,16 +728,11 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('\ncatalog:');
   });
 
-  it('POSTs create repo when dest user has a session and writes created true', async () => {
+  it('POSTs create then push when dest user has a session and writes created true', async () => {
     const open = vi.fn();
     vi.stubGlobal('open', open);
     const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
-    const fetchMock = vi.fn(async () =>
-      Promise.resolve({
-        ok: true,
-        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
-      } as Response),
-    );
+    const fetchMock = oauthDestUserFetch(repoUrl);
     vi.stubGlobal('fetch', fetchMock);
     const blobs: string[] = [];
     vi.stubGlobal(
@@ -722,13 +770,20 @@ describe('landing-config', () => {
     });
 
     expect(kind).toBe('text');
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/oauth/github/repos'),
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/oauth\/github\/repos$/),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/oauth/github/repos/contents'),
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
     expect(open).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
     expect(blobs[0]).toContain(repoUrl);
     expect(blobs[0]).not.toContain('token');
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
@@ -762,6 +817,10 @@ describe('landing-config', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
       } as Response);
     vi.stubGlobal('fetch', fetchMock);
     const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
@@ -791,6 +850,7 @@ describe('landing-config', () => {
       outputTab: 'json',
     });
     expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain('"pushed": true');
     expect(blobs[1]).toContain(repoUrl);
   });
 

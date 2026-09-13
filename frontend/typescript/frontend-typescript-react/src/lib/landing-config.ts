@@ -3,10 +3,12 @@
 import {
   createGithubUserRepo,
   type GithubCreatedRepo,
+  type GithubPushedRepo,
   type GithubUserSession,
   githubUserRepoUrl,
   githubUserUrl,
   isGithubLogin,
+  pushGithubUserRepo,
 } from './github-oauth';
 
 export type LandingConfig = {
@@ -69,11 +71,13 @@ export type UserContract = {
   via: 'oauth';
   login?: string;
   url?: string;
+  pushed?: true;
 };
 
 export type LandingEmitOptions = {
   githubUser?: GithubUserSession | null;
   createdRepo?: GithubCreatedRepo | null;
+  pushedRepo?: GithubPushedRepo | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -247,6 +251,7 @@ export function cloudDocument(): CloudContract {
 export function userDocument(
   session?: GithubUserSession | null,
   createdRepo?: GithubCreatedRepo | null,
+  pushedRepo?: GithubPushedRepo | null,
 ): UserContract {
   if (
     createdRepo &&
@@ -254,12 +259,21 @@ export function userDocument(
     isGithubLogin(createdRepo.login) &&
     createdRepo.url === githubUserRepoUrl(createdRepo.login)
   ) {
-    return {
+    const doc: UserContract = {
       created: true,
       via: 'oauth',
       login: createdRepo.login,
       url: createdRepo.url,
     };
+    if (
+      pushedRepo &&
+      pushedRepo.pushed === true &&
+      pushedRepo.login === createdRepo.login &&
+      pushedRepo.url === createdRepo.url
+    ) {
+      doc.pushed = true;
+    }
+    return doc;
   }
   const doc: UserContract = { created: false, via: 'oauth' };
   if (session && isGithubLogin(session.login)) {
@@ -522,7 +536,7 @@ export function toDocument(
     doc.cloud = cloudDocument();
   }
   if (config.destination === 'user') {
-    doc.user = userDocument(options?.githubUser, options?.createdRepo);
+    doc.user = userDocument(options?.githubUser, options?.createdRepo, options?.pushedRepo);
   }
   return doc;
 }
@@ -614,6 +628,9 @@ export function toYaml(
       }
       if (user.url) {
         lines.push(`  url: ${yamlScalar(user.url)}`);
+      }
+      if (user.pushed === true) {
+        lines.push(`  pushed: ${yamlScalar(user.pushed)}`);
       }
       continue;
     }
@@ -744,7 +761,8 @@ export async function downloadLandingOutput(input: {
     let output = input.text;
     if (input.githubUser && input.landingConfig && input.vectorId) {
       const createdRepo = await createGithubUserRepo();
-      const options = { githubUser: input.githubUser, createdRepo };
+      const pushedRepo = createdRepo ? await pushGithubUserRepo() : null;
+      const options = { githubUser: input.githubUser, createdRepo, pushedRepo };
       output =
         input.outputTab === 'json'
           ? toJson(input.landingConfig, input.vectorId, options)

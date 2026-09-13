@@ -22,6 +22,12 @@ export type GithubCreatedRepo = {
   created: true;
 };
 
+export type GithubPushedRepo = {
+  login: string;
+  url: string;
+  pushed: true;
+};
+
 export type GithubOAuthCallbackQuery = {
   code?: string;
   state?: string;
@@ -50,6 +56,10 @@ export function githubOAuthExchangeUrl(): string {
 
 export function githubOAuthReposUrl(): string {
   return apiUrl('/oauth/github/repos');
+}
+
+export function githubOAuthContentsUrl(): string {
+  return apiUrl('/oauth/github/repos/contents');
 }
 
 export function githubOAuthRedirectUri(origin: string): string {
@@ -269,6 +279,42 @@ export async function createGithubUserRepo(
       return null;
     }
     return { login: rec.login, url: rec.url, created: true };
+  } catch {
+    return null;
+  }
+}
+
+export async function pushGithubUserRepo(
+  input: { fetchImpl?: typeof fetch; contentsUrl?: string } = {},
+): Promise<GithubPushedRepo | null> {
+  try {
+    const fetchImpl = input.fetchImpl ?? fetch;
+    const response = await fetchImpl(input.contentsUrl ?? githubOAuthContentsUrl(), {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body: unknown = await response.json();
+    if (payloadHasSecret(body)) {
+      return null;
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return null;
+    }
+    const rec = body as { login?: unknown; url?: unknown; pushed?: unknown };
+    if (rec.pushed !== true) {
+      return null;
+    }
+    if (typeof rec.login !== 'string' || !isGithubLogin(rec.login)) {
+      return null;
+    }
+    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login)) {
+      return null;
+    }
+    return { login: rec.login, url: rec.url, pushed: true };
   } catch {
     return null;
   }

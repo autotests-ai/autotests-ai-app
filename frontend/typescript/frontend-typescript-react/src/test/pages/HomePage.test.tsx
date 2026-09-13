@@ -569,18 +569,25 @@ describe('HomePage', () => {
     expect(go).not.toHaveBeenCalled();
   });
 
-  it('downloads created true after dest user create and never a PAT', async () => {
+  it('downloads created true after dest user create and push and never a PAT', async () => {
     writeGithubUserSession({ login: 'octocat' });
     const user = userEvent.setup();
     const open = vi.fn();
     vi.stubGlobal('open', open);
     const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
-    const fetchMock = vi.fn(async () =>
-      Promise.resolve({
+    const fetchMock = vi.fn(async (url: string) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
         ok: true,
         json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
-      } as Response),
-    );
+      } as Response;
+    });
     vi.stubGlobal('fetch', fetchMock);
     const blobs: string[] = [];
     vi.stubGlobal(
@@ -614,12 +621,19 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/oauth/github/repos'),
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/oauth\/github\/repos$/),
+      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/oauth/github/repos/contents'),
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
     expect(open).not.toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
     expect(blobs[0]).toContain(repoUrl);
     expect(blobs[0]).not.toContain('token');
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
