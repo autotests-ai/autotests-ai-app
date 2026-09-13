@@ -46,5 +46,9 @@ export interface Dictionary {
     swaggerTitle: string;
     testsSrc: string;
     allure: string;
+    loadBoard: string;
+    loadBoardTitle: string;
+    grafana: string;
+    grafanaTitle: string;
   };
 }

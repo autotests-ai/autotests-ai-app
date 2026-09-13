@@ -1,4 +1,4 @@
-import { Badge, Link, Panel } from '@zero-design-system/react';
+import { Badge, IconBtn, Link, Panel } from '@zero-design-system/react';
 import { type MouseEvent, type ReactNode, useEffect, useId, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { type Dictionary, formatCopy, useI18n } from '../i18n';
@@ -23,7 +23,9 @@ import {
   findById,
   GITHUB_MARK_PATH,
   githubModuleHref,
+  grafanaLoadSutHref,
   isOpenable,
+  LOAD_BOARD_HREF,
   localComponentTestsPath,
   type ModuleStatus,
   PERFORMANCE_ROW_LAYERS,
@@ -67,109 +69,132 @@ function statusBadge(status: ModuleStatus | undefined) {
 
 function GitHubMark() {
   return (
-    <span className="icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d={GITHUB_MARK_PATH} />
-      </svg>
-    </span>
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d={GITHUB_MARK_PATH} />
+    </svg>
   );
 }
 
 /** Swagger / OpenAPI — templates/icon-swagger.html */
 function SwaggerMark() {
   return (
-    <span className="icon" aria-hidden="true">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8.8 8.3c-1.1 0-1.75.65-1.75 1.6v.8c0 .42-.3.68-.8.78.5.1.8.36.8.78v.8c0 .95.65 1.6 1.75 1.6" />
-        <path d="M15.2 8.3c1.1 0 1.75.65 1.75 1.6v.8c0 .42.3.68.8.78-.5.1-.8.36-.8.78v.8c0 .95-.65 1.6-1.75 1.6" />
-        <path d="M10.2 12h.01M12 12h.01M13.8 12h.01" strokeWidth="1.8" />
-      </svg>
-    </span>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8.8 8.3c-1.1 0-1.75.65-1.75 1.6v.8c0 .42-.3.68-.8.78.5.1.8.36.8.78v.8c0 .95.65 1.6 1.75 1.6" />
+      <path d="M15.2 8.3c1.1 0 1.75.65 1.75 1.6v.8c0 .42.3.68.8.78-.5.1-.8.36-.8.78v.8c0 .95-.65 1.6-1.75 1.6" />
+      <path d="M10.2 12h.01M12 12h.01M13.8 12h.01" strokeWidth="1.8" />
+    </svg>
   );
 }
 
 function TestsMark() {
   return (
-    <span className="icon" aria-hidden="true">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
-        <path d="M8.5 2h7" />
-        <path d="M7 16h10" />
-      </svg>
-    </span>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
+      <path d="M8.5 2h7" />
+      <path d="M7 16h10" />
+    </svg>
+  );
+}
+
+function LoadBoardMark() {
+  return (
+    <svg viewBox="0 0 32 32" fill="none">
+      <g stroke="currentColor" strokeWidth="5">
+        <path strokeLinecap="round" d="M 19.34 29.08 A 13.5 13.5 0 1 1 26.03 25.03" />
+        <path strokeLinecap="round" d="M26.05 26.05 L29.65 29.65" />
+      </g>
+      <g stroke="currentColor" strokeWidth="3.5" strokeLinecap="square" strokeLinejoin="miter">
+        <path d="M10.3 11.3 L14.2 15.5 L10.3 19.3" />
+        <path d="M19 19.3 H22" />
+      </g>
+    </svg>
+  );
+}
+
+function GrafanaMark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16.5 4.8a8 8 0 1 0 1.2 10.7" />
+      <path d="M12 12h8" />
+    </svg>
   );
 }
 
 function AllureMark() {
   const uid = useId().replace(/:/g, '');
   return (
-    <span className="icon" aria-hidden="true">
-      <svg viewBox="0 0 32 32" fill="none">
-        <path
-          fill={`url(#${uid}-p)`}
-          fillRule="evenodd"
-          d="M22.23 4.66a3.6 3.6 0 0 1 5.1.04A16.08 16.08 0 0 1 31.97 16a3.6 3.6 0 1 1-7.2 0c0-2.4-.98-4.61-2.58-6.24a3.6 3.6 0 0 1 .03-5.1Z"
-          clipRule="evenodd"
-        />
-        <path
-          fill={`url(#${uid}-r)`}
-          fillRule="evenodd"
-          d="M12.4 3.6A3.6 3.6 0 0 1 16 0c4.4 0 8.4 1.8 11.29 4.66a3.6 3.6 0 0 1-5.06 5.13A8.87 8.87 0 0 0 16 7.2a3.6 3.6 0 0 1-3.6-3.6Z"
-          clipRule="evenodd"
-        />
-        <path
-          fill={`url(#${uid}-g)`}
-          fillRule="evenodd"
-          d="M0 16A16 16 0 0 1 16 0a3.6 3.6 0 0 1 0 7.2 8.8 8.8 0 0 0-6.21 15.04 3.6 3.6 0 0 1-5.13 5.06A16.08 16.08 0 0 1 0 16Z"
-          clipRule="evenodd"
-        />
-        <path
-          fill={`url(#${uid}-s)`}
-          fillRule="evenodd"
-          d="M4.66 22.24a3.6 3.6 0 0 1 5.1-.03 8.87 8.87 0 0 0 6.23 2.59 3.6 3.6 0 0 1 0 7.2c-4.4 0-8.4-1.8-11.3-4.66a3.6 3.6 0 0 1-.03-5.1Z"
-          clipRule="evenodd"
-        />
-        <path
-          fill="#FBBF24"
-          fillRule="evenodd"
-          d="M28.38 12.4a3.6 3.6 0 0 1 3.6 3.6v12.4a3.6 3.6 0 1 1-7.2 0V16a3.6 3.6 0 0 1 3.6-3.6Z"
-          clipRule="evenodd"
-        />
-        <defs>
-          <linearGradient id={`${uid}-p`} x1="26.4" x2="28.8" y1="9.6" y2="15.01">
-            <stop stopColor="#7E22CE" />
-            <stop offset="1" stopColor="#8B5CF6" />
-          </linearGradient>
-          <linearGradient id={`${uid}-r`} x1="26.8" x2="17.8" y1="9.4" y2="3.61">
-            <stop stopColor="#EF4444" />
-            <stop offset="1" stopColor="#DC2626" />
-          </linearGradient>
-          <linearGradient id={`${uid}-g`} x1="3.6" x2="5.4" y1="14.01" y2="24.81">
-            <stop stopColor="#22C55E" />
-            <stop offset="1" stopColor="#15803D" />
-          </linearGradient>
-          <linearGradient id={`${uid}-s`} x1="4.8" x2="14.4" y1="22.21" y2="29.21">
-            <stop stopColor="#94A3B8" />
-            <stop offset=".96" stopColor="#64748B" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </span>
+    <svg viewBox="0 0 32 32" fill="none">
+      <path
+        fill={`url(#${uid}-p)`}
+        fillRule="evenodd"
+        d="M22.23 4.66a3.6 3.6 0 0 1 5.1.04A16.08 16.08 0 0 1 31.97 16a3.6 3.6 0 1 1-7.2 0c0-2.4-.98-4.61-2.58-6.24a3.6 3.6 0 0 1 .03-5.1Z"
+        clipRule="evenodd"
+      />
+      <path
+        fill={`url(#${uid}-r)`}
+        fillRule="evenodd"
+        d="M12.4 3.6A3.6 3.6 0 0 1 16 0c4.4 0 8.4 1.8 11.29 4.66a3.6 3.6 0 0 1-5.06 5.13A8.87 8.87 0 0 0 16 7.2a3.6 3.6 0 0 1-3.6-3.6Z"
+        clipRule="evenodd"
+      />
+      <path
+        fill={`url(#${uid}-g)`}
+        fillRule="evenodd"
+        d="M0 16A16 16 0 0 1 16 0a3.6 3.6 0 0 1 0 7.2 8.8 8.8 0 0 0-6.21 15.04 3.6 3.6 0 0 1-5.13 5.06A16.08 16.08 0 0 1 0 16Z"
+        clipRule="evenodd"
+      />
+      <path
+        fill={`url(#${uid}-s)`}
+        fillRule="evenodd"
+        d="M4.66 22.24a3.6 3.6 0 0 1 5.1-.03 8.87 8.87 0 0 0 6.23 2.59 3.6 3.6 0 0 1 0 7.2c-4.4 0-8.4-1.8-11.3-4.66a3.6 3.6 0 0 1-.03-5.1Z"
+        clipRule="evenodd"
+      />
+      <path
+        fill="#FBBF24"
+        fillRule="evenodd"
+        d="M28.38 12.4a3.6 3.6 0 0 1 3.6 3.6v12.4a3.6 3.6 0 1 1-7.2 0V16a3.6 3.6 0 0 1 3.6-3.6Z"
+        clipRule="evenodd"
+      />
+      <defs>
+        <linearGradient id={`${uid}-p`} x1="26.4" x2="28.8" y1="9.6" y2="15.01">
+          <stop stopColor="#7E22CE" />
+          <stop offset="1" stopColor="#8B5CF6" />
+        </linearGradient>
+        <linearGradient id={`${uid}-r`} x1="26.8" x2="17.8" y1="9.4" y2="3.61">
+          <stop stopColor="#EF4444" />
+          <stop offset="1" stopColor="#DC2626" />
+        </linearGradient>
+        <linearGradient id={`${uid}-g`} x1="3.6" x2="5.4" y1="14.01" y2="24.81">
+          <stop stopColor="#22C55E" />
+          <stop offset="1" stopColor="#15803D" />
+        </linearGradient>
+        <linearGradient id={`${uid}-s`} x1="4.8" x2="14.4" y1="22.21" y2="29.21">
+          <stop stopColor="#94A3B8" />
+          <stop offset=".96" stopColor="#64748B" />
+        </linearGradient>
+      </defs>
+    </svg>
   );
 }
 
@@ -190,8 +215,9 @@ function IconHrefCell({
     return <span className="text text--sm text--muted">—</span>;
   }
   return (
-    <a
-      className="icon-btn stack-page__gh-icon"
+    <IconBtn
+      as="a"
+      className="stack-page__gh-icon"
       href={href}
       target="_blank"
       rel="noopener noreferrer"
@@ -200,7 +226,7 @@ function IconHrefCell({
       data-testid={testId}
     >
       {children}
-    </a>
+    </IconBtn>
   );
 }
 
@@ -371,6 +397,7 @@ export function StackPage() {
   if (currentTests) labelParts.push(currentTests);
   const label = labelParts.join(' · ');
   const homeHref = stackHref(selection.backendId, selection.frontendId);
+  const grafanaHref = grafanaLoadSutHref(selection.backendId);
 
   function metaFor(kind: 'backend' | 'frontend', item: BackendModule | FrontendModule): string {
     const status = item.status || 'active';
@@ -890,6 +917,34 @@ export function StackPage() {
             bodyClassName="stack-page__board-body"
             className="stack-page__board stack-page__board--performance"
             testId="stack-performance-board"
+            barEnd={
+              <>
+                <IconBtn
+                  as="a"
+                  href={LOAD_BOARD_HREF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={copy.stack.loadBoard}
+                  title={copy.stack.loadBoardTitle}
+                  data-testid="stack-load-board"
+                >
+                  <LoadBoardMark />
+                </IconBtn>
+                {grafanaHref ? (
+                  <IconBtn
+                    as="a"
+                    href={grafanaHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={copy.stack.grafana}
+                    title={copy.stack.grafanaTitle}
+                    data-testid="stack-load-grafana"
+                  >
+                    <GrafanaMark />
+                  </IconBtn>
+                ) : null}
+              </>
+            }
           >
             <table className="stack-page__table">
               <thead>
@@ -898,26 +953,36 @@ export function StackPage() {
                   <th className="stack-page__gh-cell" title={copy.stack.colGh}>
                     {copy.stack.colGh}
                   </th>
-                  <th className="stack-page__gh-cell" title={copy.stack.colAllure}>
-                    {copy.stack.colAllure}
-                  </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.performance.map((item) => {
+                  const openable = isOpenable(item.status);
                   const layers = layersLabel(
                     item.layers?.length ? item.layers : PERFORMANCE_ROW_LAYERS,
                   );
                   return (
                     <tr key={item.id}>
                       <td title={`${item.id} · ${performanceTestsMeta(item)}`}>
-                        <span
-                          className="stack-page__id stack-page__id--disabled"
-                          data-testid={`stack-performance-${item.id}`}
-                        >
-                          {item.id}
-                        </span>
+                        {openable ? (
+                          <Link
+                            className="stack-page__id"
+                            href={LOAD_BOARD_HREF}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`stack-performance-${item.id}`}
+                          >
+                            {item.id}
+                          </Link>
+                        ) : (
+                          <span
+                            className="stack-page__id stack-page__id--disabled"
+                            data-testid={`stack-performance-${item.id}`}
+                          >
+                            {item.id}
+                          </span>
+                        )}
                         <span className="text text--sm text--muted stack-page__meta">
                           {performanceTestsMeta(item)}
                         </span>
@@ -928,15 +993,6 @@ export function StackPage() {
                           modulePath={item.module}
                           kind="performance"
                           id={item.id}
-                          copy={copy}
-                        />
-                      </td>
-                      <td className="stack-page__gh-cell">
-                        <AllureCell
-                          href={null}
-                          id={item.id}
-                          layers={item.layers || PERFORMANCE_ROW_LAYERS}
-                          testId={`stack-allure-performance-${item.id}`}
                           copy={copy}
                         />
                       </td>

@@ -47,5 +47,9 @@ export const ru: Dictionary = {
     swaggerTitle: 'Swagger UI',
     testsSrc: 'Тесты {id}',
     allure: 'Отчёт Allure {id}',
+    loadBoard: 'Борд нагрузки',
+    loadBoardTitle: 'load.autotests.ai',
+    grafana: 'Grafana',
+    grafanaTitle: 'Load SUT observer',
   },
 };

@@ -20,14 +20,17 @@ import {
   DEFAULT_STACK_BACKEND,
   DEFAULT_STACK_FRONTEND,
   DEFAULT_STACK_TESTS,
-  FRONTEND_WITHOUT_LOCAL_TESTS,
   effectiveStackPair,
+  FRONTEND_WITHOUT_LOCAL_TESTS,
   fetchStackMatrix,
   findById,
   findModuleById,
   GITHUB_TREE_BASE,
+  GRAFANA_LOAD_SUT_DASHBOARD,
   githubModuleHref,
+  grafanaLoadSutHref,
   isOpenable,
+  LOAD_BOARD_HREF,
   localComponentTestsPath,
   PERFORMANCE_ROW_LAYERS,
   parseMount,
@@ -211,6 +214,23 @@ describe('stack-matrix helpers', () => {
     expect(apiDocsHref('backend-java-spring/../x')).toBe(null);
     expect(apiDocsHref('backend-java-spring?x=1')).toBe(null);
     expect(apiDocsHref('backend-python-flask')).toBe('/stack/backend-python-flask/api/docs');
+  });
+
+  it('builds load board and Grafana observer hrefs', () => {
+    expect(LOAD_BOARD_HREF).toBe('https://load.autotests.ai/');
+    expect(GRAFANA_LOAD_SUT_DASHBOARD).toBe('https://grafana.qa.guru/d/load-sut-observer');
+    expect(grafanaLoadSutHref(null)).toBe(null);
+    expect(grafanaLoadSutHref('')).toBe(null);
+    expect(grafanaLoadSutHref('frontend-typescript-react')).toBe(null);
+    expect(grafanaLoadSutHref('backend-java-spring/../x')).toBe(null);
+    expect(grafanaLoadSutHref('backend-java-spring?x=1')).toBe(null);
+    expect(grafanaLoadSutHref('backend-java-spring#x')).toBe(null);
+    expect(grafanaLoadSutHref('backend-java-spring')).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+    );
+    expect(grafanaLoadSutHref('backend-python-flask')).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
+    );
   });
 
   it('builds Allure awesome hrefs filtered by searchable tokens', () => {

@@ -74,7 +74,7 @@ const MATRIX: StackMatrix = {
     },
     {
       id: 'tests-java-jmeter',
-      status: 'slot',
+      status: 'active',
       language: 'java',
       module: 'tests/java/tests-java-jmeter',
       layers: ['performance'],
@@ -207,16 +207,33 @@ describe('StackPage', () => {
     expect(screen.queryByTestId('stack-tests-tests-go-cdp')).not.toBeInTheDocument();
     expect(screen.queryByTestId('stack-tests-tests-java-jmeter')).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-performance-board')).toBeInTheDocument();
-    expect(screen.getByTestId('stack-performance-tests-java-jmeter')).toHaveTextContent(
-      'tests-java-jmeter',
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/',
     );
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+      'href',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+    );
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('stack-performance-tests-java-jmeter')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/',
+    );
+    expect(screen.getByTestId('stack-performance-tests-java-jmeter').tagName).toBe('A');
     expect(screen.getByTestId('stack-performance-tests-python-locust')).toHaveTextContent(
       'tests-python-locust',
     );
+    expect(screen.getByTestId('stack-performance-tests-python-locust').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-gh-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
       'https://github.com/autotests-ai/autotests-ai-multistack-app/tree/main/tests/java/tests-java-jmeter',
     );
+    expect(
+      screen.getByTestId('stack-gh-backend-backend-java-spring').querySelectorAll('.icon'),
+    ).toHaveLength(1);
     expect(
       screen.queryByTestId('stack-allure-performance-tests-java-jmeter'),
     ).not.toBeInTheDocument();
@@ -304,6 +321,12 @@ describe('StackPage', () => {
     expect(screen.getByTestId('stack-backend-backend-go-slot').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-frontend-frontend-slot').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-tests-tests-slot').tagName).toBe('SPAN');
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+      'href',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
+    );
+    expect(screen.getByTestId('stack-performance-tests-python-locust').tagName).toBe('SPAN');
+    expect(screen.getByTestId('stack-performance-tests-python-locust')).not.toHaveAttribute('href');
   });
 
   it('shows a slot unit row when the selected backend has no module', async () => {
@@ -370,6 +393,11 @@ describe('StackPage', () => {
       '/stack/backend-java-spring/frontend-javascript-vue/?tests=tests-java-junit5-rest_assured-selenide',
     );
     expect(screen.queryByTestId('stack-allure-tests-component')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/',
+    );
+    expect(screen.queryByTestId('stack-load-grafana')).not.toBeInTheDocument();
   });
 
   it('uses path pair hrefs off the hub', async () => {
@@ -385,6 +413,10 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('backend-python-flask/tests');
     expect(screen.queryByTestId('stack-allure-tests-unit')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+      'href',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
+    );
   });
 
   it('assigns the hub row when the row is clicked outside a link', async () => {
@@ -521,6 +553,14 @@ describe('StackPage', () => {
     expect(screen.getByTestId('stack-tests-title')).toHaveTextContent(ru.stack.panelTests);
     expect(screen.getByTestId('stack-performance-title')).toHaveTextContent(
       ru.stack.panelPerformance,
+    );
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute(
+      'aria-label',
+      ru.stack.loadBoard,
+    );
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+      'aria-label',
+      ru.stack.grafana,
     );
     expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveTextContent(

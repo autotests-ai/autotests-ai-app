@@ -190,6 +190,25 @@ export function apiDocsHref(backendId: string | null | undefined): string | null
   return `${STACK_PREFIX}/${id}/api/docs`;
 }
 
+/** Live load board — not Allure, not reports.autotests.ai. */
+export const LOAD_BOARD_HREF = 'https://load.autotests.ai/';
+
+/** Grafana Load SUT observer — same dashboard as www/matrix.json `grafana`. */
+export const GRAFANA_LOAD_SUT_DASHBOARD = 'https://grafana.qa.guru/d/load-sut-observer';
+
+/**
+ * Load SUT observer filtered to a backend cell (`var-cell`), as www/matrix.js
+ * `grafanaHref`. Invalid id → null.
+ */
+export function grafanaLoadSutHref(backendId: string | null | undefined): string | null {
+  if (!backendId) return null;
+  const id = String(backendId);
+  if (!id.startsWith('backend-') || /[/?#]/.test(id) || id.includes('..')) return null;
+  const url = new URL(GRAFANA_LOAD_SUT_DASHBOARD);
+  url.searchParams.set('var-cell', id);
+  return url.toString();
+}
+
 /** Latest merged Allure 3 awesome report (GitHub Pages). */
 export const ALLURE_AWESOME_LATEST =
   'https://reports.autotests.ai/reports/latest/awesome/index.html';
@@ -373,7 +392,10 @@ export function shortModuleLabel(path: string | null | undefined): string {
   return String(path)
     .replace(/^frontend\/(?:javascript|typescript)\//, '')
     .replace(/^backend\/(?:java|kotlin|python|go|javascript|typescript|csharp|rust)\//, '')
-    .replace(/^tests\/(?:java|kotlin|scala|groovy|python|go|javascript|typescript|csharp|rust)\//, '');
+    .replace(
+      /^tests\/(?:java|kotlin|scala|groovy|python|go|javascript|typescript|csharp|rust)\//,
+      '',
+    );
 }
 
 /** Meta under unit row — framework caption (path is the Module label). */
