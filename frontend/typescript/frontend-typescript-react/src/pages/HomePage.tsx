@@ -18,7 +18,7 @@ import {
 import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
-  AGENT_ACCESS,
+  AGENT_CATALOG,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
   BROWSER_SIZES,
@@ -37,7 +37,7 @@ import {
   downloadText,
   fingerprint,
   IMAGES,
-  isAgentAccess,
+  isAgentId,
   isDestinationId,
   LANGUAGE_VERSIONS,
   type LandingConfig,
@@ -53,6 +53,7 @@ import {
   TESTS_STACKS,
   toJson,
   toYaml,
+  writeAgentIds,
 } from '../lib/landing-config';
 
 type AxisChoice = { value: string; label: string };
@@ -131,8 +132,7 @@ export function HomePage() {
     config.buildTool,
     activeTab,
     config.destination,
-    config.coverageProfile.harness.agents.cline.access,
-    config.coverageProfile.harness.agents.cursor.access,
+    writeAgentIds(config.coverageProfile.harness.agents).join(','),
   ].join(':');
 
   usePlaqueFieldMagnet({
@@ -166,13 +166,17 @@ export function HomePage() {
     }
   };
 
-  const setAgentAccess = (agent: 'cline' | 'cursor') => (value: string) => {
-    if (!isAgentAccess(value)) {
+  const toggleAgent = (value: string) => {
+    if (!isAgentId(value)) {
       return;
     }
     setConfig((prev) => {
       const next = cloneConfig(prev);
-      next.coverageProfile.harness.agents[agent].access = value;
+      const current = next.coverageProfile.harness.agents[value];
+      if (!current) {
+        return prev;
+      }
+      current.access = current.access === 'write' ? 'none' : 'write';
       return next;
     });
   };
@@ -249,22 +253,14 @@ export function HomePage() {
               stackTestId="landing-agents-stack"
               magnetSyncKey={magnetSyncKey}
             >
-              <PlaqueFieldGrid layout="duo" aria-label="Harness agents">
-                <PlaqueFieldSeg
-                  label="cline"
-                  paramId="clineAccess"
-                  value={config.coverageProfile.harness.agents.cline.access}
-                  onValueChange={setAgentAccess('cline')}
-                  options={AGENT_ACCESS}
-                  data-testid="landing-seg-clineAccess"
-                />
-                <PlaqueFieldSeg
-                  label="cursor"
-                  paramId="cursorAccess"
-                  value={config.coverageProfile.harness.agents.cursor.access}
-                  onValueChange={setAgentAccess('cursor')}
-                  options={AGENT_ACCESS}
-                  data-testid="landing-seg-cursorAccess"
+              <PlaqueFieldGrid layout="solo" aria-label="Harness agents">
+                <PlaqueTagstrip
+                  label="agents"
+                  paramId="agents"
+                  options={AGENT_CATALOG.map(({ value, title }) => ({ value, title }))}
+                  values={writeAgentIds(config.coverageProfile.harness.agents)}
+                  onToggle={toggleAgent}
+                  data-testid="landing-tagstrip-agents"
                 />
               </PlaqueFieldGrid>
             </ConfigPanel>

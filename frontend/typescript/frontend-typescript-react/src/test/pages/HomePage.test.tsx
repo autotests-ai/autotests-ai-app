@@ -177,8 +177,8 @@ describe('HomePage', () => {
     ).toBeTruthy();
 
     await user.click(
-      within(screen.getByTestId('landing-seg-cursorAccess')).getByRole('button', {
-        name: 'none',
+      within(screen.getByTestId('landing-tagstrip-agents')).getByRole('button', {
+        name: 'cursor',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
@@ -186,6 +186,18 @@ describe('HomePage', () => {
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'cline: { access: write, module: .clinerules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'claude: { access: none, module: .claude }',
+    );
+
+    await user.click(
+      within(screen.getByTestId('landing-tagstrip-agents')).getByRole('button', {
+        name: 'claude',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'claude: { access: write, module: .claude }',
     );
 
     await user.click(
@@ -261,8 +273,8 @@ describe('HomePage', () => {
       within(screen.getByTestId('landing-seg-headless')).getByRole('button', { name: 'true' }),
     );
     await user.click(
-      within(screen.getByTestId('landing-seg-cursorAccess')).getByRole('button', {
-        name: 'none',
+      within(screen.getByTestId('landing-tagstrip-agents')).getByRole('button', {
+        name: 'cursor',
       }),
     );
     await user.click(
@@ -284,6 +296,9 @@ describe('HomePage', () => {
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'cursor: { access: write, module: .cursor/rules }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'claude: { access: none, module: .claude }',
     );
     expect(screen.getByTestId('landing-terminal-vector')).toHaveTextContent(fingerprint(DEFAULTS));
 

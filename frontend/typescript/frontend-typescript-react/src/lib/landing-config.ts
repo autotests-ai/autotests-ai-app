@@ -86,10 +86,7 @@ export type CoverageProfile = {
   };
   load: LoadSurface;
   harness: {
-    agents: {
-      cline: AgentModule;
-      cursor: AgentModule;
-    };
+    agents: Record<string, AgentModule>;
   };
 };
 
@@ -114,6 +111,42 @@ export const TAKEAWAY_LOAD_STACK = 'slot';
 export const TAKEAWAY_CLINE_MODULE = '.clinerules';
 export const TAKEAWAY_CURSOR_MODULE = '.cursor/rules';
 
+/** Pack has cline/cursor; others are slots until an adapter exists (ADR 011). */
+export const AGENT_CATALOG = [
+  { value: 'cline', module: TAKEAWAY_CLINE_MODULE, title: 'Cline' },
+  { value: 'cursor', module: TAKEAWAY_CURSOR_MODULE, title: 'Cursor Agent' },
+  { value: 'claude', module: '.claude', title: 'Claude Code' },
+  { value: 'codex', module: '.codex', title: 'OpenAI Codex' },
+  { value: 'copilot', module: '.github/copilot-instructions.md', title: 'GitHub Copilot' },
+  { value: 'gigacode', module: '.gigacode', title: 'GigaCode' },
+  { value: 'yandex', module: '.yandex-code', title: 'Yandex Code Assistant' },
+] as const;
+
+export type AgentId = (typeof AGENT_CATALOG)[number]['value'];
+
+const DEFAULT_WRITE_AGENTS: ReadonlySet<string> = new Set(['cline', 'cursor']);
+
+export function takeawayAgents(): Record<string, AgentModule> {
+  const agents: Record<string, AgentModule> = {};
+  for (const agent of AGENT_CATALOG) {
+    agents[agent.value] = {
+      access: DEFAULT_WRITE_AGENTS.has(agent.value) ? 'write' : 'none',
+      module: agent.module,
+    };
+  }
+  return agents;
+}
+
+export function isAgentId(value: string): value is AgentId {
+  return AGENT_CATALOG.some((agent) => agent.value === value);
+}
+
+export function writeAgentIds(agents: Record<string, AgentModule>): string[] {
+  return AGENT_CATALOG.filter((agent) => agents[agent.value]?.access === 'write').map(
+    (agent) => agent.value,
+  );
+}
+
 function takeawayLayer(stack: string, module: string): AutomationLayer {
   return { access: 'write', stack, module };
 }
@@ -134,10 +167,7 @@ export const TAKEAWAY_COVERAGE_PROFILE: CoverageProfile = {
   },
   load: { access: 'none', stack: TAKEAWAY_LOAD_STACK, module: '' },
   harness: {
-    agents: {
-      cline: { access: 'write', module: TAKEAWAY_CLINE_MODULE },
-      cursor: { access: 'write', module: TAKEAWAY_CURSOR_MODULE },
-    },
+    agents: takeawayAgents(),
   },
 };
 
@@ -427,9 +457,13 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
     `  load: ${yamlFlowMap(profile.load)}`,
     '  harness:',
     '    agents:',
-    `      cline: ${yamlFlowMap(profile.harness.agents.cline)}`,
-    `      cursor: ${yamlFlowMap(profile.harness.agents.cursor)}`,
   );
+  for (const agent of AGENT_CATALOG) {
+    const entry = profile.harness.agents[agent.value];
+    if (entry) {
+      lines.push(`      ${agent.value}: ${yamlFlowMap(entry)}`);
+    }
+  }
   return lines;
 }
 

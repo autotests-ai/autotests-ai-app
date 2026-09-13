@@ -96,6 +96,11 @@ describe('landing-config', () => {
     expect(yaml).toContain('load: { access: none, stack: slot, module: "" }');
     expect(yaml).toContain('cline: { access: write, module: .clinerules }');
     expect(yaml).toContain('cursor: { access: write, module: .cursor/rules }');
+    expect(yaml).toContain('claude: { access: none, module: .claude }');
+    expect(yaml).toContain('codex: { access: none, module: .codex }');
+    expect(yaml).toContain('copilot: { access: none, module: .github/copilot-instructions.md }');
+    expect(yaml).toContain('gigacode: { access: none, module: .gigacode }');
+    expect(yaml).toContain('yandex: { access: none, module: .yandex-code }');
     expect(yaml).not.toContain('codeHost:');
     expect(yaml).not.toContain('backendLanguage:');
     expect(yaml.indexOf('destination: zip')).toBeGreaterThan(yaml.indexOf('testopsEnabled: false'));
