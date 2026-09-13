@@ -235,7 +235,7 @@ export function HomePage() {
                   data-testid="landing-select-testsStack"
                 />
               </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="duo" cellSpan="lg" aria-label="Product modules">
+              <PlaqueFieldGrid layout="solo" aria-label="Modules">
                 <PlaqueSelect
                   label="backend.module"
                   paramId="backendModule"
@@ -250,8 +250,6 @@ export function HomePage() {
                   options={FRONTEND_MODULES}
                   data-testid="landing-select-frontendModule"
                 />
-              </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" cellSpan="lg" aria-label="Tests module">
                 <PlaqueSelect
                   label="tests.module"
                   paramId="testsModule"

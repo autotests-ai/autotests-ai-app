@@ -49,6 +49,12 @@ describe('HomePage', () => {
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
     );
+    expect(
+      screen.getByTestId('landing-select-frontendModule').closest('.plaque-field-grid'),
+    ).toHaveClass('plaque-field-grid--solo');
+    expect(screen.getByRole('combobox', { name: 'frontend.module' })).toHaveValue(
+      'frontend/typescript/frontend-typescript-react',
+    );
     expect(screen.getByTestId('landing-agents-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
