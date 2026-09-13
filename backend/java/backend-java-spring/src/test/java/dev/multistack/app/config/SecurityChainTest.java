@@ -3,9 +3,13 @@ package dev.multistack.app.config;
 import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.controller.ApiController;
 import dev.multistack.app.controller.AuthController;
+import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
+import dev.multistack.app.dto.GithubOAuthLoginResponse;
+import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.UserProfileResponse;
 import dev.multistack.app.service.AuthService;
+import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.ItemService;
 import dev.multistack.app.service.JwtService;
 import io.qameta.allure.Epic;
@@ -20,12 +24,18 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,7 +48,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Epic("Security")
 @Feature("Security chain")
 @Severity(SeverityLevel.CRITICAL)
-@WebMvcTest(controllers = {ApiController.class, AuthController.class, OpenApiController.class})
+@WebMvcTest(controllers = {
+        ApiController.class, AuthController.class, OpenApiController.class, GithubOAuthController.class
+})
 @Import({SecurityChainTest.RealJwtConfig.class, SecurityConfig.class, CorsConfig.class})
 @DisplayName("Security chain with real JWT filter")
 class SecurityChainTest extends SliceTestBase {
@@ -65,6 +77,9 @@ class SecurityChainTest extends SliceTestBase {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private GithubOAuthService githubOAuthService;
 
     @Test
     @DisplayName("GET /api/auth/me with a real bearer token passes the filter chain")
@@ -96,6 +111,21 @@ class SecurityChainTest extends SliceTestBase {
         mockMvc.perform(get("/api/auth/me")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + expired))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github is public and returns login without a token")
+    void oauthGithubPermitAllReturnsLogin() throws Exception {
+        when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
+                .thenReturn(new GithubOAuthLoginResponse("octocat"));
+
+        mockMvc.perform(post("/api/oauth/github")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"gh-code\",\"state\":\"csrf\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value("octocat"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("token"))));
     }
 
     @Test

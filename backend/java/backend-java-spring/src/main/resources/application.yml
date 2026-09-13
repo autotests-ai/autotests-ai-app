@@ -26,3 +26,10 @@ app:
     password: ${SEED_PASSWORD:password1}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*]}
+
+github:
+  oauth:
+    client-id: ${GITHUB_OAUTH_CLIENT_ID:}
+    client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
+    token-url: ${GITHUB_OAUTH_TOKEN_URL:https://github.com/login/oauth/access_token}
+    user-url: ${GITHUB_OAUTH_USER_URL:https://api.github.com/user}

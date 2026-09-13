@@ -38,6 +38,8 @@ services:
       DB_PASSWORD: autotests
       SERVER_PORT: 8080
       JWT_SECRET: ${JWT_SECRET:-autotests-ai-app-dev-secret-change-in-production-min-32-chars}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
