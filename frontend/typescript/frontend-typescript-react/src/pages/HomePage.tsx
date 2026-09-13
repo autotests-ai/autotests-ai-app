@@ -859,6 +859,7 @@ export function HomePage() {
                         textFilename: outputFilename(activeTab),
                         catalogUrl: catalog.url,
                         githubUser: config.destination === 'user' ? githubUser : null,
+                        idpSession: config.destination === 'cloud' ? idpSession : null,
                         landingConfig: config,
                         vectorId,
                         outputTab: activeTab,

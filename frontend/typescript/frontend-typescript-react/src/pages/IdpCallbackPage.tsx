@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { completeIdpCallback, finishIdpCallback } from '../lib/idp-login';
 
-/** Dest cloud callback. Exchanges code for login only. Never a token, never login from the query. */
+/** Dest cloud callback. Exchanges code for login cookie. Never a token in JSON, never login from the query. */
 export function IdpCallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();

@@ -738,6 +738,86 @@ describe('HomePage', () => {
     expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });
 
+  it('downloads created true after dest cloud create and never push or a PAT', async () => {
+    writeIdpSession({ login: 'qaguru' });
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = `https://github.com/autotests-cloud/qaguru-${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents') || href.includes('/oauth/github')) {
+        return { ok: false, json: async () => ({}) } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:home-cloud');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: qaguru');
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/cloud\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining(`stack: ${TAKEAWAY_TESTS_STACK}`),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    const createInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(String(createInit?.body)).toContain(`stack: ${TAKEAWAY_TESTS_STACK}`);
+    expect(String(createInit?.body)).toContain('coverageProfile:');
+    expect(String(createInit?.body)).toContain('destination: zip');
+    expect(String(createInit?.body)).not.toContain('destination: cloud');
+    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
+      '/oauth/github',
+    );
+    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
+      '/contents',
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).toContain('via: idp');
+    expect(blobs[0]).not.toContain('pushed:');
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
     render(<HomePage />);
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');

@@ -1,6 +1,8 @@
-/** School IdP for dest cloud. Session is login only — never GitHub OAuth, never a PAT. */
+/** School IdP for dest cloud. Session is login only — never GitHub OAuth, never a PAT.
+ * Token is an httpOnly cookie on /api/cloud. */
 
 import { apiUrl } from './appBase';
+import { e2eStackFromYaml, isGithubRepoName } from './github-oauth';
 
 export const IDP_CALLBACK_PATH = '/oauth/idp/callback';
 export const IDP_SESSION_KEY = 'autotests-ai.idp';
@@ -23,6 +25,12 @@ const SCHOOL_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 
 export type IdpSession = {
   login: string;
+};
+
+export type CloudCreatedRepo = {
+  login: string;
+  url: string;
+  created: true;
 };
 
 export type IdpCallbackQuery = {
@@ -87,6 +95,10 @@ export function isIdpAuthorizeUrl(value: string): boolean {
 
 export function idpExchangeUrl(): string {
   return apiUrl('/oauth/idp');
+}
+
+export function idpCloudReposUrl(): string {
+  return apiUrl('/cloud/repos');
 }
 
 export function idpRedirectUri(origin: string): string {
@@ -271,4 +283,76 @@ export function startIdpLogin(input: {
   });
   const assign = input.assign ?? ((href) => idpAssign.go(href));
   assign(url);
+}
+
+/** Dest cloud repo named {idp-login}-{e2e.stack} in autotests-cloud. Never dest user. */
+export function cloudRepoName(login: string, stack: string): string {
+  if (!isSchoolLogin(login) || !isGithubRepoName(stack)) {
+    return '';
+  }
+  return `${login}-${stack}`;
+}
+
+export function cloudRepoUrl(login: string, stack: string): string {
+  const name = cloudRepoName(login, stack);
+  if (!name) {
+    return '';
+  }
+  return `https://github.com/autotests-cloud/${name}`;
+}
+
+export function isCloudRepoUrl(login: string, url: string): boolean {
+  if (!isSchoolLogin(login) || !url) {
+    return false;
+  }
+  const prefix = `https://github.com/autotests-cloud/${login}-`;
+  if (!url.startsWith(prefix)) {
+    return false;
+  }
+  return isGithubRepoName(url.slice(prefix.length));
+}
+
+export async function createCloudRepo(
+  input: { yaml?: string; fetchImpl?: typeof fetch; reposUrl?: string } = {},
+): Promise<CloudCreatedRepo | null> {
+  const yaml = typeof input.yaml === 'string' ? input.yaml : '';
+  const stack = e2eStackFromYaml(yaml);
+  if (!stack) {
+    return null;
+  }
+  try {
+    const fetchImpl = input.fetchImpl ?? fetch;
+    const response = await fetchImpl(input.reposUrl ?? idpCloudReposUrl(), {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/yaml' },
+      credentials: 'include',
+      body: yaml,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const body: unknown = await response.json();
+    if (payloadHasSecret(body)) {
+      return null;
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return null;
+    }
+    const rec = body as { login?: unknown; url?: unknown; created?: unknown; pushed?: unknown };
+    if (rec.created !== true) {
+      return null;
+    }
+    if (rec.pushed != null) {
+      return null;
+    }
+    if (typeof rec.login !== 'string' || !isSchoolLogin(rec.login)) {
+      return null;
+    }
+    if (typeof rec.url !== 'string' || rec.url !== cloudRepoUrl(rec.login, stack)) {
+      return null;
+    }
+    return { login: rec.login, url: rec.url, created: true };
+  } catch {
+    return null;
+  }
 }

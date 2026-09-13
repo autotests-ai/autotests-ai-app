@@ -261,6 +261,61 @@ describe('landing-config', () => {
     expect(json.cloud).not.toHaveProperty('url');
   });
 
+  it('prints created true and the org repo URL only after dest cloud create', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const createdCloudRepo = {
+      login: 'qaguru',
+      url: 'https://github.com/autotests-cloud/qaguru-python-pytest',
+      created: true as const,
+    };
+    const yaml = toYaml(config, 'vector#cloud', {
+      idpSession: { login: 'qaguru' },
+      createdCloudRepo,
+    });
+    expect(yaml).toContain('created: true');
+    expect(yaml).toContain('via: idp');
+    expect(yaml).toContain('login: qaguru');
+    expect(yaml).toContain('url: "https://github.com/autotests-cloud/qaguru-python-pytest"');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('token');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('pushed:');
+    expect(cloudDocument({ login: 'qaguru' }, createdCloudRepo)).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: true,
+      via: 'idp',
+      login: 'qaguru',
+      url: createdCloudRepo.url,
+    });
+    expect(
+      cloudDocument(
+        { login: 'qaguru' },
+        {
+          login: 'qaguru',
+          url: 'https://github.com/qaguru/python-pytest',
+          created: true,
+        },
+      ),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+    expect(
+      cloudDocument(
+        { login: 'qaguru' },
+        {
+          login: 'unknown',
+          url: createdCloudRepo.url,
+          created: true,
+        },
+      ),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+    expect(
+      cloudDocument({ login: 'qaguru' }, {
+        login: 'qaguru',
+        url: createdCloudRepo.url,
+        created: false,
+      } as unknown as Parameters<typeof cloudDocument>[1]),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+  });
+
   it('prints user created false via oauth when destination is user', () => {
     const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
     const yaml = toYaml(config, 'vector#user');
@@ -553,7 +608,7 @@ describe('landing-config', () => {
         headers: { 'Content-Type': 'application/yaml' },
       }),
     );
-    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('3032');
+    expect(assembleApiUrl()).not.toContain('3032');
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
     expect(click).toHaveBeenCalled();
   });
@@ -832,6 +887,185 @@ describe('landing-config', () => {
     expect(yaml).toContain('via: idp');
     expect(yaml).not.toContain('via: oauth');
     expect(yaml).not.toContain('github.com/login');
+  });
+
+  it('POSTs create when dest cloud has a session and writes created true without push', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-python-pytest';
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents') || href.includes('/oauth/github')) {
+        return { ok: false, json: async () => ({}) } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:cloud-created');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+    const yaml = toYaml(config, 'vector#cloud', { idpSession: { login: 'qaguru' } });
+    const kind = await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+    });
+
+    expect(kind).toBe('text');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/cloud\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('stack: python-pytest'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    expect(createBody).toContain('destination: zip');
+    expect(createBody).toContain('e2e: { access: write, stack: python-pytest');
+    expect(createBody).not.toContain('destination: cloud');
+    expect(createBody).not.toContain('3032');
+    expect(createBody.toLowerCase()).not.toContain('pat');
+    expect(open).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).toContain('via: idp');
+    expect(blobs[0]).not.toContain('pushed:');
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
+  it('keeps created false when dest cloud create fails and downloads JSON after success', async () => {
+    const createObjectURL = vi.fn(() => 'blob:cloud-json');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-python-pytest';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+    });
+    expect(blobs[0]).toContain('created: false');
+    expect(blobs[0]).toContain('login: qaguru');
+    expect(blobs[0]).not.toContain('pushed:');
+
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: '{}',
+      textFilename: 'config.json',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+      outputTab: 'json',
+    });
+    expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain(repoUrl);
+    expect(blobs[1]).not.toContain('pushed');
+  });
+
+  it('does not POST create when dest cloud has no session or emit ids', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:cloud'), revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+    });
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      vectorId: 'vector#cloud',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
   });
 
   it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {

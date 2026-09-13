@@ -3,7 +3,10 @@ import { apiUrl } from '../../lib/appBase';
 import {
   clearIdpSession,
   clearIdpState,
+  cloudRepoName,
+  cloudRepoUrl,
   completeIdpCallback,
+  createCloudRepo,
   createIdpState,
   finishIdpCallback,
   IDP_CALLBACK_PATH,
@@ -15,10 +18,12 @@ import {
   idpAuthorizeHref,
   idpAuthorizeUrl,
   idpClientId,
+  idpCloudReposUrl,
   idpConfigured,
   idpExchangeUrl,
   idpGate,
   idpRedirectUri,
+  isCloudRepoUrl,
   isIdpAuthorizeUrl,
   isSchoolLogin,
   parseIdpCallback,
@@ -392,6 +397,146 @@ describe('idp-login', () => {
         storage,
       }),
     ).rejects.toThrow('oauth login missing');
+  });
+
+  it('builds the autotests-cloud repo URL from IdP login and YAML e2e.stack', () => {
+    expect(idpCloudReposUrl()).toBe(apiUrl('/cloud/repos'));
+    expect(cloudRepoName('qaguru', 'python-pytest')).toBe('qaguru-python-pytest');
+    expect(cloudRepoUrl('qaguru', 'python-pytest')).toBe(
+      'https://github.com/autotests-cloud/qaguru-python-pytest',
+    );
+    expect(cloudRepoUrl('unknown', 'python-pytest')).toBe('');
+    expect(cloudRepoUrl('qaguru', '')).toBe('');
+    expect(
+      isCloudRepoUrl('qaguru', 'https://github.com/autotests-cloud/qaguru-python-pytest'),
+    ).toBe(true);
+    expect(isCloudRepoUrl('qaguru', 'https://github.com/autotests-cloud/python-pytest')).toBe(
+      false,
+    );
+    expect(isCloudRepoUrl('qaguru', 'https://github.com/qaguru/python-pytest')).toBe(false);
+    expect(isCloudRepoUrl('qaguru', 'https://github.com/autotests-ai/python-pytest')).toBe(false);
+    expect(
+      isCloudRepoUrl('unknown', 'https://github.com/autotests-cloud/unknown-python-pytest'),
+    ).toBe(false);
+  });
+
+  it('creates the org repo from Home YAML and never keeps a PAT', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchImpl = vi.fn(async () => jsonResponse({ login: 'qaguru', url, created: true }));
+    await expect(
+      createCloudRepo({ fetchImpl, reposUrl: '/api/cloud/repos', yaml }),
+    ).resolves.toEqual({ login: 'qaguru', url, created: true });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/cloud/repos',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: yaml,
+        headers: expect.objectContaining({
+          Accept: 'application/json',
+          'Content-Type': 'application/yaml',
+        }),
+      }),
+    );
+  });
+
+  it('uses the default fetch and cloud repos URL on create success', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchMock = vi.fn(async () => jsonResponse({ login: 'qaguru', url, created: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(createCloudRepo({ yaml })).resolves.toEqual({
+      login: 'qaguru',
+      url,
+      created: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      idpCloudReposUrl(),
+      expect.objectContaining({ method: 'POST', credentials: 'include', body: yaml }),
+    );
+  });
+
+  it('refuses create without YAML instead of a frozen stack', async () => {
+    const fetchImpl = vi.fn();
+    await expect(createCloudRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createCloudRepo({ fetchImpl, yaml: '  ' })).resolves.toBeNull();
+    await expect(createCloudRepo({ fetchImpl, yaml: 'destination: cloud\n' })).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('refuses create secrets, dest user URLs, push payloads, and HTTP errors', async () => {
+    const url = cloudRepoUrl('qaguru', 'python-pytest');
+    const yaml = [
+      'destination: zip',
+      'coverageProfile:',
+      '  automation:',
+      '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+      '',
+    ].join('\n');
+    const fetchImpl = vi.fn();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url, created: true }, false));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({ login: 'qaguru', url, created: true, token: 'secret' }),
+    );
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown', url, created: true }));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/qaguru/python-pytest',
+        created: true,
+      }),
+    );
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/autotests-cloud/python-pytest',
+        created: true,
+      }),
+    );
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'qaguru',
+        url: 'https://github.com/autotests-cloud/qaguru-java-junit5-rest_assured-selenide',
+        created: true,
+      }),
+    );
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url, created: false }));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({ login: 'qaguru', url, created: true, pushed: true }),
+    );
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url }));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse(null));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse([]));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12, url, created: true }));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'qaguru', url: 12, created: true }));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    fetchImpl.mockRejectedValueOnce(new Error('network'));
+    await expect(createCloudRepo({ fetchImpl, yaml })).resolves.toBeNull();
   });
 });
 
