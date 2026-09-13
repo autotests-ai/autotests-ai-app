@@ -51,10 +51,15 @@ class GithubOAuthServicePushTest extends UnitTestBase {
     private static final String USER_URL = "https://example.test/user";
     private static final String REPOS_URL = "https://example.test/user/repos";
     private static final String REPO_API_BASE = "https://example.test/repos";
-    private static final String REPO_API_URL =
-            REPO_API_BASE + "/octocat/" + GithubOAuthService.REPO_NAME;
-    private static final String HTML_URL =
-            "https://github.com/octocat/" + GithubOAuthService.REPO_NAME;
+    private static final String E2E_STACK = "python-pytest";
+    private static final String YAML = """
+            destination: zip
+            coverageProfile:
+              automation:
+                e2e: { access: write, stack: python-pytest, module: tests/python }
+            """;
+    private static final String REPO_API_URL = REPO_API_BASE + "/octocat/" + E2E_STACK;
+    private static final String HTML_URL = "https://github.com/octocat/" + E2E_STACK;
     private static final String TREE_URL = REPO_API_URL + "/git/trees";
     private static final String COMMITS_URL = REPO_API_URL + "/git/commits";
     private static final String REF_URL = REPO_API_URL + "/git/ref/heads/main";
@@ -86,7 +91,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(201, COMMIT_SHA);
 
-        GithubOAuthPushResponse response = service.pushTree("gho_secret");
+        GithubOAuthPushResponse response = service.pushTree("gho_secret", YAML);
 
         assertEquals("octocat", response.login());
         assertEquals(HTML_URL, response.url());
@@ -110,7 +115,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(200, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -124,7 +129,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -138,7 +143,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(201, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -150,7 +155,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectGitCommit(200, "{\"tree\":{\"sha\":\"" + TREE_SHA + "\"}}");
         expectCreateTree(201, TREE_SHA);
 
-        GithubOAuthPushResponse response = service.pushTree("gho_secret");
+        GithubOAuthPushResponse response = service.pushTree("gho_secret", YAML);
         assertTrue(response.pushed());
         assertEquals(HTML_URL, response.url());
         server.verify();
@@ -165,7 +170,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(201, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -178,7 +183,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(201, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -191,7 +196,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(201, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -204,7 +209,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, false);
         expectCreateRef(201, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -218,7 +223,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -232,7 +237,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -246,7 +251,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
@@ -260,17 +265,17 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         expectCreateCommit(201, COMMIT_SHA, TREE_SHA, true);
         expectPatchRef(200, COMMIT_SHA);
 
-        assertTrue(service.pushTree("gho_secret").pushed());
+        assertTrue(service.pushTree("gho_secret", YAML).pushed());
         server.verify();
     }
 
     @Test
     @DisplayName("push is 401 without a cookie token")
     void pushTreeRequiresToken() {
-        AuthException missing = assertThrows(AuthException.class, () -> service.pushTree(null));
+        AuthException missing = assertThrows(AuthException.class, () -> service.pushTree(null, YAML));
         assertEquals(401, missing.getStatus());
         assertEquals("oauth cookie missing", missing.getMessage());
-        AuthException blank = assertThrows(AuthException.class, () -> service.pushTree("  "));
+        AuthException blank = assertThrows(AuthException.class, () -> service.pushTree("  ", YAML));
         assertEquals("oauth cookie missing", blank.getMessage());
     }
 
@@ -278,7 +283,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
     @DisplayName("push rejects an unknown GitHub login")
     void pushTreeRejectsUnknownLogin() {
         expectUserJson("{\"login\":\"unknown\"}");
-        AuthException ex = assertThrows(AuthException.class, () -> service.pushTree("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.pushTree("gho_secret", YAML));
         assertEquals("oauth login missing", ex.getMessage());
         server.verify();
     }
@@ -294,7 +299,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
                 new AssembleTree(new AssembleProperties(""), builder));
         expectUserJson("{\"login\":\"octocat\"}");
         AuthException ex = assertThrows(
-                AuthException.class, () -> missing.pushTree("gho_secret", "destination: zip\n"));
+                AuthException.class, () -> missing.pushTree("gho_secret", YAML));
         assertEquals(503, ex.getStatus());
         assertEquals("assemble url missing", ex.getMessage());
         server.verify();
@@ -324,7 +329,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         GithubOAuthService empty = new GithubOAuthService(
                 configuredProperties(), builder, new AssembleTree(List.of()));
         expectUserJson("{\"login\":\"octocat\"}");
-        AuthException ex = assertThrows(AuthException.class, () -> empty.pushTree("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> empty.pushTree("gho_secret", YAML));
         assertEquals("oauth push failed", ex.getMessage());
         server.verify();
     }
@@ -509,7 +514,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
     }
 
     private void assertPushFailed() {
-        AuthException ex = assertThrows(AuthException.class, () -> service.pushTree("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.pushTree("gho_secret", YAML));
         assertEquals(401, ex.getStatus());
         assertEquals("oauth push failed", ex.getMessage());
         server.verify();
@@ -599,7 +604,7 @@ class GithubOAuthServicePushTest extends UnitTestBase {
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"))
                 .andExpect(content().string(allOf(
-                        containsString("Assemble " + GithubOAuthService.REPO_NAME),
+                        containsString("Assemble " + E2E_STACK),
                         containsString(treeSha),
                         hasParent ? containsString(PARENT_SHA) : not(containsString("parents")))));
         String body = "{\"sha\":\"" + commitSha + "\"}";

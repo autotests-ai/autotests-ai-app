@@ -40,8 +40,9 @@ public class GithubOAuthController {
 
     @PostMapping("/github/repos")
     public GithubOAuthRepoResponse createRepo(
-            @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken) {
-        return githubOAuthService.createRepo(accessToken);
+            @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken,
+            @RequestBody(required = false) String yaml) {
+        return githubOAuthService.createRepo(accessToken, yaml);
     }
 
     @PostMapping("/github/repos/contents")

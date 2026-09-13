@@ -34,6 +34,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.ExpectedCount.times;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -52,10 +53,15 @@ class GithubOAuthServiceTest extends UnitTestBase {
     private static final String USER_URL = "https://example.test/user";
     private static final String REPOS_URL = "https://example.test/user/repos";
     private static final String REPO_API_BASE = "https://example.test/repos";
-    private static final String REPO_API_URL =
-            REPO_API_BASE + "/octocat/" + GithubOAuthService.REPO_NAME;
-    private static final String HTML_URL =
-            "https://github.com/octocat/" + GithubOAuthService.REPO_NAME;
+    private static final String E2E_STACK = "python-pytest";
+    private static final String YAML = """
+            destination: zip
+            coverageProfile:
+              automation:
+                e2e: { access: write, stack: python-pytest, module: tests/python }
+            """;
+    private static final String REPO_API_URL = REPO_API_BASE + "/octocat/" + E2E_STACK;
+    private static final String HTML_URL = "https://github.com/octocat/" + E2E_STACK;
     private static final GithubOAuthRequest REQUEST = new GithubOAuthRequest("gh-code", "csrf");
 
     private MockRestServiceServer server;
@@ -211,9 +217,11 @@ class GithubOAuthServiceTest extends UnitTestBase {
         assertFalse(GithubOAuthService.isGithubLogin("-octo"));
         assertTrue(GithubOAuthService.isGithubLogin("octocat"));
         assertTrue(GithubOAuthService.isGithubLogin("a"));
-        assertEquals(HTML_URL, GithubOAuthService.htmlUrl("octocat"));
-        assertFalse(GithubOAuthService.htmlUrl("octocat").contains("unknown"));
-        assertFalse(GithubOAuthService.htmlUrl("octocat").contains("autotests-cloud"));
+        assertEquals(HTML_URL, GithubOAuthService.htmlUrl("octocat", E2E_STACK));
+        assertFalse(GithubOAuthService.htmlUrl("octocat", E2E_STACK).contains("unknown"));
+        assertFalse(GithubOAuthService.htmlUrl("octocat", E2E_STACK).contains("autotests-cloud"));
+        assertFalse(GithubOAuthService.htmlUrl("octocat", E2E_STACK)
+                .contains("java-junit5-rest_assured-selenide"));
     }
 
     @Test
@@ -259,7 +267,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         expectRepoLookup(404);
         expectRepoCreate(201);
 
-        GithubOAuthRepoResponse response = service.createRepo("gho_secret");
+        GithubOAuthRepoResponse response = service.createRepo("gho_secret", YAML);
 
         assertEquals("octocat", response.login());
         assertEquals(HTML_URL, response.url());
@@ -279,7 +287,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         expectUser("{\"login\":\"octocat\"}");
         expectRepoLookup(200);
 
-        GithubOAuthRepoResponse response = service.createRepo("gho_secret");
+        GithubOAuthRepoResponse response = service.createRepo("gho_secret", YAML);
 
         assertEquals(HTML_URL, response.url());
         assertTrue(response.created());
@@ -293,7 +301,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         expectRepoLookup(404);
         expectRepoCreate(422);
 
-        GithubOAuthRepoResponse response = service.createRepo("gho_secret");
+        GithubOAuthRepoResponse response = service.createRepo("gho_secret", YAML);
 
         assertTrue(response.created());
         assertEquals(HTML_URL, response.url());
@@ -307,25 +315,43 @@ class GithubOAuthServiceTest extends UnitTestBase {
         expectRepoLookup(404);
         expectRepoCreate(200);
 
-        assertTrue(service.createRepo("gho_secret").created());
+        assertTrue(service.createRepo("gho_secret", YAML).created());
         server.verify();
     }
 
     @Test
     @DisplayName("create is 401 without a cookie token")
     void createRepoRequiresToken() {
-        AuthException missing = assertThrows(AuthException.class, () -> service.createRepo(null));
+        AuthException missing = assertThrows(AuthException.class, () -> service.createRepo(null, YAML));
         assertEquals(401, missing.getStatus());
         assertEquals("oauth cookie missing", missing.getMessage());
-        AuthException blank = assertThrows(AuthException.class, () -> service.createRepo("  "));
+        AuthException blank = assertThrows(AuthException.class, () -> service.createRepo("  ", YAML));
         assertEquals("oauth cookie missing", blank.getMessage());
+    }
+
+    @Test
+    @DisplayName("create is 400 without Home YAML and never a frozen stack")
+    void createRepoRequiresYaml() {
+        server.expect(times(3), requestTo(USER_URL))
+                .andExpect(method(HttpMethod.GET))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"))
+                .andRespond(withSuccess("{\"login\":\"octocat\"}", MediaType.APPLICATION_JSON));
+        AuthException missing = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", null));
+        assertEquals(400, missing.getStatus());
+        assertEquals("assemble yaml missing", missing.getMessage());
+        AuthException blank = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", "  "));
+        assertEquals("assemble yaml missing", blank.getMessage());
+        AuthException stack = assertThrows(
+                AuthException.class, () -> service.createRepo("gho_secret", "destination: zip\n"));
+        assertEquals("assemble e2e.stack missing", stack.getMessage());
+        server.verify();
     }
 
     @Test
     @DisplayName("create rejects an unknown GitHub login")
     void createRepoRejectsUnknownLogin() {
         expectUser("{\"login\":\"unknown\"}");
-        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", YAML));
         assertEquals("oauth login missing", ex.getMessage());
         server.verify();
     }
@@ -337,7 +363,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         server.expect(once(), requestTo(REPO_API_URL))
                 .andRespond(withException(new IOException("down")));
 
-        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", YAML));
         assertEquals(401, ex.getStatus());
         assertEquals("oauth create failed", ex.getMessage());
         server.verify();
@@ -349,7 +375,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         expectUser("{\"login\":\"octocat\"}");
         expectRepoLookup(500);
 
-        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", YAML));
         assertEquals("oauth create failed", ex.getMessage());
         server.verify();
     }
@@ -362,7 +388,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
         server.expect(once(), requestTo(REPOS_URL))
                 .andRespond(withException(new IOException("down")));
 
-        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", YAML));
         assertEquals("oauth create failed", ex.getMessage());
         server.verify();
     }
@@ -376,7 +402,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withStatus(UNAUTHORIZED));
 
-        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret"));
+        AuthException ex = assertThrows(AuthException.class, () -> service.createRepo("gho_secret", YAML));
         assertEquals("oauth create failed", ex.getMessage());
         server.verify();
     }
@@ -431,7 +457,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"));
         if (status == 200) {
-            expect.andRespond(withSuccess("{\"name\":\"" + GithubOAuthService.REPO_NAME + "\"}",
+            expect.andRespond(withSuccess("{\"name\":\"" + E2E_STACK + "\"}",
                     MediaType.APPLICATION_JSON));
             return;
         }
@@ -448,7 +474,7 @@ class GithubOAuthServiceTest extends UnitTestBase {
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(allOf(
-                        containsString("\"" + GithubOAuthService.REPO_NAME + "\""),
+                        containsString("\"" + E2E_STACK + "\""),
                         containsString("\"private\":false"),
                         containsString("\"auto_init\":false"))));
         if (status == 201) {

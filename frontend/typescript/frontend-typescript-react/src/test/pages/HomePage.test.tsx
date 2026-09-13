@@ -575,7 +575,7 @@ describe('HomePage', () => {
     const open = vi.fn();
     vi.stubGlobal('open', open);
     const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
-    const fetchMock = vi.fn(async (url: string) => {
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
       const href = String(url);
       if (href.includes('/repos/contents')) {
         return {
@@ -624,7 +624,12 @@ describe('HomePage', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       expect.stringMatching(/\/oauth\/github\/repos$/),
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining(`stack: ${TAKEAWAY_TESTS_STACK}`),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
@@ -635,6 +640,9 @@ describe('HomePage', () => {
         body: expect.stringContaining('destination: zip'),
       }),
     );
+    const createInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(String(createInit?.body)).toContain(`stack: ${TAKEAWAY_TESTS_STACK}`);
+    expect(String(createInit?.body)).toContain('coverageProfile:');
     const pushInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
     expect(String(pushInit?.body)).toContain('coverageProfile:');
     expect(String(pushInit?.body)).not.toContain('destination: user');

@@ -157,6 +157,71 @@ class AssembleTreeTest extends UnitTestBase {
     }
 
     @Test
+    @DisplayName("e2e.stack is coverageProfile.automation.e2e.stack from YAML Home, never frozen")
+    void e2eStackFromHomeYaml() {
+        assertEquals("python-pytest", AssembleTree.e2eStack("""
+                destination: user
+                coverageProfile:
+                  automation:
+                    e2e: { access: write, stack: python-pytest, module: tests/python }
+                """));
+        assertEquals("python-pytest", AssembleTree.e2eStack("""
+                coverageProfile:
+                  automation:
+                    e2e:
+                      access: write
+                      stack: python-pytest
+                      module: tests/python
+                """));
+        assertEquals("python-pytest", AssembleTree.e2eStack("e2e:\n\tstack: python-pytest\n"));
+        assertEquals("python-pytest", AssembleTree.e2eStack("""
+                coverageProfile:
+                  automation:
+                    e2e:
+
+                      stack: python-pytest
+                """));
+        assertEquals("python-pytest", AssembleTree.e2eStack("e2e:\n    \n      stack: python-pytest\n"));
+        AuthException missing = assertThrows(AuthException.class, () -> AssembleTree.e2eStack(null));
+        assertEquals(400, missing.getStatus());
+        assertEquals("assemble yaml missing", missing.getMessage());
+        assertEquals("assemble yaml missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("  ")).getMessage());
+        assertEquals("assemble e2e.stack missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("destination: zip\n")).getMessage());
+        assertEquals("assemble e2e.stack missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("""
+                        coverageProfile:
+                          automation:
+                            e2e: { access: write, module: tests/python }
+                        """)).getMessage());
+        assertEquals("assemble e2e.stack missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("""
+                        coverageProfile:
+                          automation:
+                            e2e:
+                              access: write
+                            ui:
+                              stack: python-pytest
+                        """)).getMessage());
+        assertEquals("assemble e2e.stack missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("""
+                        coverageProfile:
+                          automation:
+                            e2e:
+                              stack: -nope
+                        """)).getMessage());
+        assertEquals("assemble e2e.stack missing", assertThrows(
+                AuthException.class, () -> AssembleTree.e2eStack("""
+                        coverageProfile:
+                          automation:
+                            e2e:
+                              stack: foo/bar
+                        """)).getMessage());
+        assertFalse("python-pytest".equals("java-junit5-rest_assured-selenide"));
+    }
+
+    @Test
     @DisplayName("stand YAML forces destination zip and never a classpath dump")
     void standYamlForcesDestinationZip() {
         assertEquals("", AssembleTree.standYaml(null));

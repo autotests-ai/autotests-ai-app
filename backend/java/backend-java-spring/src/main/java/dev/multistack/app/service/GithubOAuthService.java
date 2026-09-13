@@ -36,7 +36,6 @@ public class GithubOAuthService {
 
     public static final String COOKIE_NAME = "github_oauth";
     public static final String COOKIE_PATH = "/api/oauth";
-    public static final String REPO_NAME = "java-junit5-rest_assured-selenide";
     public static final String DEFAULT_BRANCH = "main";
 
     private static final Pattern GITHUB_LOGIN =
@@ -75,7 +74,7 @@ public class GithubOAuthService {
         return new GithubOAuthSession(login, accessToken);
     }
 
-    public GithubOAuthRepoResponse createRepo(String accessToken) {
+    public GithubOAuthRepoResponse createRepo(String accessToken, String yaml) {
         if (accessToken == null || accessToken.isBlank()) {
             throw new AuthException(401, "oauth cookie missing");
         }
@@ -83,14 +82,11 @@ public class GithubOAuthService {
         if (!isGithubLogin(login)) {
             throw new AuthException(401, "oauth login missing");
         }
-        if (!repoExists(accessToken, login)) {
-            createRemoteRepo(accessToken);
+        String repo = AssembleTree.e2eStack(yaml);
+        if (!repoExists(accessToken, login, repo)) {
+            createRemoteRepo(accessToken, repo);
         }
-        return new GithubOAuthRepoResponse(login, htmlUrl(login), true);
-    }
-
-    public GithubOAuthPushResponse pushTree(String accessToken) {
-        return pushTree(accessToken, null);
+        return new GithubOAuthRepoResponse(login, htmlUrl(login, repo), true);
     }
 
     public GithubOAuthPushResponse pushTree(String accessToken, String yaml) {
@@ -101,19 +97,20 @@ public class GithubOAuthService {
         if (!isGithubLogin(login)) {
             throw new AuthException(401, "oauth login missing");
         }
+        String repo = AssembleTree.e2eStack(yaml);
         List<GithubTreeBlob> blobs = assembleTree.blobs(yaml);
         if (blobs.isEmpty()) {
             throw pushFailed();
         }
-        String parentSha = existingCommitSha(accessToken, login);
-        String currentTreeSha = parentSha == null ? null : existingTreeSha(accessToken, login, parentSha);
-        String treeSha = createTreeSha(accessToken, login, blobs);
+        String parentSha = existingCommitSha(accessToken, login, repo);
+        String currentTreeSha = parentSha == null ? null : existingTreeSha(accessToken, login, repo, parentSha);
+        String treeSha = createTreeSha(accessToken, login, repo, blobs);
         if (treeSha.equals(currentTreeSha)) {
-            return new GithubOAuthPushResponse(login, htmlUrl(login), true);
+            return new GithubOAuthPushResponse(login, htmlUrl(login, repo), true);
         }
-        String commitSha = createCommitSha(accessToken, login, treeSha, parentSha);
-        publishRef(accessToken, login, commitSha, parentSha != null);
-        return new GithubOAuthPushResponse(login, htmlUrl(login), true);
+        String commitSha = createCommitSha(accessToken, login, repo, treeSha, parentSha);
+        publishRef(accessToken, login, repo, commitSha, parentSha != null);
+        return new GithubOAuthPushResponse(login, htmlUrl(login, repo), true);
     }
 
     public ResponseCookie toCookie(String accessToken, boolean secure) {
@@ -133,8 +130,8 @@ public class GithubOAuthService {
         return GITHUB_LOGIN.matcher(login).matches();
     }
 
-    public static String htmlUrl(String login) {
-        return "https://github.com/" + login + "/" + REPO_NAME;
+    public static String htmlUrl(String login, String repo) {
+        return "https://github.com/" + login + "/" + repo;
     }
 
     private String requestAccessToken(String code) {
@@ -178,11 +175,11 @@ public class GithubOAuthService {
         return payload == null ? null : payload.login();
     }
 
-    private boolean repoExists(String accessToken, String login) {
+    private boolean repoExists(String accessToken, String login, String repo) {
         final int status;
         try {
             status = restClient.get()
-                    .uri(properties.repoApiUrl(login, REPO_NAME))
+                    .uri(properties.repoApiUrl(login, repo))
                     .header(HttpHeaders.USER_AGENT, USER_AGENT)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .accept(MediaType.APPLICATION_JSON)
@@ -199,7 +196,7 @@ public class GithubOAuthService {
         throw createFailed();
     }
 
-    private void createRemoteRepo(String accessToken) {
+    private void createRemoteRepo(String accessToken, String repo) {
         final int status;
         try {
             status = restClient.post()
@@ -209,7 +206,7 @@ public class GithubOAuthService {
                     .accept(MediaType.APPLICATION_JSON)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of(
-                            "name", REPO_NAME,
+                            "name", repo,
                             "private", Boolean.FALSE,
                             "auto_init", Boolean.FALSE))
                     .exchange((request, response) -> response.getStatusCode().value());
@@ -234,8 +231,8 @@ public class GithubOAuthService {
         return new AuthException(401, "oauth push failed");
     }
 
-    private String existingCommitSha(String accessToken, String login) {
-        String url = properties.repoApiUrl(login, REPO_NAME) + "/git/ref/heads/" + DEFAULT_BRANCH;
+    private String existingCommitSha(String accessToken, String login, String repo) {
+        String url = properties.repoApiUrl(login, repo) + "/git/ref/heads/" + DEFAULT_BRANCH;
         try {
             return restClient.get()
                     .uri(url)
@@ -265,8 +262,8 @@ public class GithubOAuthService {
         }
     }
 
-    private String existingTreeSha(String accessToken, String login, String commitSha) {
-        String url = properties.repoApiUrl(login, REPO_NAME) + "/git/commits/" + commitSha;
+    private String existingTreeSha(String accessToken, String login, String repo, String commitSha) {
+        String url = properties.repoApiUrl(login, repo) + "/git/commits/" + commitSha;
         try {
             return restClient.get()
                     .uri(url)
@@ -292,7 +289,7 @@ public class GithubOAuthService {
         }
     }
 
-    private String createTreeSha(String accessToken, String login, List<GithubTreeBlob> blobs) {
+    private String createTreeSha(String accessToken, String login, String repo, List<GithubTreeBlob> blobs) {
         List<Map<String, String>> tree = new ArrayList<>();
         for (GithubTreeBlob blob : blobs) {
             tree.add(Map.of(
@@ -302,30 +299,30 @@ public class GithubOAuthService {
                     "content", blob.content()));
         }
         return postSha(
-                properties.repoApiUrl(login, REPO_NAME) + "/git/trees",
+                properties.repoApiUrl(login, repo) + "/git/trees",
                 accessToken,
                 Map.of("tree", tree));
     }
 
     private String createCommitSha(
-            String accessToken, String login, String treeSha, String parentSha) {
+            String accessToken, String login, String repo, String treeSha, String parentSha) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("message", "Assemble " + REPO_NAME);
+        body.put("message", "Assemble " + repo);
         body.put("tree", treeSha);
         if (parentSha != null) {
             body.put("parents", List.of(parentSha));
         }
         return postSha(
-                properties.repoApiUrl(login, REPO_NAME) + "/git/commits",
+                properties.repoApiUrl(login, repo) + "/git/commits",
                 accessToken,
                 body);
     }
 
-    private void publishRef(String accessToken, String login, String commitSha, boolean exists) {
-        String repo = properties.repoApiUrl(login, REPO_NAME);
+    private void publishRef(String accessToken, String login, String repo, String commitSha, boolean exists) {
+        String api = properties.repoApiUrl(login, repo);
         String url = exists
-                ? repo + "/git/refs/heads/" + DEFAULT_BRANCH
-                : repo + "/git/refs";
+                ? api + "/git/refs/heads/" + DEFAULT_BRANCH
+                : api + "/git/refs";
         Object body = exists
                 ? Map.of("sha", commitSha)
                 : Map.of("ref", "refs/heads/" + DEFAULT_BRANCH, "sha", commitSha);

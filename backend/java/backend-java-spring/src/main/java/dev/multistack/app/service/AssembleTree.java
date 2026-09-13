@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -61,6 +62,11 @@ public class AssembleTree {
     private static final MediaType YAML = MediaType.parseMediaType("application/yaml");
     private static final Pattern DESTINATION_CHANNEL = Pattern.compile(
             "(?m)^destination:\\s*(?:user|catalog|cloud)\\s*$");
+    private static final Pattern GITHUB_NAME = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]*$");
+    private static final Pattern E2E_LINE = Pattern.compile("^([ \\t]*)e2e:\\s*(.*)$");
+    private static final Pattern FLOW_STACK = Pattern.compile(
+            "\\bstack:\\s*([A-Za-z0-9][A-Za-z0-9._-]*)");
+    private static final Pattern STACK_LINE = Pattern.compile("^[ \\t]*stack:\\s*(\\S+)\\s*$");
 
     private final List<GithubTreeBlob> injected;
     private final AssembleProperties properties;
@@ -107,6 +113,62 @@ public class AssembleTree {
             return "";
         }
         return DESTINATION_CHANNEL.matcher(yaml.strip()).replaceAll("destination: zip");
+    }
+
+    /** Dest user repo name = coverageProfile.automation.e2e.stack from YAML Home. Never a frozen stack. */
+    static String e2eStack(String yaml) {
+        if (yaml == null || yaml.isBlank()) {
+            throw new AuthException(400, "assemble yaml missing");
+        }
+        String found = null;
+        int e2eIndent = -1;
+        for (String line : yaml.split("\\R", -1)) {
+            Matcher e2e = E2E_LINE.matcher(line);
+            if (e2e.matches()) {
+                String rest = e2e.group(2).strip();
+                e2eIndent = e2e.group(1).length();
+                if (rest.startsWith("{")) {
+                    Matcher flow = FLOW_STACK.matcher(rest);
+                    if (flow.find()) {
+                        found = flow.group(1);
+                        break;
+                    }
+                    throw stackMissing();
+                }
+                continue;
+            }
+            if (e2eIndent < 0) {
+                continue;
+            }
+            int indent = leadingIndent(line);
+            if (indent == line.length()) {
+                continue;
+            }
+            if (indent <= e2eIndent) {
+                break;
+            }
+            Matcher stack = STACK_LINE.matcher(line);
+            if (stack.matches()) {
+                found = stack.group(1);
+                break;
+            }
+        }
+        if (found == null || !GITHUB_NAME.matcher(found).matches()) {
+            throw stackMissing();
+        }
+        return found;
+    }
+
+    private static int leadingIndent(String line) {
+        int n = 0;
+        while (n < line.length() && (line.charAt(n) == ' ' || line.charAt(n) == '\t')) {
+            n++;
+        }
+        return n;
+    }
+
+    private static AuthException stackMissing() {
+        return new AuthException(400, "assemble e2e.stack missing");
     }
 
     static List<GithubTreeBlob> fromZip(byte[] zip) {

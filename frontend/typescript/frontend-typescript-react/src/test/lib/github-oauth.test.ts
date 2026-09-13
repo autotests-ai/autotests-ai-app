@@ -6,10 +6,10 @@ import {
   completeGithubOAuthCallback,
   createGithubUserRepo,
   createOauthState,
+  e2eStackFromYaml,
   GITHUB_AUTHORIZE_URL,
   GITHUB_OAUTH_CALLBACK_PATH,
   GITHUB_OAUTH_SCOPE,
-  GITHUB_USER_REPO_NAME,
   GITHUB_USER_SESSION_KEY,
   githubAuthorizeUrl,
   githubOAuthAssign,
@@ -21,6 +21,8 @@ import {
   githubUserRepoUrl,
   githubUserUrl,
   isGithubLogin,
+  isGithubRepoName,
+  isGithubUserRepoUrl,
   parseGithubOAuthCallback,
   pushGithubUserRepo,
   readGithubUserSession,
@@ -29,7 +31,6 @@ import {
   writeGithubUserSession,
   writeOauthState,
 } from '../../lib/github-oauth';
-import { TAKEAWAY_TESTS_STACK } from '../../lib/landing-config';
 
 function memoryStorage(initial: Record<string, string> = {}): Storage {
   const map = new Map(Object.entries(initial));
@@ -85,6 +86,15 @@ function jsonResponse(body: unknown, ok = true): Response {
   } as Response;
 }
 
+const E2E_STACK = 'python-pytest';
+const YAML = [
+  'destination: zip',
+  'coverageProfile:',
+  '  automation:',
+  '    e2e: { access: write, stack: python-pytest, module: tests/python }',
+  '',
+].join('\n');
+
 describe('github-oauth', () => {
   afterEach(() => {
     sessionStorage.clear();
@@ -103,14 +113,41 @@ describe('github-oauth', () => {
     expect(githubUserUrl('octocat')).toBe('https://github.com/octocat');
     expect(githubUserUrl('unknown')).toBe('');
     expect(githubUserUrl('')).toBe('');
-    expect(githubUserRepoUrl('octocat')).toBe(
-      `https://github.com/octocat/${GITHUB_USER_REPO_NAME}`,
+    expect(githubUserRepoUrl('octocat', E2E_STACK)).toBe(`https://github.com/octocat/${E2E_STACK}`);
+    expect(githubUserRepoUrl('octocat', E2E_STACK)).not.toContain(
+      'java-junit5-rest_assured-selenide',
     );
-    expect(GITHUB_USER_REPO_NAME).toBe(TAKEAWAY_TESTS_STACK);
-    expect(githubUserRepoUrl('unknown')).toBe('');
+    expect(githubUserRepoUrl('unknown', E2E_STACK)).toBe('');
     expect(githubUserRepoUrl('octocat', '')).toBe('');
-    expect(githubUserRepoUrl('octocat')).not.toContain('autotests-cloud');
-    expect(githubUserRepoUrl('octocat')).not.toContain('autotests-ai/');
+    expect(githubUserRepoUrl('octocat', E2E_STACK)).not.toContain('autotests-cloud');
+    expect(githubUserRepoUrl('octocat', E2E_STACK)).not.toContain('autotests-ai/');
+    expect(isGithubRepoName(E2E_STACK)).toBe(true);
+    expect(isGithubRepoName('-nope')).toBe(false);
+    expect(isGithubUserRepoUrl('octocat', githubUserRepoUrl('octocat', E2E_STACK))).toBe(true);
+    expect(isGithubUserRepoUrl('octocat', 'https://github.com/autotests-cloud/python-pytest')).toBe(
+      false,
+    );
+    expect(e2eStackFromYaml(YAML)).toBe(E2E_STACK);
+    expect(e2eStackFromYaml('')).toBe('');
+    expect(e2eStackFromYaml('destination: zip\n')).toBe('');
+    expect(
+      e2eStackFromYaml('coverageProfile:\n  automation:\n    e2e:\n      stack: python-pytest\n'),
+    ).toBe(E2E_STACK);
+    expect(
+      e2eStackFromYaml(
+        'coverageProfile:\n  automation:\n    e2e: { access: write, module: tests/python }\n',
+      ),
+    ).toBe('');
+    expect(e2eStackFromYaml('e2e:\n\tstack: python-pytest\n')).toBe(E2E_STACK);
+    expect(
+      e2eStackFromYaml(
+        'coverageProfile:\n  automation:\n    e2e:\n      access: write\n    ui:\n      stack: python-pytest\n',
+      ),
+    ).toBe('');
+    expect(e2eStackFromYaml('e2e:\n  stack: -nope\n')).toBe('');
+    expect(e2eStackFromYaml('e2e:\n  stack: foo/bar\n')).toBe('');
+    expect(isGithubUserRepoUrl('unknown', 'https://github.com/octocat/python-pytest')).toBe(false);
+    expect(isGithubUserRepoUrl('octocat', '')).toBe(false);
   });
 
   it('builds the GitHub authorize URL without a PAT', () => {
@@ -345,11 +382,11 @@ describe('github-oauth', () => {
     ).rejects.toThrow('oauth login missing');
   });
 
-  it('creates the frozen user repo from the httpOnly cookie and never keeps a PAT', async () => {
-    const url = githubUserRepoUrl('octocat');
+  it('creates the YAML e2e.stack user repo from the httpOnly cookie and never keeps a PAT', async () => {
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchImpl = vi.fn(async () => jsonResponse({ login: 'octocat', url, created: true }));
     await expect(
-      createGithubUserRepo({ fetchImpl, reposUrl: '/api/oauth/github/repos' }),
+      createGithubUserRepo({ fetchImpl, reposUrl: '/api/oauth/github/repos', yaml: YAML }),
     ).resolves.toEqual({
       login: 'octocat',
       url,
@@ -357,79 +394,104 @@ describe('github-oauth', () => {
     });
     expect(fetchImpl).toHaveBeenCalledWith(
       '/api/oauth/github/repos',
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: YAML,
+        headers: expect.objectContaining({
+          Accept: 'application/json',
+          'Content-Type': 'application/yaml',
+        }),
+      }),
     );
   });
 
   it('uses the default fetch and repos URL on create success', async () => {
-    const url = githubUserRepoUrl('octocat');
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchMock = vi.fn(async () => jsonResponse({ login: 'octocat', url, created: true }));
     vi.stubGlobal('fetch', fetchMock);
-    await expect(createGithubUserRepo()).resolves.toEqual({
+    await expect(createGithubUserRepo({ yaml: YAML })).resolves.toEqual({
       login: 'octocat',
       url,
       created: true,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       githubOAuthReposUrl(),
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({ method: 'POST', credentials: 'include', body: YAML }),
     );
+  });
+
+  it('refuses create without YAML instead of a frozen stack', async () => {
+    const fetchImpl = vi.fn();
+    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: '  ' })).resolves.toBeNull();
+    await expect(
+      createGithubUserRepo({ fetchImpl, yaml: 'destination: zip\n' }),
+    ).resolves.toBeNull();
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('refuses create secrets, invented logins, org URLs, and HTTP errors', async () => {
-    const url = githubUserRepoUrl('octocat');
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchImpl = vi.fn();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, created: true }, false));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({ login: 'octocat', url, created: true, token: 'secret' }),
     );
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown', url, created: true }));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({
         login: 'octocat',
-        url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+        url: 'https://github.com/autotests-cloud/python-pytest',
         created: true,
       }),
     );
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({
         login: 'octocat',
-        url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+        url: 'https://github.com/autotests-ai/python-pytest',
         created: true,
       }),
     );
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
+    fetchImpl.mockResolvedValueOnce(
+      jsonResponse({
+        login: 'octocat',
+        url: 'https://github.com/octocat/java-junit5-rest_assured-selenide',
+        created: true,
+      }),
+    );
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, created: false }));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url }));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse(null));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse([]));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12, url, created: true }));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url: 12, created: true }));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse('octocat'));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockRejectedValueOnce(new Error('network'));
-    await expect(createGithubUserRepo({ fetchImpl })).resolves.toBeNull();
+    await expect(createGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
   });
 
   it('pushes the assemble tree from Home YAML and never keeps a PAT', async () => {
-    const url = githubUserRepoUrl('octocat');
-    const yaml = 'destination: zip\ncoverageProfile:\n  product: {}\n';
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchImpl = vi.fn(async () => jsonResponse({ login: 'octocat', url, pushed: true }));
     await expect(
       pushGithubUserRepo({
         fetchImpl,
         contentsUrl: '/api/oauth/github/repos/contents',
-        yaml,
+        yaml: YAML,
       }),
     ).resolves.toEqual({
       login: 'octocat',
@@ -441,30 +503,29 @@ describe('github-oauth', () => {
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
-        body: yaml,
+        body: YAML,
         headers: expect.objectContaining({
           Accept: 'application/json',
           'Content-Type': 'application/yaml',
         }),
       }),
     );
-    expect(yaml).toContain('destination: zip');
-    expect(yaml).not.toContain('destination: user');
+    expect(YAML).toContain('destination: zip');
+    expect(YAML).not.toContain('destination: user');
   });
 
   it('uses the default fetch and contents URL on push success', async () => {
-    const url = githubUserRepoUrl('octocat');
-    const yaml = 'destination: zip\n';
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchMock = vi.fn(async () => jsonResponse({ login: 'octocat', url, pushed: true }));
     vi.stubGlobal('fetch', fetchMock);
-    await expect(pushGithubUserRepo({ yaml })).resolves.toEqual({
+    await expect(pushGithubUserRepo({ yaml: YAML })).resolves.toEqual({
       login: 'octocat',
       url,
       pushed: true,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       githubOAuthContentsUrl(),
-      expect.objectContaining({ method: 'POST', credentials: 'include', body: yaml }),
+      expect.objectContaining({ method: 'POST', credentials: 'include', body: YAML }),
     );
   });
 
@@ -472,52 +533,52 @@ describe('github-oauth', () => {
     const fetchImpl = vi.fn();
     await expect(pushGithubUserRepo({ fetchImpl })).resolves.toBeNull();
     await expect(pushGithubUserRepo({ fetchImpl, yaml: '  ' })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: 'destination: zip\n' })).resolves.toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('refuses push secrets, invented logins, org URLs, and HTTP errors', async () => {
-    const url = githubUserRepoUrl('octocat');
-    const yaml = 'destination: zip\n';
+    const url = githubUserRepoUrl('octocat', E2E_STACK);
     const fetchImpl = vi.fn();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, pushed: true }, false));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({ login: 'octocat', url, pushed: true, token: 'secret' }),
     );
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'unknown', url, pushed: true }));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({
         login: 'octocat',
-        url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+        url: 'https://github.com/autotests-cloud/python-pytest',
         pushed: true,
       }),
     );
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(
       jsonResponse({
         login: 'octocat',
-        url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+        url: 'https://github.com/autotests-ai/python-pytest',
         pushed: true,
       }),
     );
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url, pushed: false }));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url }));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse(null));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse([]));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 12, url, pushed: true }));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse({ login: 'octocat', url: 12, pushed: true }));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockResolvedValueOnce(jsonResponse('octocat'));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
     fetchImpl.mockRejectedValueOnce(new Error('network'));
-    await expect(pushGithubUserRepo({ fetchImpl, yaml })).resolves.toBeNull();
+    await expect(pushGithubUserRepo({ fetchImpl, yaml: YAML })).resolves.toBeNull();
   });
 });

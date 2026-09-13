@@ -5,9 +5,9 @@ import {
   type GithubCreatedRepo,
   type GithubPushedRepo,
   type GithubUserSession,
-  githubUserRepoUrl,
   githubUserUrl,
   isGithubLogin,
+  isGithubUserRepoUrl,
   pushGithubUserRepo,
 } from './github-oauth';
 
@@ -257,7 +257,7 @@ export function userDocument(
     createdRepo &&
     createdRepo.created === true &&
     isGithubLogin(createdRepo.login) &&
-    createdRepo.url === githubUserRepoUrl(createdRepo.login)
+    isGithubUserRepoUrl(createdRepo.login, createdRepo.url)
   ) {
     const doc: UserContract = {
       created: true,
@@ -765,12 +765,9 @@ export async function downloadLandingOutput(input: {
   if (input.destination === 'user') {
     let output = input.text;
     if (input.githubUser && input.landingConfig && input.vectorId) {
-      const createdRepo = await createGithubUserRepo();
-      const pushedRepo = createdRepo
-        ? await pushGithubUserRepo({
-            yaml: assembleZipYaml(input.landingConfig, input.vectorId),
-          })
-        : null;
+      const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
+      const createdRepo = await createGithubUserRepo({ yaml });
+      const pushedRepo = createdRepo ? await pushGithubUserRepo({ yaml }) : null;
       const options = { githubUser: input.githubUser, createdRepo, pushedRepo };
       output =
         input.outputTab === 'json'

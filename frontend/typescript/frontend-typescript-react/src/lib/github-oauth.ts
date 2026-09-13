@@ -5,11 +5,14 @@ import { apiUrl } from './appBase';
 export const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 export const GITHUB_OAUTH_CALLBACK_PATH = '/oauth/github/callback';
 export const GITHUB_OAUTH_SCOPE = 'public_repo';
-export const GITHUB_USER_REPO_NAME = 'java-junit5-rest_assured-selenide';
 export const GITHUB_USER_SESSION_KEY = 'autotests-ai.github-user';
 export const GITHUB_OAUTH_STATE_KEY = 'autotests-ai.github-oauth-state';
 
 const GITHUB_LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const GITHUB_REPO_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const E2E_LINE = /^([ \t]*)e2e:\s*(.*)$/;
+const FLOW_STACK = /\bstack:\s*([A-Za-z0-9][A-Za-z0-9._-]*)/;
+const STACK_LINE = /^[ \t]*stack:\s*(\S+)\s*$/;
 const SECRET_KEYS = ['token', 'access_token', 'pat', 'password', 'refresh_token'] as const;
 
 export type GithubUserSession = {
@@ -70,6 +73,48 @@ export function isGithubLogin(value: string): boolean {
   return GITHUB_LOGIN_RE.test(value) && value.toLowerCase() !== 'unknown';
 }
 
+export function isGithubRepoName(value: string): boolean {
+  return GITHUB_REPO_RE.test(value);
+}
+
+/** coverageProfile.automation.e2e.stack from YAML Home. Never a frozen stack. */
+export function e2eStackFromYaml(yaml: string): string {
+  if (!yaml.trim()) {
+    return '';
+  }
+  let found: string | undefined;
+  let e2eIndent = -1;
+  for (const line of yaml.split(/\r?\n/)) {
+    const e2e = E2E_LINE.exec(line);
+    if (e2e) {
+      const rest = (e2e[2] ?? '').trim();
+      e2eIndent = e2e[1]?.length ?? 0;
+      if (rest.startsWith('{')) {
+        const flow = FLOW_STACK.exec(rest);
+        found = flow?.[1];
+        break;
+      }
+      continue;
+    }
+    if (e2eIndent < 0) {
+      continue;
+    }
+    if (!line.trim()) {
+      continue;
+    }
+    const indent = line.match(/^[ \t]*/)?.[0].length ?? 0;
+    if (indent <= e2eIndent) {
+      break;
+    }
+    const stack = STACK_LINE.exec(line);
+    if (stack) {
+      found = stack[1] ?? '';
+      break;
+    }
+  }
+  return found && isGithubRepoName(found) ? found : '';
+}
+
 /** Real profile URL only. Never github.com/unknown. */
 export function githubUserUrl(login: string): string {
   if (!isGithubLogin(login)) {
@@ -78,12 +123,23 @@ export function githubUserUrl(login: string): string {
   return `https://github.com/${login}`;
 }
 
-/** Frozen e2e.stack repo in the user account. Never org or unknown. */
-export function githubUserRepoUrl(login: string, repo: string = GITHUB_USER_REPO_NAME): string {
-  if (!isGithubLogin(login) || !repo) {
+/** Dest user repo named from YAML e2e.stack. Never org or unknown. */
+export function githubUserRepoUrl(login: string, repo: string): string {
+  if (!isGithubLogin(login) || !isGithubRepoName(repo)) {
     return '';
   }
   return `https://github.com/${login}/${repo}`;
+}
+
+export function isGithubUserRepoUrl(login: string, url: string): boolean {
+  if (!isGithubLogin(login) || !url) {
+    return false;
+  }
+  const prefix = `https://github.com/${login}/`;
+  if (!url.startsWith(prefix)) {
+    return false;
+  }
+  return isGithubRepoName(url.slice(prefix.length));
 }
 
 export function githubAuthorizeUrl(input: {
@@ -249,14 +305,20 @@ export async function completeGithubOAuthCallback(input: {
 }
 
 export async function createGithubUserRepo(
-  input: { fetchImpl?: typeof fetch; reposUrl?: string } = {},
+  input: { yaml?: string; fetchImpl?: typeof fetch; reposUrl?: string } = {},
 ): Promise<GithubCreatedRepo | null> {
+  const yaml = typeof input.yaml === 'string' ? input.yaml : '';
+  const stack = e2eStackFromYaml(yaml);
+  if (!stack) {
+    return null;
+  }
   try {
     const fetchImpl = input.fetchImpl ?? fetch;
     const response = await fetchImpl(input.reposUrl ?? githubOAuthReposUrl(), {
       method: 'POST',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'Content-Type': 'application/yaml' },
       credentials: 'include',
+      body: yaml,
     });
     if (!response.ok) {
       return null;
@@ -275,7 +337,7 @@ export async function createGithubUserRepo(
     if (typeof rec.login !== 'string' || !isGithubLogin(rec.login)) {
       return null;
     }
-    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login)) {
+    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login, stack)) {
       return null;
     }
     return { login: rec.login, url: rec.url, created: true };
@@ -288,7 +350,8 @@ export async function pushGithubUserRepo(
   input: { yaml?: string; fetchImpl?: typeof fetch; contentsUrl?: string } = {},
 ): Promise<GithubPushedRepo | null> {
   const yaml = typeof input.yaml === 'string' ? input.yaml : '';
-  if (!yaml.trim()) {
+  const stack = e2eStackFromYaml(yaml);
+  if (!stack) {
     return null;
   }
   try {
@@ -316,7 +379,7 @@ export async function pushGithubUserRepo(
     if (typeof rec.login !== 'string' || !isGithubLogin(rec.login)) {
       return null;
     }
-    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login)) {
+    if (typeof rec.url !== 'string' || rec.url !== githubUserRepoUrl(rec.login, stack)) {
       return null;
     }
     return { login: rec.login, url: rec.url, pushed: true };

@@ -142,10 +142,10 @@ class SecurityChainTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos is public (cookie, not JWT)")
     void oauthCreateRepoPermitAll() throws Exception {
-        when(githubOAuthService.createRepo(any()))
+        when(githubOAuthService.createRepo(nullable(String.class), nullable(String.class)))
                 .thenReturn(new GithubOAuthRepoResponse(
                         "octocat",
-                        GithubOAuthService.htmlUrl("octocat"),
+                        GithubOAuthService.htmlUrl("octocat", "python-pytest"),
                         true));
 
         mockMvc.perform(post("/api/oauth/github/repos"))
@@ -161,7 +161,7 @@ class SecurityChainTest extends SliceTestBase {
         when(githubOAuthService.pushTree(nullable(String.class), nullable(String.class)))
                 .thenReturn(new GithubOAuthPushResponse(
                         "octocat",
-                        GithubOAuthService.htmlUrl("octocat"),
+                        GithubOAuthService.htmlUrl("octocat", "python-pytest"),
                         true));
 
         mockMvc.perform(post("/api/oauth/github/repos/contents")

@@ -35,7 +35,7 @@ class GithubOAuthPropertiesTest extends UnitTestBase {
     }
 
     @Test
-    @DisplayName("repo API URL joins login and frozen name without a trailing slash")
+    @DisplayName("repo API URL joins login and YAML e2e.stack without a trailing slash")
     void repoApiUrlJoinsOwnerAndName() {
         assertEquals(
                 "https://api.github.com/repos/octocat/java-junit5-rest_assured-selenide",

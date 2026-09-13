@@ -53,11 +53,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GithubOAuthControllerTest extends SliceTestBase {
 
     private static final String TOKEN = "gho_secret";
-    private static final String YAML = "destination: zip\ncoverageProfile:\n  product: {}\n";
+    private static final String YAML = """
+            destination: zip
+            coverageProfile:
+              automation:
+                e2e: { access: write, stack: python-pytest, module: tests/python }
+            """;
     private static final MediaType YAML_TYPE = MediaType.parseMediaType("application/yaml");
     private static final String LOGIN_JSON = "{\"login\":\"octocat\"}";
-    private static final String REPO_URL =
-            "https://github.com/octocat/" + GithubOAuthService.REPO_NAME;
+    private static final String REPO_URL = "https://github.com/octocat/python-pytest";
 
     @Autowired
     private MockMvc mockMvc;
@@ -177,10 +181,12 @@ class GithubOAuthControllerTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos returns created true and url, never a token")
     void createRepoReturnsCreatedUrl() throws Exception {
-        when(githubOAuthService.createRepo(TOKEN))
+        when(githubOAuthService.createRepo(TOKEN, YAML))
                 .thenReturn(new GithubOAuthRepoResponse("octocat", REPO_URL, true));
 
         String body = mockMvc.perform(post("/api/oauth/github/repos")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
                         .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.login").value("octocat"))
@@ -199,6 +205,8 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 body);
         assertFalse(body.contains("autotests-cloud"));
         assertFalse(body.contains("autotests-ai/"));
+        assertFalse(body.contains("java-junit5-rest_assured-selenide"));
+        verify(githubOAuthService).createRepo(TOKEN, YAML);
     }
 
     @Test
@@ -297,7 +305,7 @@ class GithubOAuthControllerTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos is 401 without the GitHub cookie")
     void createRepoRequiresCookie() throws Exception {
-        when(githubOAuthService.createRepo(null))
+        when(githubOAuthService.createRepo(isNull(), nullable(String.class)))
                 .thenThrow(new AuthException(401, "oauth cookie missing"));
 
         mockMvc.perform(post("/api/oauth/github/repos"))
@@ -309,12 +317,30 @@ class GithubOAuthControllerTest extends SliceTestBase {
     }
 
     @Test
+    @DisplayName("POST /api/oauth/github/repos is 400 without YAML and never a frozen stack")
+    void createRepoRequiresYamlBody() throws Exception {
+        when(githubOAuthService.createRepo(eq(TOKEN), nullable(String.class)))
+                .thenThrow(new AuthException(400, "assemble yaml missing"));
+
+        mockMvc.perform(post("/api/oauth/github/repos")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("assemble yaml missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.created").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))))
+                .andExpect(content().string(not(containsString("java-junit5-rest_assured-selenide"))));
+    }
+
+    @Test
     @DisplayName("POST /api/oauth/github/repos maps GitHub failure without leaking a token")
     void createRepoMapsGithubFailure() throws Exception {
-        when(githubOAuthService.createRepo(TOKEN))
+        when(githubOAuthService.createRepo(TOKEN, YAML))
                 .thenThrow(new AuthException(401, "oauth create failed"));
 
         mockMvc.perform(post("/api/oauth/github/repos")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
                         .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("oauth create failed"))

@@ -39,7 +39,7 @@ describe('landing-config', () => {
   });
 
   function oauthDestUserFetch(repoUrl: string) {
-    return vi.fn(async (url: string) => {
+    return vi.fn(async (url: string, _init?: RequestInit) => {
       const href = String(url);
       if (href.includes('/repos/contents')) {
         return {
@@ -300,7 +300,7 @@ describe('landing-config', () => {
     const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
     const createdRepo = {
       login: 'octocat',
-      url: `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`,
+      url: 'https://github.com/octocat/python-pytest',
       created: true as const,
     };
     const yaml = toYaml(config, 'vector#user', {
@@ -310,7 +310,7 @@ describe('landing-config', () => {
     expect(yaml).toContain('created: true');
     expect(yaml).toContain('via: oauth');
     expect(yaml).toContain('login: octocat');
-    expect(yaml).toContain(`url: "https://github.com/octocat/${TAKEAWAY_TESTS_STACK}"`);
+    expect(yaml).toContain('url: "https://github.com/octocat/python-pytest"');
     expect(yaml).not.toContain('token');
     expect(yaml.toLowerCase()).not.toContain('pat');
     expect(yaml).not.toContain('autotests-cloud');
@@ -747,7 +747,7 @@ describe('landing-config', () => {
   it('POSTs create then push when dest user has a session and writes created true', async () => {
     const open = vi.fn();
     vi.stubGlobal('open', open);
-    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const repoUrl = 'https://github.com/octocat/python-pytest';
     const fetchMock = oauthDestUserFetch(repoUrl);
     vi.stubGlobal('fetch', fetchMock);
     const blobs: string[] = [];
@@ -772,7 +772,9 @@ describe('landing-config', () => {
       return el;
     });
 
-    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'user';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
     const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
     const kind = await downloadLandingOutput({
       destination: 'user',
@@ -789,7 +791,12 @@ describe('landing-config', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       expect.stringMatching(/\/oauth\/github\/repos$/),
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('stack: python-pytest'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
@@ -803,10 +810,17 @@ describe('landing-config', () => {
     );
     const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
     expect(pushBody).toContain('coverageProfile:');
+    expect(pushBody).toContain('stack: python-pytest');
     expect(pushBody).toContain('cursor:');
     expect(pushBody).not.toContain('destination: user');
     expect(pushBody).not.toContain('3032');
     expect(pushBody).not.toContain('assemble-landing.yaml');
+    expect(pushBody).toContain('e2e: { access: write, stack: python-pytest');
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    expect(createBody).toContain('e2e: { access: write, stack: python-pytest');
+    expect(createBody).not.toContain(
+      'e2e: { access: write, stack: java-junit5-rest_assured-selenide',
+    );
     expect(open).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');
@@ -837,7 +851,7 @@ describe('landing-config', () => {
         }
       },
     );
-    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const repoUrl = 'https://github.com/octocat/python-pytest';
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
@@ -850,7 +864,9 @@ describe('landing-config', () => {
         json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
       } as Response);
     vi.stubGlobal('fetch', fetchMock);
-    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'user';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
 
     await downloadLandingOutput({
       destination: 'user',
