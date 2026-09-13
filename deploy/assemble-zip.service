@@ -1,0 +1,23 @@
+# Box3 dest zip / cloud tree stand. Bind docker0 only — not 0.0.0.0, not host-gateway.
+# Install: sudo install -m 644 deploy/assemble-zip.service /etc/systemd/system/assemble-zip.service
+#          sudo systemctl daemon-reload && sudo systemctl enable --now assemble-zip
+# Health: curl -sf http://172.17.0.1:3032/health
+# Root is /opt/assemble-zip (monorepo subset). This repo does not vendor assemble-repo.py.
+
+[Unit]
+Description=assemble-zip (docker0 172.17.0.1:3032)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qaguru
+Group=qaguru
+WorkingDirectory=/opt/assemble-zip
+ExecStart=/usr/bin/python3 /opt/assemble-zip/scripts/assemble-serve.py --host 172.17.0.1 --port 3032 --root /opt/assemble-zip
+Restart=on-failure
+RestartSec=5
+UMask=077
+
+[Install]
+WantedBy=multi-user.target
