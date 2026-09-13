@@ -448,6 +448,50 @@ describe('HomePage', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:user');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: user');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: oauth');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'org: autotests-cloud',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'https://github.com/autotests-ai/',
+    );
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {
     render(<HomePage />);
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');

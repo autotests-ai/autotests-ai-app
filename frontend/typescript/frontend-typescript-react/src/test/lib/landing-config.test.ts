@@ -22,6 +22,7 @@ import {
   toDocument,
   toJson,
   toYaml,
+  userDocument,
   vectorHash,
   zipFilenameFromDisposition,
 } from '../../lib/landing-config';
@@ -77,6 +78,7 @@ describe('landing-config', () => {
     expect(doc.coverageProfile).not.toBe(DEFAULTS.coverageProfile);
     expect(doc).not.toHaveProperty('catalog');
     expect(doc).not.toHaveProperty('cloud');
+    expect(doc).not.toHaveProperty('user');
     expect(doc).not.toHaveProperty('backend');
     expect(doc).not.toHaveProperty('codeHost');
   });
@@ -174,6 +176,38 @@ describe('landing-config', () => {
     expect(json).not.toHaveProperty('catalog');
     expect(json).not.toHaveProperty('url');
     expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncloud:');
+  });
+
+  it('prints user created false via oauth when destination is user', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const yaml = toYaml(config, 'vector#user');
+    expect(yaml).toContain('destination: user');
+    expect(yaml).toContain('user:');
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).not.toContain('\ncatalog:');
+    expect(yaml).not.toContain('\ncloud:');
+    expect(yaml).not.toContain('token');
+    expect(yaml).not.toContain('unknown');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    const json = JSON.parse(toJson(config, 'vector#user')) as {
+      destination: string;
+      user: { created: boolean; via: string };
+      catalog?: unknown;
+      cloud?: unknown;
+      url?: string;
+      token?: string;
+    };
+    expect(json.destination).toBe('user');
+    expect(json.user).toEqual(userDocument());
+    expect(json.user.created).toBe(false);
+    expect(json.user.via).toBe('oauth');
+    expect(json).not.toHaveProperty('catalog');
+    expect(json).not.toHaveProperty('cloud');
+    expect(json).not.toHaveProperty('url');
+    expect(json).not.toHaveProperty('token');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\nuser:');
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -491,5 +525,44 @@ describe('landing-config', () => {
     expect(click).toHaveBeenCalled();
     expect(yaml).toContain('created: false');
     expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
+  });
+
+  it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:user');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const yaml = toYaml({ ...cloneConfig(DEFAULTS), destination: 'user' }, 'vector#user');
+    const kind = await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      catalogUrl: catalogHref(TAKEAWAY_TESTS_STACK),
+    });
+
+    expect(kind).toBe('text');
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).not.toContain('\ncloud:');
+    expect(yaml).not.toContain('\ncatalog:');
   });
 });

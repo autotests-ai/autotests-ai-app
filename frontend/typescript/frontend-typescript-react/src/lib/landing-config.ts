@@ -54,6 +54,11 @@ export type CloudContract = {
   org: string;
   created: false;
 };
+
+export type UserContract = {
+  created: false;
+  via: 'oauth';
+};
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
 
@@ -221,6 +226,10 @@ export function catalogDocument(profile: CoverageProfile): CatalogHref {
 
 export function cloudDocument(): CloudContract {
   return { org: CLOUD_GITHUB_ORG, created: false };
+}
+
+export function userDocument(): UserContract {
+  return { created: false, via: 'oauth' };
 }
 
 export function openCatalogHref(url: string): void {
@@ -459,6 +468,9 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
   if (config.destination === 'cloud') {
     doc.cloud = cloudDocument();
   }
+  if (config.destination === 'user') {
+    doc.user = userDocument();
+  }
   return doc;
 }
 
@@ -530,6 +542,15 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
         'cloud:',
         `  org: ${yamlScalar(cloud.org)}`,
         `  created: ${yamlScalar(cloud.created)}`,
+      );
+      continue;
+    }
+    if (key === 'user' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const user = value as UserContract;
+      lines.push(
+        'user:',
+        `  created: ${yamlScalar(user.created)}`,
+        `  via: ${yamlScalar(user.via)}`,
       );
       continue;
     }
@@ -644,7 +665,7 @@ export async function downloadLandingOutput(input: {
     openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
     return 'catalog';
   }
-  if (input.destination === 'cloud') {
+  if (input.destination === 'cloud' || input.destination === 'user') {
     downloadText(input.text, input.textFilename);
     return 'text';
   }
