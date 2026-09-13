@@ -13,7 +13,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 /**
  * Allow browser frontends on another origin (Vite / ng serve / …) to call {@code /api/**}.
  * Product auth is Bearer JWT. GitHub OAuth uses an httpOnly cookie, so credentialed
- * CORS must be allowed for {@code POST /api/oauth/github} and {@code /repos}.
+ * CORS must be allowed for {@code POST /api/oauth/github}, {@code /repos}, and
+ * {@code /repos/contents}.
  *
  * <p>Matrix deployments serve UI and API from one public host (different paths, same origin).
  * Browsers still send an {@code Origin} header on POST, so Spring validates it against this

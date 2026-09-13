@@ -173,6 +173,27 @@ paths:
         "401":
           description: Missing or invalid GitHub OAuth cookie
 
+  /api/oauth/github/repos/contents:
+    post:
+      operationId: githubOAuthPushTree
+      summary: Push the frozen assemble tree to e2e.stack. Never returns a token or PAT.
+      tags: [oauth]
+      security:
+        - githubOAuthCookie: []
+      responses:
+        "200":
+          description: Repo URL; pushed is true even when GitHub already had the same tree
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubOAuthPushResponse"
+              example:
+                login: octocat
+                url: https://github.com/octocat/java-junit5-rest_assured-selenide
+                pushed: true
+        "401":
+          description: Missing or invalid GitHub OAuth cookie
+
 components:
   schemas:
     HealthResponse:
@@ -297,6 +318,22 @@ components:
           type: boolean
           example: true
       description: Never token, access_token, or PAT. created is true if the repo exists after this call.
+
+    GithubOAuthPushResponse:
+      type: object
+      required: [login, url, pushed]
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          example: octocat
+        url:
+          type: string
+          example: https://github.com/octocat/java-junit5-rest_assured-selenide
+        pushed:
+          type: boolean
+          example: true
+      description: Never token, access_token, or PAT. pushed is true if the assemble tree is on main.
 
   securitySchemes:
     bearerAuth:

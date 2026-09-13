@@ -5,6 +5,7 @@ import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.config.CorsConfig;
 import dev.multistack.app.config.SecurityConfig;
 import dev.multistack.app.dto.GithubOAuthLoginResponse;
+import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
@@ -193,6 +194,61 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 body);
         assertFalse(body.contains("autotests-cloud"));
         assertFalse(body.contains("autotests-ai/"));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents returns pushed true and url, never a token")
+    void pushTreeReturnsPushedUrl() throws Exception {
+        when(githubOAuthService.pushTree(TOKEN))
+                .thenReturn(new GithubOAuthPushResponse("octocat", REPO_URL, true));
+
+        String body = mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value("octocat"))
+                .andExpect(jsonPath("$.url").value(REPO_URL))
+                .andExpect(jsonPath("$.pushed").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.access_token").doesNotExist())
+                .andExpect(jsonPath("$.pat").doesNotExist())
+                .andExpect(content().string(not(containsString(TOKEN))))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertEquals(
+                "{\"login\":\"octocat\",\"url\":\"" + REPO_URL + "\",\"pushed\":true}",
+                body);
+        assertFalse(body.contains("autotests-cloud"));
+        assertFalse(body.contains("autotests-ai/"));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is 401 without the GitHub cookie")
+    void pushTreeRequiresCookie() throws Exception {
+        when(githubOAuthService.pushTree(null))
+                .thenThrow(new AuthException(401, "oauth cookie missing"));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth cookie missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents maps GitHub failure without leaking a token")
+    void pushTreeMapsGithubFailure() throws Exception {
+        when(githubOAuthService.pushTree(TOKEN))
+                .thenThrow(new AuthException(401, "oauth push failed"));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth push failed"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.url").doesNotExist());
     }
 
     @Test

@@ -5,6 +5,7 @@ import dev.multistack.app.controller.ApiController;
 import dev.multistack.app.controller.AuthController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
+import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
@@ -149,6 +150,22 @@ class SecurityChainTest extends SliceTestBase {
         mockMvc.perform(post("/api/oauth/github/repos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is public (cookie, not JWT)")
+    void oauthPushTreePermitAll() throws Exception {
+        when(githubOAuthService.pushTree(any()))
+                .thenReturn(new GithubOAuthPushResponse(
+                        "octocat",
+                        GithubOAuthService.htmlUrl("octocat"),
+                        true));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pushed").value(true))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(content().string(not(containsString("gho_secret"))));
     }

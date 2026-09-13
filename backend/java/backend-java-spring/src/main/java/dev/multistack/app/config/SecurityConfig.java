@@ -44,7 +44,8 @@ public class SecurityConfig {
                                 "/api/openapi.yaml", "/api/docs").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/oauth/github", "/api/oauth/github/repos")
+                        .requestMatchers(HttpMethod.POST, "/api/oauth/github", "/api/oauth/github/repos",
+                                "/api/oauth/github/repos/contents")
                                 .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/auth/me").authenticated()

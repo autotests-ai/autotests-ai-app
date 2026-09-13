@@ -87,4 +87,21 @@ class GithubOAuthApiIntegrationTest extends IntegrationTestBase {
         assertFalse(response.getBody().contains("\"created\""));
         assertFalse(response.getBody().contains("octocat"));
     }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is 401 without the GitHub cookie and never hits GitHub")
+    void pushTreeWithoutCookieIsUnauthorized() {
+        ResponseEntity<String> response = rest.postForEntity(
+                "/api/oauth/github/repos/contents",
+                null,
+                String.class);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().contains("oauth cookie missing"));
+        assertFalse(response.getBody().contains("access_token"));
+        assertFalse(response.getBody().contains("\"token\""));
+        assertFalse(response.getBody().contains("\"pushed\""));
+        assertFalse(response.getBody().contains("octocat"));
+    }
 }

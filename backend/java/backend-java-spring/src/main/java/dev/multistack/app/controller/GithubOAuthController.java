@@ -1,6 +1,7 @@
 package dev.multistack.app.controller;
 
 import dev.multistack.app.dto.GithubOAuthLoginResponse;
+import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
@@ -41,5 +42,11 @@ public class GithubOAuthController {
     public GithubOAuthRepoResponse createRepo(
             @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken) {
         return githubOAuthService.createRepo(accessToken);
+    }
+
+    @PostMapping("/github/repos/contents")
+    public GithubOAuthPushResponse pushTree(
+            @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken) {
+        return githubOAuthService.pushTree(accessToken);
     }
 }
