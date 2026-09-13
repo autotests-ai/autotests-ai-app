@@ -46,15 +46,16 @@ GitHub Actions [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml): b
 | `develop` | `autotests-ai-app-stage` | `deploy/stage.env` | `http://127.0.0.1:18081/api/health` | [https://stage.autotests.ai/](https://stage.autotests.ai/) |
 | `main` | `autotests-ai-app` | — | `http://127.0.0.1:8081/api/health` | [https://autotests.ai/](https://autotests.ai/) |
 
-Host clone: `/opt/autotests-ai-app`. Secrets (`DEPLOY_SSH_KEY`, `JWT_SECRET`, GHCR token, `IDP_CLIENT_SECRET`) stay out of git. Optional host `.env` for `JWT_SECRET` and IdP — do not put `GATEWAY_PORT` there (it would steal prod).
+Host clone: `/opt/autotests-ai-app`. Secrets (`DEPLOY_SSH_KEY`, `JWT_SECRET`, GHCR token, `IDP_CLIENT_SECRET`, `GITHUB_CLOUD_TOKEN`) stay out of git. Optional host `.env` for `JWT_SECRET`, IdP, and the org token — do not put `GATEWAY_PORT` there (it would steal prod).
 
 Dest cloud on stage/prod:
 
 1. **SPA bake (public).** GitHub repository variables (not secrets) `VITE_IDP_CLIENT_ID=autotests-ai` and `VITE_IDP_AUTHORIZE_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/auth`. `deploy.yml` passes them as frontend Docker `build-args`. Empty → dest cloud button hidden.
-2. **Backend secret (host 600).** Compose already interpolates `IDP_*`. On Box3, `/opt/autotests-ai-app/.env` mode `600` — not in git, not `cat` into a log, not a `VITE_` key:
+2. **IdP secret (host 600).** Compose already interpolates `IDP_*`. On Box3, `/opt/autotests-ai-app/.env` mode `600` — not in git, not `cat` into a log, not a `VITE_` key.
+3. **Org token (same file, 600).** Compose already interpolates `GITHUB_CLOUD_TOKEN`. Empty → `POST /api/cloud/repos` 503. Token of the school org `autotests-cloud` (`GithubCloudProperties`): create `github.com/autotests-cloud/{idp-login}-{e2e.stack}`. Reuse the school token that already creates `autotests-cloud/*` (tms-automator). Not a student PAT, not `{login}-app-tests`, not `github_oauth`, not `VITE_`. Do not mint a GitHub App in this slice.
 
 ```bash
-# qaguru@box3 — editor, never cat. Do not truncate an existing JWT_SECRET.
+# qaguru@box3 — editor, never cat. Do not truncate JWT_SECRET or IDP_*.
 umask 077
 touch /opt/autotests-ai-app/.env
 chmod 600 /opt/autotests-ai-app/.env
@@ -62,9 +63,10 @@ chmod 600 /opt/autotests-ai-app/.env
 # IDP_TOKEN_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/token
 # IDP_USERINFO_URL=https://auth.qa.guru/realms/qaguru/protocol/openid-connect/userinfo
 # IDP_CLIENT_SECRET=<KC_CLIENT_SECRET_AUTOTESTS_AI from ~/.config/auth-qa-guru/autotests-ai.env>
+# GITHUB_CLOUD_TOKEN=<school org token for autotests-cloud, never a student PAT>
 ```
 
-`box3-deploy.sh` does not print `.env`. This slice is IdP env, not `GITHUB_CLOUD_TOKEN`.
+`box3-deploy.sh` does not print `.env`. This slice is the org token. Prod `ASSEMBLE_URL` stays empty (`docker-compose.prod.yml`) — dest zip and cloud tree push on prod remain 503.
 
 Manual:
 
