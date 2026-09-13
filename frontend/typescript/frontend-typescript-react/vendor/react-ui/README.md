@@ -11,4 +11,7 @@ this copy is a build artifact — do not edit by hand.
 Refresh from monorepo SSOT (`projects/design-system-home/react-ui/src`), not etalon
 `frontend/scripts/sync-react-ui.sh`.
 
+`*-canon.js` re-exports resolve through sibling `vendor/design-system/js`
+(`../../design-system/js` from this `src/`), not through `vendor/ds`.
+
 Consumed via Vite alias `@zero-design-system/react` → `src/index.ts`.
