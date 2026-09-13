@@ -93,6 +93,7 @@ describe('landing-config', () => {
     expect(yaml).toContain(
       'unit: { access: write, stack: java-spring, module: backend/java/backend-java-spring }',
     );
+    expect(yaml).toContain('load: { access: none, stack: slot, module: "" }');
     expect(yaml).toContain('cline: { access: write, module: .clinerules }');
     expect(yaml).toContain('cursor: { access: write, module: .cursor/rules }');
     expect(yaml).not.toContain('codeHost:');
@@ -120,12 +121,17 @@ describe('landing-config', () => {
       vector: string;
       headless: boolean;
       destination: string;
-      coverageProfile: { harness: { agents: { cursor: { access: string } } } };
+      coverageProfile: {
+        harness: { agents: { cursor: { access: string } } };
+        load: { access: string; stack: string };
+      };
     };
     expect(json.vector).toBe('vector#abcd1234');
     expect(json.headless).toBe(false);
     expect(json.destination).toBe('zip');
     expect(json.coverageProfile.harness.agents.cursor.access).toBe('write');
+    expect(json.coverageProfile.load.access).toBe('none');
+    expect(json.coverageProfile.load.stack).toBe('slot');
   });
 
   it('picks download names for YAML and JSON tabs', () => {

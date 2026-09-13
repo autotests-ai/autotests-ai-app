@@ -21,7 +21,6 @@ import {
   AGENT_ACCESS,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
-  BACKEND_MODULES,
   BROWSER_SIZES,
   BROWSER_VERSIONS,
   BROWSERS,
@@ -36,13 +35,13 @@ import {
   DEFAULTS,
   DESTINATIONS,
   downloadText,
-  FRONTEND_MODULES,
   fingerprint,
   IMAGES,
   isAgentAccess,
   isDestinationId,
   LANGUAGE_VERSIONS,
   type LandingConfig,
+  LOAD_STACKS,
   OUTPUT_TABS,
   type OutputTabId,
   outputFilename,
@@ -51,7 +50,6 @@ import {
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
-  TESTS_MODULES,
   TESTS_STACKS,
   toJson,
   toYaml,
@@ -212,50 +210,34 @@ export function HomePage() {
             >
               <PlaqueFieldGrid layout="duo" aria-label="Product stacks">
                 <PlaqueSelect
-                  label="backend.stack"
-                  paramId="backendStack"
+                  label="backend"
+                  paramId="backend"
                   value={config.coverageProfile.product.backend.stack}
                   options={PRODUCT_BACKEND_STACKS}
-                  data-testid="landing-select-backendStack"
+                  data-testid="landing-select-backend"
                 />
                 <PlaqueSelect
-                  label="frontend.stack"
-                  paramId="frontendStack"
+                  label="frontend"
+                  paramId="frontend"
                   value={config.coverageProfile.product.frontend.stack}
                   options={PRODUCT_FRONTEND_STACKS}
-                  data-testid="landing-select-frontendStack"
+                  data-testid="landing-select-frontend"
                 />
               </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" aria-label="Tests stack">
+              <PlaqueFieldGrid layout="duo" aria-label="Tests and load">
                 <PlaqueSelect
-                  label="tests.stack"
-                  paramId="testsStack"
+                  label="tests"
+                  paramId="tests"
                   value={config.coverageProfile.automation.api.stack}
                   options={TESTS_STACKS}
-                  data-testid="landing-select-testsStack"
-                />
-              </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" aria-label="Modules">
-                <PlaqueSelect
-                  label="backend.module"
-                  paramId="backendModule"
-                  value={config.coverageProfile.automation.unit.module}
-                  options={BACKEND_MODULES}
-                  data-testid="landing-select-backendModule"
+                  data-testid="landing-select-tests"
                 />
                 <PlaqueSelect
-                  label="frontend.module"
-                  paramId="frontendModule"
-                  value={config.coverageProfile.automation.component.module}
-                  options={FRONTEND_MODULES}
-                  data-testid="landing-select-frontendModule"
-                />
-                <PlaqueSelect
-                  label="tests.module"
-                  paramId="testsModule"
-                  value={config.coverageProfile.automation.api.module}
-                  options={TESTS_MODULES}
-                  data-testid="landing-select-testsModule"
+                  label="load"
+                  paramId="load"
+                  value={config.coverageProfile.load.stack}
+                  options={LOAD_STACKS}
+                  data-testid="landing-select-load"
                 />
               </PlaqueFieldGrid>
             </ConfigPanel>

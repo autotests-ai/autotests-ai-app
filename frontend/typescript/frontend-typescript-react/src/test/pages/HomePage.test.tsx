@@ -49,12 +49,16 @@ describe('HomePage', () => {
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
     );
-    expect(
-      screen.getByTestId('landing-select-frontendModule').closest('.plaque-field-grid'),
-    ).toHaveClass('plaque-field-grid--solo');
-    expect(screen.getByRole('combobox', { name: 'frontend.module' })).toHaveValue(
-      'frontend/typescript/frontend-typescript-react',
+    expect(screen.getByRole('combobox', { name: 'backend' })).toHaveValue('java-spring');
+    expect(screen.getByRole('combobox', { name: 'frontend' })).toHaveValue('typescript-react');
+    expect(screen.getByRole('combobox', { name: 'tests' })).toHaveValue(
+      'java-junit5-rest_assured-selenide',
     );
+    expect(screen.getByRole('combobox', { name: 'load' })).toHaveValue('slot');
+    expect(screen.getByTestId('landing-select-load').closest('.plaque-field-grid')).toHaveClass(
+      'plaque-field-grid--duo',
+    );
+    expect(screen.queryByRole('combobox', { name: 'frontend.module' })).not.toBeInTheDocument();
     expect(screen.getByTestId('landing-agents-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
@@ -89,6 +93,9 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('coverageProfile:');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'backend: { stack: java-spring, access: write }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'load: { access: none, stack: slot, module: "" }',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'cline: { access: write, module: .clinerules }',

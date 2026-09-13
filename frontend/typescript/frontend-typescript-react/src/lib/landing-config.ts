@@ -63,6 +63,13 @@ export type AgentModule = {
   module: string;
 };
 
+/** Load/jmeter is a /stack/ slot, not a pyramid @Layer. */
+export type LoadSurface = {
+  access: 'none';
+  stack: string;
+  module: string;
+};
+
 export type CoverageProfile = {
   product: {
     backend: ProductSurface;
@@ -77,6 +84,7 @@ export type CoverageProfile = {
     e2e: AutomationLayer;
     manual: AutomationLayer;
   };
+  load: LoadSurface;
   harness: {
     agents: {
       cline: AgentModule;
@@ -102,6 +110,7 @@ export const TAKEAWAY_TESTS_STACK = 'java-junit5-rest_assured-selenide';
 export const TAKEAWAY_BACKEND_MODULE = 'backend/java/backend-java-spring';
 export const TAKEAWAY_FRONTEND_MODULE = 'frontend/typescript/frontend-typescript-react';
 export const TAKEAWAY_TESTS_MODULE = 'tests/java/tests-java-junit5-rest_assured-selenide';
+export const TAKEAWAY_LOAD_STACK = 'slot';
 export const TAKEAWAY_CLINE_MODULE = '.clinerules';
 export const TAKEAWAY_CURSOR_MODULE = '.cursor/rules';
 
@@ -123,6 +132,7 @@ export const TAKEAWAY_COVERAGE_PROFILE: CoverageProfile = {
     e2e: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
     manual: takeawayLayer(TAKEAWAY_TESTS_STACK, TAKEAWAY_TESTS_MODULE),
   },
+  load: { access: 'none', stack: TAKEAWAY_LOAD_STACK, module: '' },
   harness: {
     agents: {
       cline: { access: 'write', module: TAKEAWAY_CLINE_MODULE },
@@ -134,9 +144,7 @@ export const TAKEAWAY_COVERAGE_PROFILE: CoverageProfile = {
 export const PRODUCT_BACKEND_STACKS = [{ value: TAKEAWAY_BACKEND_STACK }] as const;
 export const PRODUCT_FRONTEND_STACKS = [{ value: TAKEAWAY_FRONTEND_STACK }] as const;
 export const TESTS_STACKS = [{ value: TAKEAWAY_TESTS_STACK }] as const;
-export const BACKEND_MODULES = [{ value: TAKEAWAY_BACKEND_MODULE }] as const;
-export const FRONTEND_MODULES = [{ value: TAKEAWAY_FRONTEND_MODULE }] as const;
-export const TESTS_MODULES = [{ value: TAKEAWAY_TESTS_MODULE }] as const;
+export const LOAD_STACKS = [{ value: TAKEAWAY_LOAD_STACK }] as const;
 
 export const DESTINATIONS = [
   { value: 'zip' },
@@ -416,6 +424,7 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
     lines.push(`    ${layer}: ${yamlFlowMap(profile.automation[layer])}`);
   }
   lines.push(
+    `  load: ${yamlFlowMap(profile.load)}`,
     '  harness:',
     '    agents:',
     `      cline: ${yamlFlowMap(profile.harness.agents.cline)}`,
