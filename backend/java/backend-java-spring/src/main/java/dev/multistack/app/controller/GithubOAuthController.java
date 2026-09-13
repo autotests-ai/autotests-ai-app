@@ -46,7 +46,8 @@ public class GithubOAuthController {
 
     @PostMapping("/github/repos/contents")
     public GithubOAuthPushResponse pushTree(
-            @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken) {
-        return githubOAuthService.pushTree(accessToken);
+            @CookieValue(name = GithubOAuthService.COOKIE_NAME, required = false) String accessToken,
+            @RequestBody(required = false) String yaml) {
+        return githubOAuthService.pushTree(accessToken, yaml);
     }
 }

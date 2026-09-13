@@ -291,11 +291,28 @@ class GithubOAuthServicePushTest extends UnitTestBase {
         GithubOAuthService missing = new GithubOAuthService(
                 configuredProperties(),
                 builder,
-                new AssembleTree(new AssembleProperties(""), builder, "destination: zip\n"));
+                new AssembleTree(new AssembleProperties(""), builder));
         expectUserJson("{\"login\":\"octocat\"}");
-        AuthException ex = assertThrows(AuthException.class, () -> missing.pushTree("gho_secret"));
+        AuthException ex = assertThrows(
+                AuthException.class, () -> missing.pushTree("gho_secret", "destination: zip\n"));
         assertEquals(503, ex.getStatus());
         assertEquals("assemble url missing", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("push is 400 without Home YAML and never a classpath stub")
+    void pushTreeRequiresYaml() {
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        GithubOAuthService live = new GithubOAuthService(
+                configuredProperties(),
+                builder,
+                new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder));
+        expectUserJson("{\"login\":\"octocat\"}");
+        AuthException ex = assertThrows(AuthException.class, () -> live.pushTree("gho_secret", "  "));
+        assertEquals(400, ex.getStatus());
+        assertEquals("assemble yaml missing", ex.getMessage());
         server.verify();
     }
 

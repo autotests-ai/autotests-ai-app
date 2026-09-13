@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -157,13 +158,15 @@ class SecurityChainTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos/contents is public (cookie, not JWT)")
     void oauthPushTreePermitAll() throws Exception {
-        when(githubOAuthService.pushTree(any()))
+        when(githubOAuthService.pushTree(nullable(String.class), nullable(String.class)))
                 .thenReturn(new GithubOAuthPushResponse(
                         "octocat",
                         GithubOAuthService.htmlUrl("octocat"),
                         true));
 
-        mockMvc.perform(post("/api/oauth/github/repos/contents"))
+        mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pushed").value(true))
                 .andExpect(jsonPath("$.token").doesNotExist())

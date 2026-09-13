@@ -629,7 +629,17 @@ describe('HomePage', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('/oauth/github/repos/contents'),
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+      }),
+    );
+    const pushInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(String(pushInit?.body)).toContain('coverageProfile:');
+    expect(String(pushInit?.body)).not.toContain('destination: user');
+    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
+      '3032',
     );
     expect(open).not.toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');

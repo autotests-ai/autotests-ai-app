@@ -34,6 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -50,6 +53,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GithubOAuthControllerTest extends SliceTestBase {
 
     private static final String TOKEN = "gho_secret";
+    private static final String YAML = "destination: zip\ncoverageProfile:\n  product: {}\n";
+    private static final MediaType YAML_TYPE = MediaType.parseMediaType("application/yaml");
     private static final String LOGIN_JSON = "{\"login\":\"octocat\"}";
     private static final String REPO_URL =
             "https://github.com/octocat/" + GithubOAuthService.REPO_NAME;
@@ -199,10 +204,12 @@ class GithubOAuthControllerTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos/contents returns pushed true and url, never a token")
     void pushTreeReturnsPushedUrl() throws Exception {
-        when(githubOAuthService.pushTree(TOKEN))
+        when(githubOAuthService.pushTree(eq(TOKEN), eq(YAML)))
                 .thenReturn(new GithubOAuthPushResponse("octocat", REPO_URL, true));
 
         String body = mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
                         .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.login").value("octocat"))
@@ -221,12 +228,13 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 body);
         assertFalse(body.contains("autotests-cloud"));
         assertFalse(body.contains("autotests-ai/"));
+        verify(githubOAuthService).pushTree(TOKEN, YAML);
     }
 
     @Test
     @DisplayName("POST /api/oauth/github/repos/contents is 401 without the GitHub cookie")
     void pushTreeRequiresCookie() throws Exception {
-        when(githubOAuthService.pushTree(null))
+        when(githubOAuthService.pushTree(isNull(), nullable(String.class)))
                 .thenThrow(new AuthException(401, "oauth cookie missing"));
 
         mockMvc.perform(post("/api/oauth/github/repos/contents"))
@@ -238,12 +246,30 @@ class GithubOAuthControllerTest extends SliceTestBase {
     }
 
     @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is 400 without YAML and never a classpath stub")
+    void pushTreeRequiresYamlBody() throws Exception {
+        when(githubOAuthService.pushTree(eq(TOKEN), nullable(String.class)))
+                .thenThrow(new AuthException(400, "assemble yaml missing"));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("assemble yaml missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))))
+                .andExpect(content().string(not(containsString("assemble-landing.yaml"))));
+    }
+
+    @Test
     @DisplayName("POST /api/oauth/github/repos/contents maps GitHub failure without leaking a token")
     void pushTreeMapsGithubFailure() throws Exception {
-        when(githubOAuthService.pushTree(TOKEN))
+        when(githubOAuthService.pushTree(eq(TOKEN), eq(YAML)))
                 .thenThrow(new AuthException(401, "oauth push failed"));
 
         mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
                         .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("oauth push failed"))
@@ -254,10 +280,12 @@ class GithubOAuthControllerTest extends SliceTestBase {
     @Test
     @DisplayName("POST /api/oauth/github/repos/contents is 503 without ASSEMBLE_URL")
     void pushTreeMapsMissingAssembleUrl() throws Exception {
-        when(githubOAuthService.pushTree(TOKEN))
+        when(githubOAuthService.pushTree(eq(TOKEN), eq(YAML)))
                 .thenThrow(new AuthException(503, "assemble url missing"));
 
         mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .contentType(YAML_TYPE)
+                        .content(YAML)
                         .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("assemble url missing"))

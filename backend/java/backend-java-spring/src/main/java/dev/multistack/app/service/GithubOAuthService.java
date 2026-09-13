@@ -90,6 +90,10 @@ public class GithubOAuthService {
     }
 
     public GithubOAuthPushResponse pushTree(String accessToken) {
+        return pushTree(accessToken, null);
+    }
+
+    public GithubOAuthPushResponse pushTree(String accessToken, String yaml) {
         if (accessToken == null || accessToken.isBlank()) {
             throw new AuthException(401, "oauth cookie missing");
         }
@@ -97,7 +101,7 @@ public class GithubOAuthService {
         if (!isGithubLogin(login)) {
             throw new AuthException(401, "oauth login missing");
         }
-        List<GithubTreeBlob> blobs = assembleTree.blobs();
+        List<GithubTreeBlob> blobs = assembleTree.blobs(yaml);
         if (blobs.isEmpty()) {
             throw pushFailed();
         }

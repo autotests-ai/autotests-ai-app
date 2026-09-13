@@ -5,7 +5,6 @@ import dev.multistack.app.dto.GithubTreeBlob;
 import dev.multistack.app.exception.AuthException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -22,18 +21,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Dest user push tree = unzip of the dest zip (POST YAML to {@code ASSEMBLE_URL}).
- * Never a PAT, never the three-file classpath stub.
+ * Dest user push YAML = Home dump; classpath is not canon.
+ * Tree = unzip of the dest zip (POST YAML to {@code ASSEMBLE_URL}, destination forced zip).
+ * Never a PAT, never {@code assemble-landing.yaml}.
  */
 @Component
 @EnableConfigurationProperties(AssembleProperties.class)
 public class AssembleTree {
 
-    static final String LANDING_RESOURCE = "assemble-landing.yaml";
     static final Set<String> KEEP_ROOTS = Set.of(
             "backend",
             "frontend",
@@ -59,29 +59,24 @@ public class AssembleTree {
             "05-homework-check");
 
     private static final MediaType YAML = MediaType.parseMediaType("application/yaml");
+    private static final Pattern DESTINATION_CHANNEL = Pattern.compile(
+            "(?m)^destination:\\s*(?:user|catalog|cloud)\\s*$");
 
     private final List<GithubTreeBlob> injected;
     private final AssembleProperties properties;
     private final RestClient restClient;
-    private final String landingYaml;
 
     @Autowired
     public AssembleTree(AssembleProperties properties, RestClient.Builder restClientBuilder) {
-        this(properties, restClientBuilder, classpathLanding());
-    }
-
-    AssembleTree(AssembleProperties properties, RestClient.Builder restClientBuilder, String landingYaml) {
         this.injected = null;
         this.properties = properties;
         this.restClient = restClientBuilder.build();
-        this.landingYaml = landingYaml == null ? "" : landingYaml;
     }
 
     AssembleTree(List<GithubTreeBlob> blobs) {
         this.injected = List.copyOf(blobs);
         this.properties = null;
         this.restClient = null;
-        this.landingYaml = "";
     }
 
     AssembleTree(byte[] zip) {
@@ -89,28 +84,29 @@ public class AssembleTree {
     }
 
     public List<GithubTreeBlob> blobs() {
+        return blobs(null);
+    }
+
+    public List<GithubTreeBlob> blobs(String yaml) {
         if (injected != null) {
             return injected;
         }
         if (!properties.configured()) {
             throw new AuthException(503, "assemble url missing");
         }
-        if (landingYaml.isBlank()) {
-            throw new AuthException(503, "assemble zip missing");
+        String stand = standYaml(yaml);
+        if (stand.isBlank()) {
+            throw new AuthException(400, "assemble yaml missing");
         }
-        return fromZip(fetchZip());
+        return fromZip(fetchZip(stand));
     }
 
-    static String classpathLanding() {
-        return classpathLanding(LANDING_RESOURCE);
-    }
-
-    static String classpathLanding(String name) {
-        try {
-            return new ClassPathResource(name).getContentAsString(StandardCharsets.UTF_8);
-        } catch (IOException ex) {
+    /** Stand assemble-zip accepts destination zip only. Channel user/catalog/cloud is not this POST. */
+    static String standYaml(String yaml) {
+        if (yaml == null) {
             return "";
         }
+        return DESTINATION_CHANNEL.matcher(yaml.strip()).replaceAll("destination: zip");
     }
 
     static List<GithubTreeBlob> fromZip(byte[] zip) {
@@ -227,13 +223,13 @@ public class AssembleTree {
         return data[0] == 'P' && data[1] == 'K';
     }
 
-    private byte[] fetchZip() {
+    private byte[] fetchZip(String yaml) {
         try {
             return restClient.post()
                     .uri(properties.assembleEndpoint())
                     .contentType(YAML)
                     .accept(MediaType.parseMediaType("application/zip"))
-                    .body(landingYaml)
+                    .body(yaml)
                     .exchange((request, response) -> {
                         if (response.getStatusCode().value() != 200) {
                             throw new AuthException(503, "assemble zip missing");

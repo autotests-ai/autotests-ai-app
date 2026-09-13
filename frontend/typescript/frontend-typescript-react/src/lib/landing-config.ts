@@ -658,6 +658,11 @@ export function toJson(
   return JSON.stringify({ ...toDocument(config, options), vector: vectorId }, null, 2);
 }
 
+/** Dest zip dump of the Home form. Channel user/catalog/cloud stays off the assemble-zip POST. */
+export function assembleZipYaml(config: LandingConfig, vectorId: string): string {
+  return toYaml({ ...config, destination: 'zip' }, vectorId);
+}
+
 export function outputFilename(tab: OutputTabId): string {
   return tab === 'json' ? 'config.json' : 'config.yaml';
 }
@@ -761,7 +766,11 @@ export async function downloadLandingOutput(input: {
     let output = input.text;
     if (input.githubUser && input.landingConfig && input.vectorId) {
       const createdRepo = await createGithubUserRepo();
-      const pushedRepo = createdRepo ? await pushGithubUserRepo() : null;
+      const pushedRepo = createdRepo
+        ? await pushGithubUserRepo({
+            yaml: assembleZipYaml(input.landingConfig, input.vectorId),
+          })
+        : null;
       const options = { githubUser: input.githubUser, createdRepo, pushedRepo };
       output =
         input.outputTab === 'json'

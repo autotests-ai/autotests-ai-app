@@ -285,14 +285,19 @@ export async function createGithubUserRepo(
 }
 
 export async function pushGithubUserRepo(
-  input: { fetchImpl?: typeof fetch; contentsUrl?: string } = {},
+  input: { yaml?: string; fetchImpl?: typeof fetch; contentsUrl?: string } = {},
 ): Promise<GithubPushedRepo | null> {
+  const yaml = typeof input.yaml === 'string' ? input.yaml : '';
+  if (!yaml.trim()) {
+    return null;
+  }
   try {
     const fetchImpl = input.fetchImpl ?? fetch;
     const response = await fetchImpl(input.contentsUrl ?? githubOAuthContentsUrl(), {
       method: 'POST',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', 'Content-Type': 'application/yaml' },
       credentials: 'include',
+      body: yaml,
     });
     if (!response.ok) {
       return null;

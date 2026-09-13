@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Loopback assemble-zip stand ({@code ASSEMBLE_URL}). Empty means dest user push
- * fails closed — never a classpath stub tree.
+ * fails closed — never a classpath stub tree. YAML body is required at push.
  */
 @ConfigurationProperties(prefix = "assemble")
 public record AssembleProperties(String url) {

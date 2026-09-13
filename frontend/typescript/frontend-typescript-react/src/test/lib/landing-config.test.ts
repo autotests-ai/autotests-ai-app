@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSEMBLE_ZIP_ORIGIN,
+  assembleZipYaml,
   buildWrapperOptions,
   CLOUD_GITHUB_ORG,
   catalogDocument,
@@ -256,6 +257,21 @@ describe('landing-config', () => {
     expect(json).not.toHaveProperty('url');
     expect(json).not.toHaveProperty('token');
     expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\nuser:');
+  });
+
+  it('assembleZipYaml is the dest zip Home dump, not destination user', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    config.coverageProfile.harness.agents.cursor.access = 'none';
+    const yaml = assembleZipYaml(config, 'vector#user');
+    expect(yaml).toContain('destination: zip');
+    expect(yaml).not.toContain('destination: user');
+    expect(yaml).not.toContain('\nuser:');
+    expect(yaml).toContain('coverageProfile:');
+    expect(yaml).toContain('cursor: { access: none, module: .cursor/rules }');
+    expect(yaml.toLowerCase()).not.toContain('ghp_');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('3032');
+    expect(yaml).not.toContain('assemble-landing.yaml');
   });
 
   it('prints user login URL only after a real GitHub login', () => {
@@ -778,8 +794,19 @@ describe('landing-config', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('/oauth/github/repos/contents'),
-      expect.objectContaining({ method: 'POST', credentials: 'include' }),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
     );
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(pushBody).toContain('coverageProfile:');
+    expect(pushBody).toContain('cursor:');
+    expect(pushBody).not.toContain('destination: user');
+    expect(pushBody).not.toContain('3032');
+    expect(pushBody).not.toContain('assemble-landing.yaml');
     expect(open).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
     expect(blobs[0]).toContain('created: true');

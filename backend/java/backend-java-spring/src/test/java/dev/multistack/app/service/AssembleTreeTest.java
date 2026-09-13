@@ -40,7 +40,14 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class AssembleTreeTest extends UnitTestBase {
 
     private static final String ASSEMBLE_URL = "http://127.0.0.1:3032/assemble";
-    private static final String YAML = "destination: zip\n";
+    private static final String YAML = "destination: zip\ncoverageProfile:\n  product: {}\n";
+    private static final String HOME_USER_YAML = """
+            destination: user
+            coverageProfile:
+              harness:
+                agents:
+                  cursor: { access: write, module: .cursor/rules }
+            """;
 
     @Test
     @DisplayName("unzips dest-zip roots and harness, not the three-file classpath stub")
@@ -150,29 +157,34 @@ class AssembleTreeTest extends UnitTestBase {
     }
 
     @Test
-    @DisplayName("classpath landing is dest zip YAML without a PAT")
-    void classpathLandingIsDestZip() {
-        String yaml = AssembleTree.classpathLanding();
-        assertTrue(yaml.contains("destination: zip"));
-        assertTrue(yaml.contains("coverageProfile"));
-        assertTrue(!yaml.toLowerCase().contains("ghp_"));
-        assertTrue(!yaml.toLowerCase().contains("gho_"));
-        assertTrue(!yaml.contains("destination: user"));
-        assertEquals("", AssembleTree.classpathLanding("missing-never-ship.yaml"));
-        assertEquals(yaml, AssembleTree.classpathLanding(AssembleTree.LANDING_RESOURCE));
+    @DisplayName("stand YAML forces destination zip and never a classpath dump")
+    void standYamlForcesDestinationZip() {
+        assertEquals("", AssembleTree.standYaml(null));
+        assertEquals("", AssembleTree.standYaml("  "));
+        assertEquals("destination: zip", AssembleTree.standYaml("destination: user"));
+        assertEquals("destination: zip", AssembleTree.standYaml("destination: catalog"));
+        assertEquals("destination: zip", AssembleTree.standYaml("destination: cloud"));
+        assertEquals("destination: zip", AssembleTree.standYaml("destination: zip"));
+        String forced = AssembleTree.standYaml(HOME_USER_YAML);
+        assertTrue(forced.contains("destination: zip"));
+        assertTrue(forced.contains("coverageProfile"));
+        assertTrue(forced.contains("cursor:"));
+        assertFalse(forced.contains("destination: user"));
+        assertFalse(forced.toLowerCase().contains("ghp_"));
+        assertFalse(forced.toLowerCase().contains("gho_"));
+        assertFalse(forced.contains("assemble-landing.yaml"));
     }
 
     @Test
     @DisplayName("missing ASSEMBLE_URL fails closed instead of a classpath stub")
     void missingUrlIsUnavailable() {
-        AssembleTree tree = new AssembleTree(
-                new AssembleProperties(""), RestClient.builder(), YAML);
-        AuthException missing = assertThrows(AuthException.class, tree::blobs);
+        AssembleTree tree = new AssembleTree(new AssembleProperties(""), RestClient.builder());
+        AuthException missing = assertThrows(AuthException.class, () -> tree.blobs(YAML));
         assertEquals(503, missing.getStatus());
         assertEquals("assemble url missing", missing.getMessage());
         AuthException blank = assertThrows(
                 AuthException.class,
-                () -> new AssembleTree(new AssembleProperties("  "), RestClient.builder(), YAML).blobs());
+                () -> new AssembleTree(new AssembleProperties("  "), RestClient.builder()).blobs(YAML));
         assertEquals("assemble url missing", blank.getMessage());
         AuthException spring = assertThrows(
                 AuthException.class,
@@ -181,19 +193,24 @@ class AssembleTreeTest extends UnitTestBase {
     }
 
     @Test
-    @DisplayName("blank landing YAML fails closed instead of a classpath stub")
+    @DisplayName("blank Home YAML fails closed instead of a classpath stub")
     void blankLandingIsUnavailable() {
         AuthException blank = assertThrows(
                 AuthException.class,
-                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder(), "  ")
-                        .blobs());
-        assertEquals(503, blank.getStatus());
-        assertEquals("assemble zip missing", blank.getMessage());
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder())
+                        .blobs("  "));
+        assertEquals(400, blank.getStatus());
+        assertEquals("assemble yaml missing", blank.getMessage());
         AuthException nil = assertThrows(
                 AuthException.class,
-                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder(), null)
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder())
+                        .blobs(null));
+        assertEquals("assemble yaml missing", nil.getMessage());
+        AuthException omitted = assertThrows(
+                AuthException.class,
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder())
                         .blobs());
-        assertEquals("assemble zip missing", nil.getMessage());
+        assertEquals("assemble yaml missing", omitted.getMessage());
     }
 
     @Test
@@ -205,17 +222,40 @@ class AssembleTreeTest extends UnitTestBase {
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.parseMediaType("application/yaml")))
                 .andExpect(content().string(containsString("destination: zip")))
+                .andExpect(content().string(containsString("coverageProfile")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("ghp_"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("assemble-landing.yaml"))))
                 .andRespond(withSuccess(AssembleZipFixture.cellZip(), MediaType.parseMediaType("application/zip")));
 
         List<String> paths = new AssembleTree(
-                new AssembleProperties("http://127.0.0.1:3032"), builder, YAML)
-                .blobs()
+                new AssembleProperties("http://127.0.0.1:3032"), builder)
+                .blobs(YAML)
                 .stream()
                 .map(GithubTreeBlob::path)
                 .toList();
         assertTrue(paths.contains("backend/java/backend-java-spring/README.md"));
         assertTrue(paths.contains("_contract/openapi.yaml"));
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("POSTs Home dump with destination forced zip, not destination user")
+    void fetchZipForcesDestinationZipFromHomeDump() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ASSEMBLE_URL))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.parseMediaType("application/yaml")))
+                .andExpect(content().string(containsString("destination: zip")))
+                .andExpect(content().string(containsString("coverageProfile")))
+                .andExpect(content().string(containsString("cursor:")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("destination: user"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("3032"))))
+                .andRespond(withSuccess(AssembleZipFixture.cellZip(), MediaType.parseMediaType("application/zip")));
+
+        assertFalse(new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder)
+                .blobs(HOME_USER_YAML)
+                .isEmpty());
         server.verify();
     }
 
@@ -227,8 +267,8 @@ class AssembleTreeTest extends UnitTestBase {
         server.expect(once(), requestTo(ASSEMBLE_URL))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess(AssembleZipFixture.cellZip(), MediaType.parseMediaType("application/zip")));
-        assertFalse(new AssembleTree(new AssembleProperties("http://127.0.0.1:3032/assemble/"), builder, YAML)
-                .blobs()
+        assertFalse(new AssembleTree(new AssembleProperties("http://127.0.0.1:3032/assemble/"), builder)
+                .blobs(YAML)
                 .isEmpty());
         server.verify();
     }
@@ -241,8 +281,8 @@ class AssembleTreeTest extends UnitTestBase {
         server.expect(once(), requestTo(ASSEMBLE_URL))
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withSuccess(AssembleZipFixture.jsonBytes(), MediaType.APPLICATION_JSON));
-        assertTrue(new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder, YAML)
-                .blobs()
+        assertTrue(new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder)
+                .blobs(YAML)
                 .isEmpty());
         server.verify();
     }
@@ -256,7 +296,7 @@ class AssembleTreeTest extends UnitTestBase {
                 .andRespond(withException(new IOException("down")));
         AuthException ex = assertThrows(
                 AuthException.class,
-                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder, YAML).blobs());
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder).blobs(YAML));
         assertEquals(503, ex.getStatus());
         assertEquals("assemble zip missing", ex.getMessage());
         server.verify();
@@ -273,7 +313,7 @@ class AssembleTreeTest extends UnitTestBase {
                         .body("{\"ok\":false}"));
         AuthException ex = assertThrows(
                 AuthException.class,
-                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder, YAML).blobs());
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder).blobs(YAML));
         assertEquals(503, ex.getStatus());
         assertEquals("assemble zip missing", ex.getMessage());
         server.verify();
