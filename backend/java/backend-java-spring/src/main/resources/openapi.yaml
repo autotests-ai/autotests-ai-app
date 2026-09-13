@@ -243,7 +243,12 @@ paths:
               $ref: "#/components/schemas/IdpOAuthRequest"
       responses:
         "200":
-          description: School login only. Token and id_token stay on the backend. No cookie.
+          description: School login only. Token is an httpOnly cookie on /api/cloud, never the JSON body.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: httpOnly IdP access token (idp_oauth); Path=/api/cloud; SameSite=Lax
           content:
             application/json:
               schema:
@@ -256,6 +261,46 @@ paths:
           description: IdP exchange failed or login missing / unknown
         "503":
           description: IdP client secret or token/userinfo URL is not configured
+
+  /api/cloud/repos:
+    post:
+      operationId: cloudCreateRepo
+      summary: Create github.com/autotests-cloud/{idp-login}-{coverageProfile.automation.e2e.stack}. Never a PAT. Never push. Never dest user.
+      tags: [oauth]
+      security:
+        - idpOAuthCookie: []
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+            example: |
+              destination: cloud
+              coverageProfile:
+                automation:
+                  e2e:
+                    stack: python-pytest
+          text/plain:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Org repo URL; created is true even when the repo already existed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloudRepoResponse"
+              example:
+                login: qaguru
+                url: https://github.com/autotests-cloud/qaguru-python-pytest
+                created: true
+        "400":
+          description: YAML body missing or coverageProfile.automation.e2e.stack missing. Never a frozen stack.
+        "401":
+          description: Missing or invalid IdP cookie
+        "503":
+          description: GITHUB_CLOUD_TOKEN is not configured
 
   /api/assemble:
     post:
@@ -466,6 +511,22 @@ components:
           example: qaguru
       description: School login only. token, access_token, id_token, and PAT must not appear. created is not this response.
 
+    CloudRepoResponse:
+      type: object
+      required: [login, url, created]
+      additionalProperties: false
+      properties:
+        login:
+          type: string
+          example: qaguru
+        url:
+          type: string
+          example: https://github.com/autotests-cloud/qaguru-python-pytest
+        created:
+          type: boolean
+          example: true
+      description: Never token, access_token, or PAT. created is true if the org repo exists after this call. Never a dest user URL.
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -475,6 +536,10 @@ components:
       type: apiKey
       in: cookie
       name: github_oauth
+    idpOAuthCookie:
+      type: apiKey
+      in: cookie
+      name: idp_oauth
 
 tags:
   - name: system
@@ -484,4 +549,4 @@ tags:
   - name: auth
     description: Authentication per flows/login.md
   - name: oauth
-    description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login only, no cookie, never a token in JSON)
+    description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)

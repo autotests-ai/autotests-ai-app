@@ -4,9 +4,11 @@ import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.controller.ApiController;
 import dev.multistack.app.controller.AssembleController;
 import dev.multistack.app.controller.AuthController;
+import dev.multistack.app.controller.CloudRepoController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
 import dev.multistack.app.dto.AssembleZip;
+import dev.multistack.app.dto.CloudRepoResponse;
 import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
@@ -14,6 +16,7 @@ import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.dto.UserProfileResponse;
 import dev.multistack.app.service.AssembleTree;
 import dev.multistack.app.service.AuthService;
+import dev.multistack.app.service.CloudRepoService;
 import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.ItemService;
 import dev.multistack.app.service.JwtService;
@@ -58,7 +61,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Severity(SeverityLevel.CRITICAL)
 @WebMvcTest(controllers = {
         ApiController.class, AssembleController.class, AuthController.class, OpenApiController.class,
-        GithubOAuthController.class
+        GithubOAuthController.class, CloudRepoController.class
 })
 @Import({SecurityChainTest.RealJwtConfig.class, SecurityConfig.class, CorsConfig.class})
 @DisplayName("Security chain with real JWT filter")
@@ -89,6 +92,9 @@ class SecurityChainTest extends SliceTestBase {
 
     @MockitoBean
     private GithubOAuthService githubOAuthService;
+
+    @MockitoBean
+    private CloudRepoService cloudRepoService;
 
     @MockitoBean
     private AssembleTree assembleTree;
@@ -178,6 +184,26 @@ class SecurityChainTest extends SliceTestBase {
                 .andExpect(jsonPath("$.pushed").value(true))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos is public (IdP cookie, not JWT)")
+    void cloudCreateRepoPermitAll() throws Exception {
+        when(cloudRepoService.createRepo(nullable(String.class), nullable(String.class)))
+                .thenReturn(new CloudRepoResponse(
+                        "qaguru",
+                        CloudRepoService.htmlUrl("qaguru", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/cloud/repos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.url").value(
+                        "https://github.com/autotests-cloud/qaguru-python-pytest"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("idp_secret"))));
     }
 
     @Test

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
@@ -65,10 +66,11 @@ class IdpOAuthServiceTest extends UnitTestBase {
                 "{\"access_token\":\"idp_secret\",\"id_token\":\"eyJhbGciOiJub25lIn0\",\"token_type\":\"bearer\"}",
                 "{\"preferred_username\":\"qaguru\",\"sub\":\"1\",\"token\":\"should-ignore\"}");
 
-        String login = service.exchange(REQUEST);
+        var session = service.exchange(REQUEST);
 
-        assertEquals("qaguru", login);
-        String json = new ObjectMapper().writeValueAsString(new IdpOAuthLoginResponse(login));
+        assertEquals("qaguru", session.login());
+        assertEquals("idp_secret", session.accessToken());
+        String json = new ObjectMapper().writeValueAsString(new IdpOAuthLoginResponse(session.login()));
         assertEquals("{\"login\":\"qaguru\"}", json);
         assertFalse(json.contains("idp_secret"));
         assertFalse(json.contains("access_token"));
@@ -84,7 +86,7 @@ class IdpOAuthServiceTest extends UnitTestBase {
     @DisplayName("uses username when preferred_username is absent")
     void exchangeFallsBackToUsername() {
         expectTokenThenUser("{\"access_token\":\"idp_secret\"}", "{\"username\":\"qaguru\"}");
-        assertEquals("qaguru", service.exchange(REQUEST));
+        assertEquals("qaguru", service.exchange(REQUEST).login());
         server.verify();
     }
 
@@ -238,6 +240,25 @@ class IdpOAuthServiceTest extends UnitTestBase {
         assertFalse(IdpOAuthProperties.isSchoolIdpUrl("ftp://idp.example/token"));
         assertFalse(IdpOAuthProperties.isSchoolIdpUrl(""));
         assertFalse(IdpOAuthProperties.isSchoolIdpUrl(null));
+    }
+
+    @Test
+    @DisplayName("builds an httpOnly Lax cookie on /api/cloud and optional Secure flag")
+    void toCookieIsHttpOnlyOnCloudPath() {
+        ResponseCookie http = service.toCookie("idp_secret", false);
+        assertEquals(IdpOAuthService.COOKIE_NAME, http.getName());
+        assertEquals("idp_secret", http.getValue());
+        assertTrue(http.isHttpOnly());
+        assertFalse(http.isSecure());
+        assertEquals("Lax", http.getSameSite());
+        assertEquals(IdpOAuthService.COOKIE_PATH, http.getPath());
+        assertEquals("/api/cloud", http.getPath());
+        assertFalse(http.toString().contains("access_token"));
+        assertFalse(http.getPath().startsWith("/api/oauth"));
+
+        ResponseCookie https = service.toCookie("idp_secret", true);
+        assertTrue(https.isSecure());
+        assertTrue(https.isHttpOnly());
     }
 
     @Test

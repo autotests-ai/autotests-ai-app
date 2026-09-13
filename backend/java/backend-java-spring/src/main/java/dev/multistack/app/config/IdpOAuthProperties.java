@@ -6,8 +6,8 @@ import java.net.URI;
 
 /**
  * School IdP (OIDC) credentials and endpoints. The client secret never leaves this
- * process — {@code POST /api/oauth/idp} answers with {@code login} only. No cookie,
- * no token in JSON. GitHub URLs are not an IdP.
+ * process — {@code POST /api/oauth/idp} answers with {@code login} only. The IdP
+ * access token is an httpOnly cookie on {@code /api/cloud}. GitHub URLs are not an IdP.
  */
 @ConfigurationProperties(prefix = "idp.oauth")
 public record IdpOAuthProperties(

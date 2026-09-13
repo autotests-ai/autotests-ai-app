@@ -6,6 +6,7 @@ import dev.multistack.app.config.CorsConfig;
 import dev.multistack.app.config.SecurityConfig;
 import dev.multistack.app.dto.IdpOAuthLoginResponse;
 import dev.multistack.app.dto.IdpOAuthRequest;
+import dev.multistack.app.dto.IdpOAuthSession;
 import dev.multistack.app.exception.AuthException;
 import dev.multistack.app.service.IdpOAuthService;
 import dev.multistack.app.service.JwtService;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,6 +30,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -59,9 +62,12 @@ class IdpOAuthControllerTest extends SliceTestBase {
     private JwtService jwtService;
 
     @Test
-    @DisplayName("POST /api/oauth/idp returns login only and never a token or cookie")
-    void exchangeReturnsLoginOnlyWithoutCookie() throws Exception {
-        when(idpOAuthService.exchange(any(IdpOAuthRequest.class))).thenReturn("qaguru");
+    @DisplayName("POST /api/oauth/idp returns login, sets httpOnly cookie, never a token in JSON")
+    void exchangeReturnsLoginOnlyAndSetsCookie() throws Exception {
+        when(idpOAuthService.exchange(any(IdpOAuthRequest.class)))
+                .thenReturn(new IdpOAuthSession("qaguru", TOKEN));
+        when(idpOAuthService.toCookie(eq(TOKEN), eq(false)))
+                .thenReturn(httpOnlyCookie(false));
 
         String body = mockMvc.perform(post("/api/oauth/idp")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +83,11 @@ class IdpOAuthControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.via").doesNotExist())
                 .andExpect(content().string(not(containsString("token"))))
                 .andExpect(content().string(not(containsString(TOKEN))))
-                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("idp_oauth=")))
+                .andExpect(header().string(
+                        HttpHeaders.SET_COOKIE, containsString("Path=" + IdpOAuthService.COOKIE_PATH)))
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, not(containsString("github_oauth"))))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -88,6 +98,23 @@ class IdpOAuthControllerTest extends SliceTestBase {
                 new ObjectMapper().writeValueAsString(new IdpOAuthLoginResponse("qaguru")));
         assertFalse(body.contains("gho_"));
         assertFalse(body.contains("ghp_"));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/idp marks the cookie Secure on HTTPS")
+    void exchangeSetsSecureCookieOnHttps() throws Exception {
+        when(idpOAuthService.exchange(any(IdpOAuthRequest.class)))
+                .thenReturn(new IdpOAuthSession("qaguru", TOKEN));
+        when(idpOAuthService.toCookie(eq(TOKEN), eq(true)))
+                .thenReturn(httpOnlyCookie(true));
+
+        mockMvc.perform(post("/api/oauth/idp")
+                        .secure(true)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(BODY))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Secure")))
+                .andExpect(content().string(LOGIN_JSON));
     }
 
     @Test
@@ -146,5 +173,15 @@ class IdpOAuthControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.message").value("Request body is not valid JSON"))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+    }
+
+    private static ResponseCookie httpOnlyCookie(boolean secure) {
+        return ResponseCookie.from(IdpOAuthService.COOKIE_NAME, TOKEN)
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Lax")
+                .path(IdpOAuthService.COOKIE_PATH)
+                .maxAge(java.time.Duration.ofDays(1))
+                .build();
     }
 }

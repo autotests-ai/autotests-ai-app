@@ -40,6 +40,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-autotests-ai-app-dev-secret-change-in-production-min-32-chars}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      GITHUB_CLOUD_TOKEN: ${GITHUB_CLOUD_TOKEN:-}
       IDP_CLIENT_ID: ${IDP_CLIENT_ID:-}
       IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET:-}
       IDP_TOKEN_URL: ${IDP_TOKEN_URL:-}
