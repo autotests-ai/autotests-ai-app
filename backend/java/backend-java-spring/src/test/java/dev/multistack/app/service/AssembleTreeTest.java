@@ -2,6 +2,7 @@ package dev.multistack.app.service;
 
 import dev.multistack.app.allure.UnitTestBase;
 import dev.multistack.app.config.AssembleProperties;
+import dev.multistack.app.dto.AssembleZip;
 import dev.multistack.app.dto.GithubTreeBlob;
 import dev.multistack.app.exception.AuthException;
 import io.qameta.allure.Epic;
@@ -10,6 +11,7 @@ import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,8 +23,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.ExpectedCount.once;
@@ -154,6 +158,21 @@ class AssembleTreeTest extends UnitTestBase {
         assertFalse(AssembleTree.zipMagic(AssembleZipFixture.jsonBytes()));
         assertTrue(AssembleTree.zipMagic(AssembleZipFixture.cellZip()));
         assertTrue(AssembleTree.zipMagic(AssembleZipFixture.emptyZip()));
+        assertEquals(AssembleZip.DEFAULT_FILENAME, AssembleTree.zipFilename(null));
+        assertEquals(AssembleZip.DEFAULT_FILENAME, AssembleTree.zipFilename(""));
+        assertEquals(AssembleZip.DEFAULT_FILENAME, AssembleTree.zipFilename("  "));
+        assertEquals(
+                "assemble-java-default.zip",
+                AssembleTree.zipFilename("attachment; filename=\"assemble-java-default.zip\""));
+        assertEquals(
+                AssembleZip.DEFAULT_FILENAME,
+                AssembleTree.zipFilename("attachment; filename=\"../../evil.zip\""));
+        assertEquals(
+                AssembleZip.DEFAULT_FILENAME,
+                AssembleTree.zipFilename("attachment; filename=\"foo\\bar.zip\""));
+        assertEquals(
+                AssembleZip.DEFAULT_FILENAME,
+                AssembleTree.zipFilename("attachment; filename=\"config.yaml\""));
     }
 
     @Test
@@ -382,5 +401,76 @@ class AssembleTreeTest extends UnitTestBase {
         assertEquals(503, ex.getStatus());
         assertEquals("assemble zip missing", ex.getMessage());
         server.verify();
+    }
+
+    @Test
+    @DisplayName("zip POSTs Home YAML to ASSEMBLE_URL and returns dest zip bytes")
+    void zipFromAssembleUrl() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        byte[] zipBytes = AssembleZipFixture.cellZip();
+        server.expect(once(), requestTo(ASSEMBLE_URL))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.parseMediaType("application/yaml")))
+                .andExpect(content().string(containsString("destination: zip")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("assemble-landing.yaml"))))
+                .andRespond(withSuccess(zipBytes, MediaType.parseMediaType("application/zip"))
+                        .header(HttpHeaders.CONTENT_DISPOSITION,
+                                "attachment; filename=\"assemble-java-default.zip\""));
+
+        AssembleZip zip = new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder)
+                .zip(YAML);
+        assertArrayEquals(zipBytes, zip.body());
+        assertEquals("assemble-java-default.zip", zip.filename());
+        assertEquals(zip, new AssembleZip(zip.body(), zip.filename()));
+        assertEquals(zip.hashCode(), new AssembleZip(zip.body(), zip.filename()).hashCode());
+        assertTrue(zip.toString().contains("assemble-java-default.zip"));
+        assertNotEquals(zip, new AssembleZip(zip.body(), AssembleZip.DEFAULT_FILENAME));
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("zip uses assemble.zip when Content-Disposition is missing")
+    void zipDefaultFilename() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ASSEMBLE_URL))
+                .andRespond(withSuccess(AssembleZipFixture.cellZip(), MediaType.parseMediaType("application/zip")));
+
+        AssembleZip zip = new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder)
+                .zip(YAML);
+        assertEquals(AssembleZip.DEFAULT_FILENAME, zip.filename());
+        assertTrue(AssembleTree.zipMagic(zip.body()));
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("zip maps JSON from assemble-zip to 503, not a stub")
+    void zipRejectsJson() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ASSEMBLE_URL))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(AssembleZipFixture.jsonBytes(), MediaType.APPLICATION_JSON));
+        AuthException ex = assertThrows(
+                AuthException.class,
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder).zip(YAML));
+        assertEquals(503, ex.getStatus());
+        assertEquals("assemble zip missing", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("zip on an injected tree is 503, never a classpath stub")
+    void zipInjectedIsUnavailable() {
+        AuthException injected = assertThrows(
+                AuthException.class,
+                () -> new AssembleTree(List.of(new GithubTreeBlob("README.md", "assemble\n"))).zip(YAML));
+        assertEquals(503, injected.getStatus());
+        assertEquals("assemble zip missing", injected.getMessage());
+        AuthException fromBytes = assertThrows(
+                AuthException.class,
+                () -> new AssembleTree(AssembleZipFixture.cellZip()).zip(YAML));
+        assertEquals("assemble zip missing", fromBytes.getMessage());
     }
 }

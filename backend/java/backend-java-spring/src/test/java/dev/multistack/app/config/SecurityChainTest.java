@@ -2,14 +2,17 @@ package dev.multistack.app.config;
 
 import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.controller.ApiController;
+import dev.multistack.app.controller.AssembleController;
 import dev.multistack.app.controller.AuthController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
+import dev.multistack.app.dto.AssembleZip;
 import dev.multistack.app.dto.GithubOAuthPushResponse;
 import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.dto.UserProfileResponse;
+import dev.multistack.app.service.AssembleTree;
 import dev.multistack.app.service.AuthService;
 import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.ItemService;
@@ -54,7 +57,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Feature("Security chain")
 @Severity(SeverityLevel.CRITICAL)
 @WebMvcTest(controllers = {
-        ApiController.class, AuthController.class, OpenApiController.class, GithubOAuthController.class
+        ApiController.class, AssembleController.class, AuthController.class, OpenApiController.class,
+        GithubOAuthController.class
 })
 @Import({SecurityChainTest.RealJwtConfig.class, SecurityConfig.class, CorsConfig.class})
 @DisplayName("Security chain with real JWT filter")
@@ -85,6 +89,9 @@ class SecurityChainTest extends SliceTestBase {
 
     @MockitoBean
     private GithubOAuthService githubOAuthService;
+
+    @MockitoBean
+    private AssembleTree assembleTree;
 
     @Test
     @DisplayName("GET /api/auth/me with a real bearer token passes the filter chain")
@@ -170,6 +177,25 @@ class SecurityChainTest extends SliceTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pushed").value(true))
                 .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/assemble is public and returns zip bytes")
+    void assemblePermitAllReturnsZip() throws Exception {
+        byte[] zip = new byte[] {0x50, 0x4b, 0x03, 0x04};
+        when(assembleTree.zip(nullable(String.class)))
+                .thenReturn(new AssembleZip(zip, "assemble-java-default.zip"));
+
+        mockMvc.perform(post("/api/assemble")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/zip"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"assemble-java-default.zip\""))
+                .andExpect(content().bytes(zip))
                 .andExpect(content().string(not(containsString("gho_secret"))));
     }
 

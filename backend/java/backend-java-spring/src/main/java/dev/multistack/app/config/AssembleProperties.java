@@ -3,8 +3,8 @@ package dev.multistack.app.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Loopback assemble-zip stand ({@code ASSEMBLE_URL}). Empty means dest user push
- * fails closed — never a classpath stub tree. YAML body is required at push.
+ * Loopback assemble-zip stand ({@code ASSEMBLE_URL}). Empty means dest zip and
+ * dest user push fail closed — never a classpath stub tree. YAML body is required.
  */
 @ConfigurationProperties(prefix = "assemble")
 public record AssembleProperties(String url) {

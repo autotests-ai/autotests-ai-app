@@ -21,7 +21,7 @@ curl -sf -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8081/stack/
 curl -sf http://127.0.0.1:8081/stack/matrix.json
 ```
 
-From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`. Dest user push needs `ASSEMBLE_URL` (compose default `http://host.docker.internal:3032` → `ensure.py assemble-zip`); empty / prod without host-gateway → 503.
+From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`. Dest zip (`POST /api/assemble`) and dest user push need `ASSEMBLE_URL` (compose default `http://host.docker.internal:3032` → `ensure.py assemble-zip`); empty / prod without host-gateway → 503. Browser CORS to assemble-zip is loopback fallback only.
 
 Postgres has no host port. First up after replacing the old terminal Flyway history uses volume `pgdata_v2` (does not `down -v` the matrix).
 

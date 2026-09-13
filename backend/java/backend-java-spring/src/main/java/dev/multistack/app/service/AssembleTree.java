@@ -1,10 +1,12 @@
 package dev.multistack.app.service;
 
 import dev.multistack.app.config.AssembleProperties;
+import dev.multistack.app.dto.AssembleZip;
 import dev.multistack.app.dto.GithubTreeBlob;
 import dev.multistack.app.exception.AuthException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -29,6 +31,7 @@ import java.util.zip.ZipInputStream;
 /**
  * Dest user push YAML = Home dump; classpath is not canon.
  * Tree = unzip of the dest zip (POST YAML to {@code ASSEMBLE_URL}, destination forced zip).
+ * Dest zip download = the same POST, zip bytes on {@code POST /api/assemble}.
  * Never a PAT, never {@code assemble-landing.yaml}.
  */
 @Component
@@ -62,6 +65,8 @@ public class AssembleTree {
     private static final MediaType YAML = MediaType.parseMediaType("application/yaml");
     private static final Pattern DESTINATION_CHANNEL = Pattern.compile(
             "(?m)^destination:\\s*(?:user|catalog|cloud)\\s*$");
+    private static final Pattern ZIP_FILENAME = Pattern.compile(
+            "filename=\"([^\"]+\\.zip)\"", Pattern.CASE_INSENSITIVE);
     private static final Pattern GITHUB_NAME = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]*$");
     private static final Pattern E2E_LINE = Pattern.compile("^([ \\t]*)e2e:\\s*(.*)$");
     private static final Pattern FLOW_STACK = Pattern.compile(
@@ -97,14 +102,34 @@ public class AssembleTree {
         if (injected != null) {
             return injected;
         }
-        if (!properties.configured()) {
-            throw new AuthException(503, "assemble url missing");
+        return fromZip(postStand(yaml).body());
+    }
+
+    /** Dest zip bytes for {@code POST /api/assemble}. JSON or an empty body is 503, not a stub. */
+    public AssembleZip zip(String yaml) {
+        if (injected != null) {
+            throw new AuthException(503, "assemble zip missing");
         }
-        String stand = standYaml(yaml);
-        if (stand.isBlank()) {
-            throw new AuthException(400, "assemble yaml missing");
+        AssembleZip fetched = postStand(yaml);
+        if (!zipMagic(fetched.body())) {
+            throw new AuthException(503, "assemble zip missing");
         }
-        return fromZip(fetchZip(stand));
+        return fetched;
+    }
+
+    static String zipFilename(String header) {
+        if (header == null || header.isBlank()) {
+            return AssembleZip.DEFAULT_FILENAME;
+        }
+        Matcher match = ZIP_FILENAME.matcher(header);
+        if (!match.find()) {
+            return AssembleZip.DEFAULT_FILENAME;
+        }
+        String name = match.group(1).strip();
+        if (name.contains("/") || name.contains("\\")) {
+            return AssembleZip.DEFAULT_FILENAME;
+        }
+        return name;
     }
 
     /** Stand assemble-zip accepts destination zip only. Channel user/catalog/cloud is not this POST. */
@@ -285,22 +310,31 @@ public class AssembleTree {
         return data[0] == 'P' && data[1] == 'K';
     }
 
-    private byte[] fetchZip(String yaml) {
+    private AssembleZip postStand(String yaml) {
+        if (!properties.configured()) {
+            throw new AuthException(503, "assemble url missing");
+        }
+        String stand = standYaml(yaml);
+        if (stand.isBlank()) {
+            throw new AuthException(400, "assemble yaml missing");
+        }
         try {
             return restClient.post()
                     .uri(properties.assembleEndpoint())
                     .contentType(YAML)
                     .accept(MediaType.parseMediaType("application/zip"))
-                    .body(yaml)
+                    .body(stand)
                     .exchange((request, response) -> {
                         if (response.getStatusCode().value() != 200) {
                             throw new AuthException(503, "assemble zip missing");
                         }
                         byte[] body = response.getBody().readAllBytes();
                         if (!zipMagic(body)) {
-                            return new byte[0];
+                            return new AssembleZip(new byte[0], AssembleZip.DEFAULT_FILENAME);
                         }
-                        return body;
+                        return new AssembleZip(
+                                body,
+                                zipFilename(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)));
                     });
         } catch (AuthException ex) {
             throw ex;

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
 import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oauth';
 import {
-  ASSEMBLE_ZIP_ORIGIN,
+  assembleApiUrl,
   DEFAULTS,
   fingerprint,
   TAKEAWAY_TESTS_STACK,
@@ -346,7 +346,7 @@ describe('HomePage', () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  it('POSTs YAML to assemble-zip and downloads a .zip when dest is zip', async () => {
+  it('POSTs YAML to /api/assemble and downloads a .zip when dest is zip', async () => {
     const user = userEvent.setup();
     const anchors: HTMLAnchorElement[] = [];
     const createObjectURL = vi.fn(() => 'blob:assemble');
@@ -363,7 +363,7 @@ describe('HomePage', () => {
       return el;
     });
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe(`${ASSEMBLE_ZIP_ORIGIN}/assemble`);
+      expect(String(input)).toBe(assembleApiUrl());
       expect(init?.method).toBe('POST');
       expect(String(init?.body)).toContain('destination: zip');
       return Promise.resolve({

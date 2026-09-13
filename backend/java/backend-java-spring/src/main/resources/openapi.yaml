@@ -230,6 +230,48 @@ paths:
         "503":
           description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
 
+  /api/assemble:
+    post:
+      operationId: assembleDestZip
+      summary: Dest zip bytes from Home YAML via ASSEMBLE_URL. Same-origin. Browser CORS to assemble-zip is not the happy path. Never catalog/cloud/user channel.
+      tags: [assemble]
+      requestBody:
+        required: true
+        content:
+          application/yaml:
+            schema:
+              type: string
+            example: |
+              destination: zip
+              coverageProfile:
+                automation:
+                  e2e:
+                    stack: python-pytest
+          text/plain:
+            schema:
+              type: string
+      responses:
+        "200":
+          description: Zip bytes. Destination forced zip. Never a classpath stub.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: attachment; filename="assemble.zip"
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: YAML body missing
+        "503":
+          description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
+
 components:
   schemas:
     HealthResponse:

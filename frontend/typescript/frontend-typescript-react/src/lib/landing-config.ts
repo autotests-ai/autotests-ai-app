@@ -1,5 +1,6 @@
 /** Home configurator selection — cfg-keys + harvested presets. Not a matrix profile id. */
 
+import { apiUrl } from './appBase';
 import {
   createGithubUserRepo,
   type GithubCreatedRepo,
@@ -667,15 +668,23 @@ export function outputFilename(tab: OutputTabId): string {
   return tab === 'json' ? 'config.json' : 'config.yaml';
 }
 
-/** Registry `assemble-zip` bind (scripts/stands/registry.json). Not window.location. */
+/** Registry `assemble-zip` bind (scripts/stands/registry.json). Loopback CORS fallback only. */
 export const ASSEMBLE_ZIP_ORIGIN = 'http://127.0.0.1:3032';
+
+export function assembleApiUrl(): string {
+  return apiUrl('/assemble');
+}
 
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
-export function shouldAssembleZip(destination: DestinationId, hostname: string): boolean {
-  return destination === 'zip' && isLoopbackHostname(hostname);
+export function shouldAssembleZip(destination: DestinationId): boolean {
+  return destination === 'zip';
+}
+
+export function shouldAssembleZipLoopback(hostname: string): boolean {
+  return isLoopbackHostname(hostname);
 }
 
 export function zipFilenameFromDisposition(
@@ -713,10 +722,10 @@ export function downloadText(contents: string, filename: string): void {
 
 export async function postAssembleZip(
   yaml: string,
-  origin: string = ASSEMBLE_ZIP_ORIGIN,
+  url: string = assembleApiUrl(),
 ): Promise<{ blob: Blob; filename: string } | null> {
   try {
-    const response = await fetch(`${origin}/assemble`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/yaml' },
       body: yaml,
@@ -753,6 +762,7 @@ export async function downloadLandingOutput(input: {
   landingConfig?: LandingConfig;
   vectorId?: string;
   outputTab?: OutputTabId;
+  apiUrl?: string;
 }): Promise<'zip' | 'catalog' | 'text'> {
   if (input.destination === 'catalog') {
     openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
@@ -777,8 +787,12 @@ export async function downloadLandingOutput(input: {
     downloadText(output, input.textFilename);
     return 'text';
   }
-  if (shouldAssembleZip(input.destination, input.hostname)) {
-    const assembled = await postAssembleZip(input.yaml, input.origin ?? ASSEMBLE_ZIP_ORIGIN);
+  if (shouldAssembleZip(input.destination)) {
+    const assembled =
+      (await postAssembleZip(input.yaml, input.apiUrl ?? assembleApiUrl())) ??
+      (shouldAssembleZipLoopback(input.hostname)
+        ? await postAssembleZip(input.yaml, `${input.origin ?? ASSEMBLE_ZIP_ORIGIN}/assemble`)
+        : null);
     if (assembled) {
       downloadBlob(assembled.blob, assembled.filename);
       return 'zip';
