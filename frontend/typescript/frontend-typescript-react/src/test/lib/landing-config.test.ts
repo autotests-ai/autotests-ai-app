@@ -212,21 +212,53 @@ describe('landing-config', () => {
     expect(yaml).toContain('cloud:');
     expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
     expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: idp');
     expect(yaml).not.toContain('\ncatalog:');
     expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
     expect(yaml).not.toContain('unknown');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('login:');
     const json = JSON.parse(toJson(config, 'vector#cloud')) as {
       destination: string;
-      cloud: { org: string; created: boolean };
+      cloud: { org: string; created: boolean; via: string; login?: string };
       catalog?: unknown;
       url?: string;
     };
     expect(json.destination).toBe('cloud');
     expect(json.cloud).toEqual(cloudDocument());
     expect(json.cloud.created).toBe(false);
+    expect(json.cloud.via).toBe('idp');
+    expect(json.cloud.login).toBeUndefined();
     expect(json).not.toHaveProperty('catalog');
     expect(json).not.toHaveProperty('url');
     expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncloud:');
+  });
+
+  it('prints cloud login only after a real IdP session', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const yaml = toYaml(config, 'vector#cloud', { idpSession: { login: 'qaguru' } });
+    expect(yaml).toContain('via: idp');
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('login: qaguru');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('token');
+    expect(toYaml(config, 'vector#cloud', { idpSession: { login: 'unknown' } })).not.toContain(
+      'login:',
+    );
+    expect(toYaml(config, 'vector#cloud', { githubUser: { login: 'octocat' } })).not.toContain(
+      'login: octocat',
+    );
+    const json = JSON.parse(
+      toJson(config, 'vector#cloud', { idpSession: { login: 'qaguru' } }),
+    ) as { cloud: { created: boolean; via: string; login?: string; url?: string } };
+    expect(json.cloud).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: false,
+      via: 'idp',
+      login: 'qaguru',
+    });
+    expect(json.cloud).not.toHaveProperty('url');
   });
 
   it('prints user created false via oauth when destination is user', () => {
@@ -797,6 +829,9 @@ describe('landing-config', () => {
     expect(click).toHaveBeenCalled();
     expect(yaml).toContain('created: false');
     expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
+    expect(yaml).toContain('via: idp');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('github.com/login');
   });
 
   it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {

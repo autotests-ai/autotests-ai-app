@@ -11,6 +11,7 @@ import {
   isGithubUserRepoUrl,
   pushGithubUserRepo,
 } from './github-oauth';
+import { type IdpSession, isSchoolLogin } from './idp-login';
 
 export type LandingConfig = {
   buildOs: string;
@@ -65,6 +66,8 @@ export type CatalogHref = {
 export type CloudContract = {
   org: string;
   created: false;
+  via: 'idp';
+  login?: string;
 };
 
 export type UserContract = {
@@ -79,6 +82,7 @@ export type LandingEmitOptions = {
   githubUser?: GithubUserSession | null;
   createdRepo?: GithubCreatedRepo | null;
   pushedRepo?: GithubPushedRepo | null;
+  idpSession?: IdpSession | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -228,7 +232,7 @@ export function isDestinationId(value: string): value is DestinationId {
 /** matrix.yaml defaults.generation.github_org — frozen, not invent. */
 export const CATALOG_GITHUB_ORG = 'autotests-ai';
 
-/** School contour org. No {login} in URL until IdP. */
+/** School contour org. Login after IdP session only. Never unknown. */
 export const CLOUD_GITHUB_ORG = 'autotests-cloud';
 
 /** Frozen tests stack → github.com/autotests-ai/<e2e.stack>. */
@@ -245,8 +249,12 @@ export function catalogDocument(profile: CoverageProfile): CatalogHref {
   return { profile: id, url: catalogHref(id) };
 }
 
-export function cloudDocument(): CloudContract {
-  return { org: CLOUD_GITHUB_ORG, created: false };
+export function cloudDocument(session?: IdpSession | null): CloudContract {
+  const doc: CloudContract = { org: CLOUD_GITHUB_ORG, created: false, via: 'idp' };
+  if (session && isSchoolLogin(session.login)) {
+    doc.login = session.login;
+  }
+  return doc;
 }
 
 export function userDocument(
@@ -534,7 +542,7 @@ export function toDocument(
     doc.catalog = catalogDocument(config.coverageProfile);
   }
   if (config.destination === 'cloud') {
-    doc.cloud = cloudDocument();
+    doc.cloud = cloudDocument(options?.idpSession);
   }
   if (config.destination === 'user') {
     doc.user = userDocument(options?.githubUser, options?.createdRepo, options?.pushedRepo);
@@ -614,7 +622,11 @@ export function toYaml(
         'cloud:',
         `  org: ${yamlScalar(cloud.org)}`,
         `  created: ${yamlScalar(cloud.created)}`,
+        `  via: ${yamlScalar(cloud.via)}`,
       );
+      if (cloud.login) {
+        lines.push(`  login: ${yamlScalar(cloud.login)}`);
+      }
       continue;
     }
     if (key === 'user' && value && typeof value === 'object' && !Array.isArray(value)) {
@@ -787,16 +799,14 @@ export async function downloadLandingOutput(input: {
     downloadText(output, input.textFilename);
     return 'text';
   }
-  if (shouldAssembleZip(input.destination)) {
-    const assembled =
-      (await postAssembleZip(input.yaml, input.apiUrl ?? assembleApiUrl())) ??
-      (shouldAssembleZipLoopback(input.hostname)
-        ? await postAssembleZip(input.yaml, `${input.origin ?? ASSEMBLE_ZIP_ORIGIN}/assemble`)
-        : null);
-    if (assembled) {
-      downloadBlob(assembled.blob, assembled.filename);
-      return 'zip';
-    }
+  const assembled =
+    (await postAssembleZip(input.yaml, input.apiUrl ?? assembleApiUrl())) ??
+    (shouldAssembleZipLoopback(input.hostname)
+      ? await postAssembleZip(input.yaml, `${input.origin ?? ASSEMBLE_ZIP_ORIGIN}/assemble`)
+      : null);
+  if (assembled) {
+    downloadBlob(assembled.blob, assembled.filename);
+    return 'zip';
   }
   downloadText(input.text, input.textFilename);
   return 'text';

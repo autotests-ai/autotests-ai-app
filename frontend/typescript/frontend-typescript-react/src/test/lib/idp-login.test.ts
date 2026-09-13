@@ -1,0 +1,237 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  clearIdpSession,
+  clearIdpState,
+  createIdpState,
+  finishIdpCallback,
+  IDP_CALLBACK_PATH,
+  IDP_MARK_PATH,
+  IDP_SCOPE,
+  IDP_SESSION_KEY,
+  IDP_STATE_KEY,
+  idpAssign,
+  idpAuthorizeHref,
+  idpAuthorizeUrl,
+  idpClientId,
+  idpConfigured,
+  idpGate,
+  idpRedirectUri,
+  isIdpAuthorizeUrl,
+  isSchoolLogin,
+  readIdpSession,
+  readIdpState,
+  startIdpLogin,
+  writeIdpSession,
+  writeIdpState,
+} from '../../lib/idp-login';
+
+function memoryStorage(initial: Record<string, string> = {}): Storage {
+  const map = new Map(Object.entries(initial));
+  return {
+    get length() {
+      return map.size;
+    },
+    clear() {
+      map.clear();
+    },
+    getItem(key) {
+      return map.has(key) ? (map.get(key) ?? null) : null;
+    },
+    key(index) {
+      return [...map.keys()][index] ?? null;
+    },
+    removeItem(key) {
+      map.delete(key);
+    },
+    setItem(key, value) {
+      map.set(key, String(value));
+    },
+  };
+}
+
+function throwingStorage(): Storage {
+  return {
+    get length() {
+      return 0;
+    },
+    clear() {
+      throw new Error('blocked');
+    },
+    getItem() {
+      throw new Error('blocked');
+    },
+    key() {
+      throw new Error('blocked');
+    },
+    removeItem() {
+      throw new Error('blocked');
+    },
+    setItem() {
+      throw new Error('blocked');
+    },
+  };
+}
+
+describe('idp-login', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('hides the client when env is empty and rejects GitHub as authorize URL', () => {
+    expect(idpClientId()).toBe('test-idp-client');
+    expect(idpAuthorizeUrl()).toBe('https://idp.example/auth');
+    expect(idpConfigured()).toBe(true);
+    expect(idpGate.configured()).toBe(true);
+    expect(idpClientId({})).toBe('');
+    expect(idpAuthorizeUrl({})).toBe('');
+    expect(idpConfigured({})).toBe(false);
+    expect(idpGate.configured({})).toBe(false);
+    expect(idpClientId({ VITE_IDP_CLIENT_ID: '  school  ' })).toBe('school');
+    expect(idpAuthorizeUrl({ VITE_IDP_AUTHORIZE_URL: ' https://idp.example/auth ' })).toBe(
+      'https://idp.example/auth',
+    );
+    expect(isIdpAuthorizeUrl('https://idp.example/auth')).toBe(true);
+    expect(
+      isIdpAuthorizeUrl('http://127.0.0.1:8543/realms/qa-guru/protocol/openid-connect/auth'),
+    ).toBe(true);
+    expect(isIdpAuthorizeUrl('https://github.com/login/oauth/authorize')).toBe(false);
+    expect(isIdpAuthorizeUrl('https://api.github.com/auth')).toBe(false);
+    expect(isIdpAuthorizeUrl('ftp://idp.example/auth')).toBe(false);
+    expect(isIdpAuthorizeUrl('not-a-url')).toBe(false);
+    expect(isSchoolLogin('qaguru')).toBe(true);
+    expect(isSchoolLogin('unknown')).toBe(false);
+    expect(isSchoolLogin('Unknown')).toBe(false);
+    expect(isSchoolLogin('')).toBe(false);
+    expect(isSchoolLogin('-nope')).toBe(false);
+    expect(idpRedirectUri('http://localhost:8081/')).toBe(
+      `http://localhost:8081${IDP_CALLBACK_PATH}`,
+    );
+    expect(IDP_MARK_PATH.startsWith('M12')).toBe(true);
+  });
+
+  it('builds the IdP authorize URL without a GitHub login or secret', () => {
+    const url = idpAuthorizeHref({
+      authorizeUrl: 'https://idp.example/auth',
+      clientId: 'test-idp-client',
+      redirectUri: idpRedirectUri('http://localhost:8081'),
+      state: 'state-1',
+    });
+    expect(url.startsWith('https://idp.example/auth?')).toBe(true);
+    expect(url).toContain('client_id=test-idp-client');
+    expect(url).toContain(`scope=${encodeURIComponent(IDP_SCOPE)}`);
+    expect(url).toContain('response_type=code');
+    expect(url).toContain('state=state-1');
+    expect(url).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A8081%2Foauth%2Fidp%2Fcallback');
+    expect(url).not.toContain('github.com');
+    expect(url).not.toContain('token');
+    expect(url).not.toContain('secret');
+    expect(
+      idpAuthorizeHref({
+        authorizeUrl: 'https://idp.example/auth',
+        clientId: 'test-idp-client',
+        redirectUri: 'http://localhost:8081/oauth/idp/callback',
+        state: 'state-1',
+        scope: 'openid profile',
+      }),
+    ).toContain('scope=openid+profile');
+  });
+
+  it('stores login only and ignores unknown or secret session blobs', () => {
+    const storage = memoryStorage();
+    writeIdpSession({ login: 'unknown' }, storage);
+    expect(storage.getItem(IDP_SESSION_KEY)).toBeNull();
+    writeIdpSession({ login: 'qaguru' }, storage);
+    expect(readIdpSession(storage)).toEqual({ login: 'qaguru' });
+    expect(JSON.parse(storage.getItem(IDP_SESSION_KEY) ?? '{}')).toEqual({ login: 'qaguru' });
+    storage.setItem(IDP_SESSION_KEY, '{');
+    expect(readIdpSession(storage)).toBeNull();
+    storage.setItem(IDP_SESSION_KEY, JSON.stringify({ login: 'unknown' }));
+    expect(readIdpSession(storage)).toBeNull();
+    storage.setItem(IDP_SESSION_KEY, JSON.stringify({ token: 'secret' }));
+    expect(readIdpSession(storage)).toBeNull();
+    storage.setItem(IDP_SESSION_KEY, JSON.stringify({ login: 'qaguru', token: 'secret' }));
+    expect(readIdpSession(storage)).toBeNull();
+    expect(readIdpSession(memoryStorage())).toBeNull();
+    expect(readIdpSession(throwingStorage())).toBeNull();
+    expect(readIdpState(throwingStorage())).toBeNull();
+    expect(() => clearIdpState(throwingStorage())).not.toThrow();
+    expect(() => clearIdpSession(throwingStorage())).not.toThrow();
+    writeIdpSession({ login: 'qaguru' }, storage);
+    clearIdpSession(storage);
+    expect(storage.getItem(IDP_SESSION_KEY)).toBeNull();
+  });
+
+  it('starts IdP login and keeps state without a GitHub URL or token', () => {
+    const storage = memoryStorage();
+    const assign = vi.fn();
+    startIdpLogin({
+      clientId: '  test-idp-client  ',
+      authorizeUrl: '  https://idp.example/auth  ',
+      origin: 'http://localhost:8081',
+      state: 'csrf-state',
+      storage,
+      assign,
+    });
+    expect(readIdpState(storage)).toBe('csrf-state');
+    expect(assign).toHaveBeenCalledTimes(1);
+    const href = String(assign.mock.calls[0]?.[0]);
+    expect(href).toContain('https://idp.example/auth');
+    expect(href).toContain('client_id=test-idp-client');
+    expect(href).toContain('state=csrf-state');
+    expect(href).not.toContain('github.com/login');
+    expect(href).not.toContain('token');
+    expect(() =>
+      startIdpLogin({
+        clientId: '  ',
+        authorizeUrl: 'https://idp.example/auth',
+        origin: 'http://localhost:8081',
+        assign,
+      }),
+    ).toThrow(/client id required/);
+    expect(() =>
+      startIdpLogin({
+        clientId: 'test-idp-client',
+        authorizeUrl: 'https://github.com/login/oauth/authorize',
+        origin: 'http://localhost:8081',
+        assign,
+      }),
+    ).toThrow(/authorize url required/);
+  });
+
+  it('starts IdP through idpAssign when assign is omitted', () => {
+    const go = vi.spyOn(idpAssign, 'go').mockImplementation(() => undefined);
+    const storage = memoryStorage();
+    startIdpLogin({
+      clientId: 'test-idp-client',
+      authorizeUrl: 'https://idp.example/auth',
+      origin: 'http://localhost:8081',
+      storage,
+    });
+    expect(go).toHaveBeenCalledWith(expect.stringContaining('https://idp.example/auth'));
+    expect(readIdpState(storage)).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(createIdpState()).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it('assigns the IdP authorize URL on the window', () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { assign });
+    idpAssign.go('https://idp.example/auth?client_id=test');
+    expect(assign).toHaveBeenCalledWith('https://idp.example/auth?client_id=test');
+  });
+
+  it('clears IdP state on callback and never writes login from the query', () => {
+    const storage = memoryStorage();
+    writeIdpState('csrf', storage);
+    writeIdpSession({ login: 'qaguru' }, storage);
+    finishIdpCallback(storage);
+    expect(storage.getItem(IDP_STATE_KEY)).toBeNull();
+    expect(readIdpSession(storage)).toEqual({ login: 'qaguru' });
+    finishIdpCallback(throwingStorage());
+    expect(readIdpSession(storage)).toEqual({ login: 'qaguru' });
+  });
+});

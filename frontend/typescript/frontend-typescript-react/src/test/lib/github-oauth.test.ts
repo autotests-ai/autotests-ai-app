@@ -139,6 +139,7 @@ describe('github-oauth', () => {
       ),
     ).toBe('');
     expect(e2eStackFromYaml('e2e:\n\tstack: python-pytest\n')).toBe(E2E_STACK);
+    expect(e2eStackFromYaml('e2e:\n\n  stack: python-pytest\n')).toBe(E2E_STACK);
     expect(
       e2eStackFromYaml(
         'coverageProfile:\n  automation:\n    e2e:\n      access: write\n    ui:\n      stack: python-pytest\n',

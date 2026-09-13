@@ -25,6 +25,14 @@ import {
   startGithubOAuth,
 } from '../lib/github-oauth';
 import {
+  IDP_MARK_PATH,
+  idpAuthorizeUrl,
+  idpClientId,
+  idpGate,
+  readIdpSession,
+  startIdpLogin,
+} from '../lib/idp-login';
+import {
   AGENT_CATALOG,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
@@ -136,7 +144,8 @@ export function HomePage() {
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
   const githubUser = readGithubUserSession();
-  const emitOptions = { githubUser };
+  const idpSession = readIdpSession();
+  const emitOptions = { githubUser, idpSession };
 
   const magnetSyncKey = [
     config.images.length,
@@ -299,6 +308,38 @@ export function HomePage() {
                       <path d={GITHUB_MARK_PATH} />
                     </svg>
                   </IconBtn>
+                </PlaqueFieldGrid>
+              ) : null}
+              {config.destination === 'cloud' && idpGate.configured() ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.idpLogin}>
+                  {idpSession ? (
+                    <IconBtn
+                      aria-label={copy.home.idpLogin}
+                      title={idpSession.login}
+                      data-testid="landing-cloud-idp"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={IDP_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  ) : (
+                    <IconBtn
+                      aria-label={copy.home.idpLogin}
+                      title={copy.home.idpLogin}
+                      data-testid="landing-cloud-idp"
+                      onClick={() =>
+                        startIdpLogin({
+                          clientId: idpClientId(),
+                          authorizeUrl: idpAuthorizeUrl(),
+                          origin: window.location.origin,
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={IDP_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  )}
                 </PlaqueFieldGrid>
               ) : null}
               {config.destination === 'user' ? (

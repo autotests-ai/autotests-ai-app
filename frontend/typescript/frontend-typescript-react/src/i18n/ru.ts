@@ -20,6 +20,7 @@ export const ru: Dictionary = {
     download: 'Скачать',
     catalogHref: 'Открыть ячейку каталога',
     githubOauth: 'Войти через GitHub',
+    idpLogin: 'Войти через школьный IdP',
     copy: 'Копировать',
     remotePlaceholder: 'пусто = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',

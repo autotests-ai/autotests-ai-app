@@ -30,6 +30,8 @@ export default defineConfig({
     include: ['src/test/**/*.test.{ts,tsx}'],
     env: {
       VITE_GITHUB_OAUTH_CLIENT_ID: 'test-github-oauth-client',
+      VITE_IDP_CLIENT_ID: 'test-idp-client',
+      VITE_IDP_AUTHORIZE_URL: 'https://idp.example/auth',
     },
     // Vitest 4 tags. Declared here because `strictTags` (default) rejects any tag
     // the config does not know about, so a typo fails the run instead of silently

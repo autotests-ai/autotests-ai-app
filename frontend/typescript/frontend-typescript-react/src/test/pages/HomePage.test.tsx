@@ -4,6 +4,7 @@ import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
 import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oauth';
+import { idpAssign, idpGate, writeIdpSession } from '../../lib/idp-login';
 import {
   assembleApiUrl,
   DEFAULTS,
@@ -234,8 +235,15 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('catalog:');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-cloud-idp')).toHaveAttribute(
+      'aria-label',
+      'Continue with school IdP',
+    );
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -456,10 +464,12 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
       'https://github.com/autotests-ai/',
     );
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('landing-terminal-download'));
     await waitFor(() => {
@@ -467,6 +477,77 @@ describe('HomePage', () => {
     });
     expect(open).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('hides the dest cloud IdP button when client env is missing', async () => {
+    vi.spyOn(idpGate, 'configured').mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+    expect(screen.queryByTestId('landing-cloud-idp')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+  });
+
+  it('starts school IdP from dest cloud and does not start GitHub OAuth', async () => {
+    const user = userEvent.setup();
+    const go = vi.spyOn(idpAssign, 'go').mockImplementation(() => undefined);
+    const githubGo = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    await user.click(screen.getByTestId('landing-cloud-idp'));
+    expect(go).toHaveBeenCalledTimes(1);
+    const href = String(go.mock.calls[0]?.[0]);
+    expect(href).toContain('https://idp.example/auth');
+    expect(href).toContain('client_id=test-idp-client');
+    expect(href).toContain('response_type=code');
+    expect(href).toContain('scope=openid');
+    expect(href).not.toContain('github.com/login');
+    expect(href).not.toContain('token');
+    expect(githubGo).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+  });
+
+  it('prints the school login only after a real IdP session', async () => {
+    writeIdpSession({ login: 'qaguru' });
+    const user = userEvent.setup();
+    const go = vi.spyOn(idpAssign, 'go').mockImplementation(() => undefined);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    const idp = screen.getByTestId('landing-cloud-idp');
+    expect(idp).toHaveAttribute('title', 'qaguru');
+    expect(idp).not.toHaveAttribute('href');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: qaguru');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'autotests-cloud/qaguru',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('via: oauth');
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    await user.click(idp);
+    expect(go).not.toHaveBeenCalled();
   });
 
   it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {

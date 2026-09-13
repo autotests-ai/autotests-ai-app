@@ -8,6 +8,8 @@ export {};
 declare global {
   interface ImportMetaEnv {
     readonly VITE_GITHUB_OAUTH_CLIENT_ID?: string;
+    readonly VITE_IDP_CLIENT_ID?: string;
+    readonly VITE_IDP_AUTHORIZE_URL?: string;
   }
 
   interface Window {
