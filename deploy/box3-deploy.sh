@@ -72,6 +72,11 @@ if [[ -n "${GHCR_TOKEN:-}" ]]; then
 fi
 
 COMPOSE=(docker compose --project-name "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.prod.yml)
+# Compose --env-file replaces the default .env, it does not merge. Stage's
+# deploy/stage.env would hide host IDP_* / GITHUB_CLOUD_TOKEN / ASSEMBLE_URL.
+if [[ -f "$APP_DIR/.env" ]]; then
+  COMPOSE+=(--env-file "$APP_DIR/.env")
+fi
 if [[ -n "$COMPOSE_ENV_FILE" ]]; then
   COMPOSE+=(--env-file "$COMPOSE_ENV_FILE")
 fi
