@@ -8,6 +8,9 @@ services:
     ports: !reset []
   backend-java-spring:
     restart: unless-stopped
+    extra_hosts: !reset []
+    environment:
+      ASSEMBLE_URL: ${ASSEMBLE_URL:-}
   frontend-typescript-react:
     restart: unless-stopped
   gateway:
