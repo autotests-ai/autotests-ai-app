@@ -2,37 +2,61 @@ import { useCallback, useEffect, useState } from 'react';
 import { cn } from './cn';
 import { ThemeIconMoon, ThemeIconSun } from './theme-icons';
 
+/** Mirror of `HEADER_THEME_CHANGE` in design-system `js/header.js`. */
+export const HEADER_THEME_CHANGE = 'header:theme-change';
+/** Mirror of `THEME_STORAGE_KEY` in design-system `js/header.js`. */
+export const THEME_STORAGE_KEY = 'zds-theme';
+
+export type ThemeCode = 'light' | 'dark';
+
 export interface ThemeToggleProps {
   className?: string;
   testId?: string;
   storageKey?: string;
 }
 
-function readTheme(storageKey: string): 'light' | 'dark' {
+function isTheme(value: string | null | undefined): value is ThemeCode {
+  return value === 'light' || value === 'dark';
+}
+
+function readTheme(storageKey: string): ThemeCode {
   if (typeof document === 'undefined') {
     return 'dark';
   }
-  const stored = localStorage.getItem(storageKey);
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (isTheme(stored)) {
+      return stored;
+    }
+  } catch {
+    // private mode / blocked storage
   }
   return document.documentElement.classList.contains('theme-light') ? 'light' : 'dark';
 }
 
-function applyTheme(theme: 'light' | 'dark') {
+function persistTheme(storageKey: string, theme: ThemeCode) {
+  try {
+    localStorage.setItem(storageKey, theme);
+  } catch {
+    // private mode / blocked storage
+  }
+}
+
+function applyTheme(theme: ThemeCode, storageKey: string) {
   document.documentElement.classList.toggle('theme-light', theme === 'light');
+  persistTheme(storageKey, theme);
+  document.dispatchEvent(new CustomEvent(HEADER_THEME_CHANGE, { detail: { theme } }));
 }
 
 export function ThemeToggle({
   className,
   testId = 'header-theme-toggle',
-  storageKey = 'zds-theme',
+  storageKey = THEME_STORAGE_KEY,
 }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => readTheme(storageKey));
+  const [theme, setTheme] = useState<ThemeCode>(() => readTheme(storageKey));
 
   useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem(storageKey, theme);
+    applyTheme(theme, storageKey);
   }, [theme, storageKey]);
 
   const toggle = useCallback(() => {

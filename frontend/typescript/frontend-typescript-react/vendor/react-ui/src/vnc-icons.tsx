@@ -9,6 +9,22 @@ export function IconClose() {
   );
 }
 
+/** Media-stop square — live session stop (Session panel). Pair: templates/icon-stop.html. */
+export function IconStop() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4.5" y="4.5" width="7" height="7" rx="1.25" />
+    </svg>
+  );
+}
+
 /** Trash / kill session — same glyph as Stats `session-delete` (Sessions / Archive). */
 export function IconTrash() {
   return (
@@ -114,6 +130,44 @@ export function IconChevronDown() {
   );
 }
 
+/** Corners expand — enter fullscreen (pair: templates/icon-fullscreen.html). */
+export function IconFullscreen() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6.25V3h3.25" />
+      <path d="M13 6.25V3h-3.25" />
+      <path d="M3 9.75V13h3.25" />
+      <path d="M13 9.75V13h-3.25" />
+    </svg>
+  );
+}
+
+/** Corners collapse — exit fullscreen (pair: templates/icon-fullscreen-exit.html). */
+export function IconFullscreenExit() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6.25 3v3.25H3" />
+      <path d="M9.75 3v3.25H13" />
+      <path d="M6.25 13v-3.25H3" />
+      <path d="M9.75 13v-3.25H13" />
+    </svg>
+  );
+}
+
 export function IconVncCopy() {
   return (
     <svg viewBox="0 0 16 16" fill="none">
@@ -122,6 +176,51 @@ export function IconVncCopy() {
         d="M5 11H4a1.5 1.5 0 0 1-1.5-1.5V4A1.5 1.5 0 0 1 4 2.5h5.5A1.5 1.5 0 0 1 11 4v1"
         stroke="currentColor"
         strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+const clipboardSheets = (
+  <>
+    <rect x="4" y="4.5" width="6.25" height="8" rx="1.25" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M4 10.75H3.25A1.25 1.25 0 0 1 2 9.5V3.5A1.25 1.25 0 0 1 3.25 2.25h4.25A1.25 1.25 0 0 1 8.75 3.5V4.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    />
+  </>
+);
+
+/** Same sheets as copy-in; arrow out — session clipboard → local (templates/icon-copy-out.html). */
+export function IconCopyOut() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none">
+      {clipboardSheets}
+      <path
+        d="M11.25 8.5H14.5M13 6.75 14.75 8.5 13 10.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Same sheets as copy-out; arrow in — local clipboard → session (templates/icon-copy-in.html). */
+export function IconCopyIn() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none">
+      {clipboardSheets}
+      <path
+        d="M14.5 8.5H11.25M12.75 6.75 11 8.5 12.75 10.25"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

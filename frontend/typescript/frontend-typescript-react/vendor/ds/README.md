@@ -1,18 +1,14 @@
-# frontend-javascript-app
+# vendor/ds
 
-**Vendor** lean design-system runtime snapshot — not etalon.
+**Vendor** design-system runtime snapshot for autotests-ai-app landing.
 
 SSOT is `projects/design-system-home/design-system/` (`css/`, `js/`, `templates/`).
-Do not edit this tree by hand; refresh from the ethalon or live clone root:
-
-```bash
-bash frontend/scripts/sync-ds-runtime.sh
-```
+This tree is the **existing slice** (not the full css catalog). Do not edit by hand.
 
 Product overlay (not copied from design-system): `js/app-base.js`,
-`js/env-hosts.js` (from `sync-stack-matrix.py`).
+`js/env-hosts.js`, `js/env-hosts.d.ts`.
 
-The `/stack/` board lives on autotests.ai (landing React `/stack/`),
-not in this snapshot.
+Refresh: copy files that already live here from the SSOT. Do not `rsync --delete`
+(that would wipe overlay). Do not run etalon `frontend/scripts/sync-ds-runtime.sh`.
 
-Packed into each frontend nginx image as `vendor/ds` (module `Dockerfile`).
+Packed into the frontend nginx image as `vendor/ds` (module `Dockerfile`).

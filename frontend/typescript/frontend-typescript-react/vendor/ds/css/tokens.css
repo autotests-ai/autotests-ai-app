@@ -91,6 +91,8 @@
      shell-end uses the same token so top/bottom/right air match (no hardcode). */
   --plaque-seg-inset: var(--space-1);
   --plaque-shell-pad-x: var(--space-2);
+  /* Textarea plaque — air from resize handle to shell border (right = bottom). */
+  --plaque-textarea-end: 5px;
   --plaque-seg-chip-height: calc(var(--plaque-control-height) - 12px);
   --plaque-seg-chip-air: calc(
     (var(--plaque-seg-band-height) - var(--plaque-seg-chip-height)) / 2

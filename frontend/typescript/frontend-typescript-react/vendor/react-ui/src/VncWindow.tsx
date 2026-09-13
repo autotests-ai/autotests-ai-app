@@ -1,16 +1,16 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from './cn';
-import { ConnectionStatus, type ConnectionState } from './ConnectionStatus';
-import { WindowControl } from './WindowControl';
+import type { ConnectionState } from './ConnectionStatus';
+import { IconDownload } from './panel-icons';
 import {
-  IconChevronDown,
-  IconChevronUp,
   IconClose,
+  IconCopyIn,
+  IconCopyOut,
+  IconFullscreen,
+  IconFullscreenExit,
   IconLock,
   IconTrash,
   IconUnlock,
-  IconUpload,
-  IconVncCopy,
 } from './vnc-icons';
 
 export type VncWindowState = ConnectionState;
@@ -23,6 +23,7 @@ export interface VncWindowLabels {
   exitFullscreen: string;
   copy: string;
   paste: string;
+  download: string;
   /** Destructive: DELETE session / kill container. */
   kill: string;
   /** Panel name in the bar. */
@@ -45,8 +46,9 @@ const defaultLabels: VncWindowLabels = {
   unlock: 'Unlock screen',
   enterFullscreen: 'Enter fullscreen',
   exitFullscreen: 'Exit fullscreen',
-  copy: 'Copy from Selenoid',
-  paste: 'Paste to Selenoid',
+  copy: 'Copy from session',
+  paste: 'Paste into session',
+  download: 'Download',
   kill: 'Kill container',
   title: 'VNC window',
   view: 'view',
@@ -66,13 +68,13 @@ export interface VncWindowProps {
    */
   screenSize?: VncScreenSize;
   /**
-   * Custom Back control — e.g. a router `Link`. When omitted a `button` firing
-   * `onBack` is rendered. Compose with `WindowControl as={Link} tone="danger"`.
+   * Optional Back/close control. Omitted unless `back` or `onBack` is set —
+   * session close lives on the Session panel, not VNC chrome.
    */
   back?: ReactNode;
   /**
    * Custom kill control. When omitted and `onKill` is set, a stop
-   * `WindowControl` is rendered in the actions cluster.
+   * icon-btn is rendered in the actions cluster.
    */
   kill?: ReactNode;
   onBack?: () => void;
@@ -80,6 +82,8 @@ export interface VncWindowProps {
   onToggleFullscreen?: () => void;
   onCopy?: () => void;
   onPaste?: () => void;
+  /** Artifact download (session video). Shown only when set. */
+  onDownload?: () => void;
   /** DELETE /wd/hub/session/{id} — shown only when set (or `kill` node). */
   onKill?: () => void;
   /** noVNC mount slot (rendered inside `.vnc-window__screen-mount`). */
@@ -90,10 +94,38 @@ export interface VncWindowProps {
   titleTestId?: string;
 }
 
+function VncBarAction({
+  label,
+  sessionControl,
+  onClick,
+  testId,
+  children,
+}: {
+  label: string;
+  sessionControl?: boolean;
+  onClick?: () => void;
+  testId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={cn('icon-btn', 'panel__action', sessionControl && 'vnc-window__session-control')}
+      aria-label={label}
+      title={label}
+      data-testid={testId}
+      onClick={onClick}
+    >
+      <span className="icon" aria-hidden="true">
+        {children}
+      </span>
+    </button>
+  );
+}
+
 /**
- * Selenoid VNC window: base panel + chrome (back, connection status, lock,
- * fullscreen, clipboard) over a black noVNC screen. Composes the `vnc-window`
- * primitive with `WindowControl` / `ConnectionStatus`.
+ * Selenoid VNC window: terminal panel chrome (dots + title + icon-btn actions)
+ * over a black noVNC screen. Close/back is opt-in (`back` / `onBack`).
  */
 export function VncWindow({
   state,
@@ -107,6 +139,7 @@ export function VncWindow({
   onToggleFullscreen,
   onCopy,
   onPaste,
+  onDownload,
   onKill,
   children,
   labels,
@@ -124,24 +157,23 @@ export function VncWindow({
         } as CSSProperties)
       : undefined;
 
-  const backControl = back ?? (
-    <WindowControl tone="danger" aria-label={l.back} title={l.back} onClick={onBack}>
-      <IconClose />
-    </WindowControl>
-  );
+  const backControl =
+    back !== undefined
+      ? back
+      : onBack
+        ? (
+            <VncBarAction label={l.back} onClick={onBack}>
+              <IconClose />
+            </VncBarAction>
+          )
+        : null;
 
   const killControl =
     kill ??
     (onKill ? (
-      <WindowControl
-        tone="danger"
-        sessionControl
-        aria-label={l.kill}
-        title={l.kill}
-        onClick={onKill}
-      >
+      <VncBarAction label={l.kill} sessionControl onClick={onKill}>
         <IconTrash />
-      </WindowControl>
+      </VncBarAction>
     ) : null);
 
   return (
@@ -149,6 +181,7 @@ export function VncWindow({
       <div
         className={cn(
           'panel',
+          'panel--terminal',
           'panel--vnc',
           'vnc-window',
           `vnc-window--${state}`,
@@ -162,44 +195,49 @@ export function VncWindow({
         aria-label={titleText}
       >
         <div className="panel__bar">
-          <div className="vnc-window__controls">
-            {backControl}
-            <ConnectionStatus state={state} />
+          <div className="panel__dots" aria-hidden="true">
+            <span className="panel__dot" />
+            <span className="panel__dot" />
+            <span className="panel__dot" />
+          </div>
+          <div className="panel__trail">
+            <span className="panel__title vnc-window__title" data-testid={titleTestId}>
+              {titleText}
+            </span>
             {state !== 'connected' ? (
               <span className="vnc-window__status-label" aria-hidden="true">
                 {state}
               </span>
             ) : null}
-            <WindowControl
-              tone="info"
+          </div>
+          <div className="panel__actions vnc-window__actions">
+            {backControl}
+            <VncBarAction
+              label={unlocked ? l.lock : l.unlock}
               sessionControl
-              aria-label={unlocked ? l.lock : l.unlock}
-              title={unlocked ? l.lock : l.unlock}
               onClick={onToggleLock}
             >
               {unlocked ? <IconUnlock /> : <IconLock />}
-            </WindowControl>
-            <WindowControl
-              tone="success"
+            </VncBarAction>
+            {killControl}
+            <VncBarAction label={l.copy} sessionControl onClick={onCopy}>
+              <IconCopyOut />
+            </VncBarAction>
+            <VncBarAction label={l.paste} sessionControl onClick={onPaste}>
+              <IconCopyIn />
+            </VncBarAction>
+            <VncBarAction
+              label={fullscreen ? l.exitFullscreen : l.enterFullscreen}
               sessionControl
-              aria-label={fullscreen ? l.exitFullscreen : l.enterFullscreen}
-              title={fullscreen ? l.exitFullscreen : l.enterFullscreen}
               onClick={onToggleFullscreen}
             >
-              {fullscreen ? <IconChevronDown /> : <IconChevronUp />}
-            </WindowControl>
-          </div>
-          <span className="panel__title vnc-window__title" data-testid={titleTestId}>
-            {titleText}
-          </span>
-          <div className="vnc-window__actions">
-            {killControl}
-            <WindowControl tone="neutral" aria-label={l.copy} title={l.copy} onClick={onCopy}>
-              <IconVncCopy />
-            </WindowControl>
-            <WindowControl tone="neutral" aria-label={l.paste} title={l.paste} onClick={onPaste}>
-              <IconUpload />
-            </WindowControl>
+              {fullscreen ? <IconFullscreenExit /> : <IconFullscreen />}
+            </VncBarAction>
+            {onDownload ? (
+              <VncBarAction label={l.download} testId="vnc-window-download" onClick={onDownload}>
+                <IconDownload />
+              </VncBarAction>
+            ) : null}
           </div>
         </div>
         <div className="vnc-window__screen">

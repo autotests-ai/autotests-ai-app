@@ -1,8 +1,8 @@
 @import url("tokens.css");
 @import url("plaque-divider.css");
-@import url("plaque-field-seg.css");
-@import url("plaque-field-seg-layout.css");
-@import url("plaque-number.css");
+@import url("plaque-field-seg.css?v=segcol4");
+@import url("plaque-field-seg-layout.css?v=segcol4");
+@import url("plaque-number.css?v=numcols1");
 
 /* Plaque field — compact label+control shell (autotests-builder, forms) */
 
@@ -57,11 +57,16 @@
   height: 0;
 }
 
+/* Label in wrap-band 1. align-self:start beats
+   `.plaque-field--divided .plaque-field__label { align-self: center }` —
+   shell align-items:start is not enough. Optical center stays inside the band
+   via height:band + inline-flex align-items:center. */
 .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__label,
 .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__text {
   float: none;
   box-sizing: border-box;
   grid-column: 1;
+  align-self: start;
   width: var(--plaque-mixed-label-col, max-content);
   min-width: 0;
   max-width: 100%;
@@ -185,11 +190,19 @@ input.plaque-field__control {
 /*
  * Multiline control (note body, comments). Shell grows with rows; label and
  * divider stay on the first line. Value is left-aligned — not a param id.
+ * First line uses the same 1.35 as `__text` / `__label` (1.5 sits the
+ * placeholder below the caption). No select-trail — there is no chevron.
+ * Inner pad `--space-2` on all sides so the first line does not hug the
+ * divider (left-aligned, unlike input/select). Shell end air
+ * `--plaque-textarea-end` (5px) on right and bottom so the resize handle
+ * sits equally off the frame.
  */
 .plaque-field:has(> textarea.plaque-field__control) {
   height: auto;
   align-items: flex-start;
   overflow: visible;
+  padding-right: var(--plaque-textarea-end);
+  padding-bottom: var(--plaque-textarea-end);
 }
 
 .plaque-field:has(> textarea.plaque-field__control) > :is(.plaque-field__label, .plaque-field__text) {
@@ -203,10 +216,10 @@ input.plaque-field__control {
 }
 
 textarea.plaque-field__control {
-  padding: var(--space-2) var(--plaque-select-trail) var(--space-2) 0;
+  padding: var(--space-2);
   min-height: calc(var(--control-height-md) * 2);
   text-align: left;
-  line-height: 1.5;
+  line-height: 1.35;
   resize: vertical;
   field-sizing: content;
 }
@@ -257,13 +270,13 @@ textarea.plaque-field__control {
 .plaque-field > textarea.plaque-field__control.textarea {
   min-width: 0;
   min-height: calc(var(--control-height-md) * 2);
-  padding: var(--space-2) var(--plaque-select-trail) var(--space-2) 0;
+  padding: var(--space-2);
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 .plaque-field > .plaque-field__control.input:focus-visible,
@@ -435,6 +448,25 @@ textarea.plaque-field__control {
 .plaque-field-grid--mixed .plaque-field-grid__cell--lg .plaque-field--divided:has(.plaque-field-seg-track),
 .plaque-field-grid--mixed .plaque-field-grid__cell--lg .plaque-field--divided:has(> :is(input, select).plaque-field__control) {
   grid-template-columns: min(var(--plaque-label-width-wide), var(--plaque-mixed-label-cqi)) 1px minmax(0, 1fr);
+}
+
+/* Full-width solo row — hug label (divider flush to text; stretch field fills rest).
+   Same 0,4,0 :has() siblings as the mixed default so this wins over 5.5rem.
+   Label overrides beat mixed `width: 100%` / ellipsis so max-content does not collapse. */
+.plaque-field-grid--solo > .plaque-field-grid__cell .plaque-field--divided,
+.plaque-field-grid--solo > .plaque-field-grid__cell .plaque-field--divided:has(.plaque-field-seg-track),
+.plaque-field-grid--solo > .plaque-field-grid__cell .plaque-field--divided:has(> :is(input, select).plaque-field__control) {
+  grid-template-columns: max-content 1px minmax(0, 1fr);
+  column-gap: 0;
+}
+
+.plaque-field-grid--solo .plaque-field--divided .plaque-field__label,
+.plaque-field-grid--solo .plaque-field--divided .plaque-field__text {
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Checkstrip — compact multi-select (autotests-builder junitTags, …) */
@@ -1049,16 +1081,25 @@ html.theme-light .plaque-field-checkstrip--pill .plaque-field-checkstrip__item:h
   white-space: nowrap;
 }
 
-/* Pair rows inside magnet stack — never ellipsis short flags */
+/* Pair rows inside magnet stack — never ellipsis short flags.
+   `__cell` + :has(--many) matches magnet mixed specificity so hug wins. */
 .plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided,
 .plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided:has(.plaque-field-seg-track),
-.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided:has(> :is(input, select).plaque-field__control) {
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided:has(> :is(input, select).plaque-field__control),
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field-grid__cell .plaque-field--divided,
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field-grid__cell .plaque-field--divided:has(.plaque-field-seg-track),
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field-grid__cell .plaque-field--divided:has(> .plaque-field-seg-track--many),
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field-grid__cell .plaque-field--divided:has(> :is(input, select).plaque-field__control) {
   grid-template-columns: max-content 1px max-content;
   column-gap: 0;
+  width: max-content;
 }
 
 .plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided > .plaque-field__label,
-.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided > .plaque-field__text {
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided > .plaque-field__text,
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__label,
+.plaque-field-grid-stack--magnet .plaque-field-grid--pair .plaque-field--divided:has(> .plaque-field-seg-track--many) > .plaque-field__text {
+  width: auto;
   max-width: none;
   overflow: visible;
   text-overflow: clip;

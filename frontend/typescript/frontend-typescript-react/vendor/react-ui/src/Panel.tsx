@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ElementType, ReactNode } from 'react';
 import { useLayoutEffect, useRef } from 'react';
 import { cn } from './cn';
 
@@ -21,6 +21,12 @@ export interface PanelAction {
   onClick?: () => void;
   disabled?: boolean;
   'data-testid'?: string;
+  /** Render as another element — e.g. a router `Link`. Defaults to `button`. */
+  as?: ElementType;
+  /** Native href when `as="a"`. */
+  href?: string;
+  /** Router `to` when `as` is a Link. */
+  to?: string | { pathname: string; search?: string };
 }
 
 export interface PanelProps {
@@ -40,12 +46,12 @@ export interface PanelProps {
   /**
    * Terminal output tone. Only applies when `variant="terminal"`.
    * `dark` (default) → `#1a1917`; `light` → `panel--terminal-light` paper.
-   * Independent of `html.theme-light`.
+   * Page `html.theme-light` also switches default terminal paper to light.
    */
   tone?: PanelTone;
   /**
    * Optional content inside `.panel__trail` after the title — canonical slot for
-   * terminal format tabs (`.tabs` / `.tab` / `.tab--active`) in the bar.
+   * terminal format tabs (`Tabs` / `Tab` → `.tabs` / `.tab` / `.tab--active`).
    */
   trail?: ReactNode;
   /**
@@ -74,6 +80,11 @@ export interface PanelProps {
    * when it bumps into dots.
    */
   actions?: PanelAction[];
+  /**
+   * Force `--panel-bar-height-chrome` (36px) even without actions / bar-end /
+   * trail tabs. Aligns title-only panels with neighbours in a session stack.
+   */
+  barChrome?: boolean;
   testId?: string;
   titleTestId?: string;
   bodyClassName?: string;
@@ -176,6 +187,7 @@ export function Panel({
   footPlacement = 'bottom',
   barEnd,
   actions,
+  barChrome = false,
   testId,
   titleTestId,
   bodyClassName,
@@ -214,6 +226,7 @@ export function Panel({
         'panel',
         `panel--${variant}`,
         variant === 'terminal' && tone === 'light' && 'panel--terminal-light',
+        barChrome && 'panel--bar-chrome',
         foot != null && footPlacement === 'rail' && 'panel--foot-rail',
         className,
       )}
@@ -237,22 +250,27 @@ export function Panel({
         {barEnd != null ? <div className="panel__bar-end">{barEnd}</div> : null}
         {hasActions ? (
           <div className="panel__actions">
-            {actions!.map((action, index) => (
-              <button
-                key={action['data-testid'] ?? `${action.label}-${index}`}
-                type="button"
-                className="icon-btn panel__action"
-                aria-label={action.label}
-                title={action.label}
-                disabled={action.disabled}
-                data-testid={action['data-testid']}
-                onClick={action.onClick}
-              >
-                <span className="icon" aria-hidden="true">
-                  {action.icon}
-                </span>
-              </button>
-            ))}
+            {actions!.map((action, index) => {
+              const ActionTag = (action.as ?? 'button') as ElementType;
+              const isButton = ActionTag === 'button';
+              return (
+                <ActionTag
+                  key={action['data-testid'] ?? `${action.label}-${index}`}
+                  {...(isButton
+                    ? { type: 'button' as const, disabled: action.disabled }
+                    : { href: action.href, to: action.to })}
+                  className="icon-btn panel__action"
+                  aria-label={action.label}
+                  title={action.label}
+                  data-testid={action['data-testid']}
+                  onClick={action.onClick}
+                >
+                  <span className="icon" aria-hidden="true">
+                    {action.icon}
+                  </span>
+                </ActionTag>
+              );
+            })}
           </div>
         ) : null}
       </div>
