@@ -193,7 +193,7 @@ paths:
   /api/oauth/github/repos/contents:
     post:
       operationId: githubOAuthPushTree
-      summary: Push unzip of dest zip from Home YAML onto the repo named coverageProfile.automation.e2e.stack. Never classpath assemble-landing.yaml. Never a token or PAT.
+      summary: Push unzip of dest zip from Home YAML onto the repo named coverageProfile.automation.e2e.stack. YAML adoptDest → intern zip via ADOPT_URL. Never classpath assemble-landing.yaml. Never a token or PAT.
       tags: [oauth]
       security:
         - githubOAuthCookie: []
@@ -228,7 +228,7 @@ paths:
         "401":
           description: Missing or invalid GitHub OAuth cookie or empty assemble zip
         "503":
-          description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
+          description: ASSEMBLE_URL missing, or ADOPT_URL missing when YAML has adoptDest
 
   /api/oauth/idp:
     post:
@@ -305,7 +305,7 @@ paths:
   /api/cloud/repos/contents:
     post:
       operationId: cloudPushTree
-      summary: Push unzip of dest zip from Home YAML onto autotests-cloud/{idp-login}-{coverageProfile.automation.e2e.stack}. Same zip as dest user. Never a PAT. Never dest user. Never nested git push.
+      summary: Push unzip of dest zip from Home YAML onto autotests-cloud/{idp-login}-{coverageProfile.automation.e2e.stack}. YAML adoptDest → intern zip via ADOPT_URL. Same as dest user. Never a PAT. Never dest user. Never nested git push.
       tags: [oauth]
       security:
         - idpOAuthCookie: []
@@ -340,7 +340,7 @@ paths:
         "401":
           description: Missing or invalid IdP cookie or empty assemble zip
         "503":
-          description: GITHUB_CLOUD_TOKEN is not configured, ASSEMBLE_URL missing, or assemble-zip stand did not return a zip
+          description: GITHUB_CLOUD_TOKEN is not configured, ASSEMBLE_URL missing, or ADOPT_URL missing when YAML has adoptDest
 
   /api/assemble:
     post:
@@ -441,7 +441,7 @@ paths:
   /api/adopt/zip:
     post:
       operationId: adoptDestZip
-      summary: Zip of generated-projects/adopt-<id> after Home import. Same-origin. Never etalon render. Never POST /api/assemble. Catalog/cloud/user unchanged.
+      summary: Zip of generated-projects/adopt-<id> after Home import. Same-origin. Never etalon render. Never POST /api/assemble. Cloud/user push unzips this zip when YAML has adoptDest.
       tags: [adopt]
       requestBody:
         required: true

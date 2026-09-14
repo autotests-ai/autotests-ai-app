@@ -932,6 +932,9 @@ describe('HomePage', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'adoptDest: generated-projects/adopt-repo',
+    );
   });
 
   it('imports a zip via /api/adopt FormData, then dest zip, not /api/assemble', async () => {

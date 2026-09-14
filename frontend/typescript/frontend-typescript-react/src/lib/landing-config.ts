@@ -95,6 +95,7 @@ export type LandingEmitOptions = {
   idpSession?: IdpSession | null;
   createdCloudRepo?: CloudCreatedRepo | null;
   pushedCloudRepo?: CloudPushedRepo | null;
+  adoptDest?: string | null;
 };
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
@@ -576,6 +577,9 @@ export function toDocument(
     doc[key] = value;
   }
   doc.destination = config.destination;
+  if (isAdoptDest(options?.adoptDest ?? '')) {
+    doc.adoptDest = (options?.adoptDest ?? '').trim();
+  }
   doc.coverageProfile = cloneCoverageProfile(config.coverageProfile);
   if (config.destination === 'catalog') {
     doc.catalog = catalogDocument(config.coverageProfile);
@@ -721,8 +725,14 @@ export function toJson(
 }
 
 /** Dest zip dump of the Home form. Channel user/catalog/cloud stays off the assemble-zip POST. */
-export function assembleZipYaml(config: LandingConfig, vectorId: string): string {
-  return toYaml({ ...config, destination: 'zip' }, vectorId);
+export function assembleZipYaml(
+  config: LandingConfig,
+  vectorId: string,
+  options?: Pick<LandingEmitOptions, 'adoptDest'>,
+): string {
+  return toYaml({ ...config, destination: 'zip' }, vectorId, {
+    adoptDest: options?.adoptDest,
+  });
 }
 
 export function outputFilename(tab: OutputTabId): string {
@@ -902,7 +912,10 @@ async function fetchAdoptDestZip(
     }
     return {
       blob,
-      filename: zipFilenameFromDisposition(response.headers.get('content-disposition'), 'adopt.zip'),
+      filename: zipFilenameFromDisposition(
+        response.headers.get('content-disposition'),
+        'adopt.zip',
+      ),
     };
   } catch {
     return null;
@@ -1008,6 +1021,7 @@ export async function downloadLandingOutput(input: {
   outputTab?: OutputTabId;
   apiUrl?: string;
   idpSession?: IdpSession | null;
+  adoptDest?: string | null;
 }): Promise<'zip' | 'catalog' | 'text'> {
   if (input.destination === 'catalog') {
     openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
@@ -1016,10 +1030,17 @@ export async function downloadLandingOutput(input: {
   if (input.destination === 'cloud') {
     let output = input.text;
     if (input.idpSession && input.landingConfig && input.vectorId) {
-      const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
+      const yaml = assembleZipYaml(input.landingConfig, input.vectorId, {
+        adoptDest: input.adoptDest,
+      });
       const createdCloudRepo = await createCloudRepo({ yaml });
       const pushedCloudRepo = createdCloudRepo ? await pushCloudRepo({ yaml }) : null;
-      const options = { idpSession: input.idpSession, createdCloudRepo, pushedCloudRepo };
+      const options = {
+        idpSession: input.idpSession,
+        createdCloudRepo,
+        pushedCloudRepo,
+        adoptDest: input.adoptDest,
+      };
       output =
         input.outputTab === 'json'
           ? toJson(input.landingConfig, input.vectorId, options)
@@ -1031,10 +1052,17 @@ export async function downloadLandingOutput(input: {
   if (input.destination === 'user') {
     let output = input.text;
     if (input.githubUser && input.landingConfig && input.vectorId) {
-      const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
+      const yaml = assembleZipYaml(input.landingConfig, input.vectorId, {
+        adoptDest: input.adoptDest,
+      });
       const createdRepo = await createGithubUserRepo({ yaml });
       const pushedRepo = createdRepo ? await pushGithubUserRepo({ yaml }) : null;
-      const options = { githubUser: input.githubUser, createdRepo, pushedRepo };
+      const options = {
+        githubUser: input.githubUser,
+        createdRepo,
+        pushedRepo,
+        adoptDest: input.adoptDest,
+      };
       output =
         input.outputTab === 'json'
           ? toJson(input.landingConfig, input.vectorId, options)

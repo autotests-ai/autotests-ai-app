@@ -58,15 +58,16 @@ import {
   fingerprint,
   IMAGES,
   importAdopt,
+  isAdoptDest,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
   OUTPUT_TABS,
   type OutputTabId,
   outputFilename,
-  postAdoptDestZip,
   PRODUCT_BACKEND_STACKS,
   PRODUCT_FRONTEND_STACKS,
+  postAdoptDestZip,
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
@@ -155,7 +156,11 @@ export function HomePage() {
   const [importBusy, setImportBusy] = useState(false);
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
-  const emitOptions = { githubUser, idpSession };
+  const adoptDest =
+    importResult?.ok && typeof importResult.dest === 'string' && isAdoptDest(importResult.dest)
+      ? importResult.dest
+      : undefined;
+  const emitOptions = { githubUser, idpSession, adoptDest };
 
   const magnetSyncKey = [
     config.images.length,
@@ -957,6 +962,7 @@ export function HomePage() {
                         landingConfig: config,
                         vectorId,
                         outputTab: activeTab,
+                        adoptDest,
                       }),
                     'data-testid': 'landing-terminal-download',
                   },

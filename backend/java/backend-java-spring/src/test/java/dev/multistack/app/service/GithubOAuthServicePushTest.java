@@ -58,6 +58,13 @@ class GithubOAuthServicePushTest extends UnitTestBase {
               automation:
                 e2e: { access: write, stack: python-pytest, module: tests/python }
             """;
+    private static final String ADOPT_YAML = """
+            destination: zip
+            adoptDest: generated-projects/adopt-intern-flat
+            coverageProfile:
+              automation:
+                e2e: { access: write, stack: python-pytest, module: tests/python }
+            """;
     private static final String REPO_API_URL = REPO_API_BASE + "/octocat/" + E2E_STACK;
     private static final String HTML_URL = "https://github.com/octocat/" + E2E_STACK;
     private static final String TREE_URL = REPO_API_URL + "/git/trees";
@@ -302,6 +309,32 @@ class GithubOAuthServicePushTest extends UnitTestBase {
                 AuthException.class, () -> missing.pushTree("gho_secret", YAML));
         assertEquals(503, ex.getStatus());
         assertEquals("assemble url missing", ex.getMessage());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("push with adoptDest is 401 without a cookie token")
+    void pushTreeAdoptDestRequiresToken() {
+        AuthException missing = assertThrows(AuthException.class, () -> service.pushTree(null, ADOPT_YAML));
+        assertEquals(401, missing.getStatus());
+        assertEquals("oauth cookie missing", missing.getMessage());
+    }
+
+    @Test
+    @DisplayName("push with adoptDest is 503 without ADOPT_URL, not assemble")
+    void pushTreeAdoptDestRequiresAdoptUrl() {
+        RestClient.Builder builder = RestClient.builder();
+        server = MockRestServiceServer.bindTo(builder).build();
+        GithubOAuthService missing = new GithubOAuthService(
+                configuredProperties(),
+                builder,
+                new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), builder));
+        expectUserJson("{\"login\":\"octocat\"}");
+        AuthException ex = assertThrows(
+                AuthException.class, () -> missing.pushTree("gho_secret", ADOPT_YAML));
+        assertEquals(503, ex.getStatus());
+        assertEquals("adopt url missing", ex.getMessage());
+        assertFalse(ex.getMessage().contains("assemble"));
         server.verify();
     }
 

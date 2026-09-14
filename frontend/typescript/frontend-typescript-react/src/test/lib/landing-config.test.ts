@@ -426,6 +426,28 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('assemble-landing.yaml');
   });
 
+  it('prints adoptDest after Import and not etalon dest', () => {
+    const yaml = toYaml(DEFAULTS, 'vector#zip', {
+      adoptDest: 'generated-projects/adopt-intern-flat',
+    });
+    expect(yaml).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(yaml).not.toContain('generated-projects/assemble-java-default');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('adoptDest:');
+    expect(
+      toYaml(DEFAULTS, 'vector#zip', { adoptDest: 'generated-projects/assemble-java-default' }),
+    ).not.toContain('adoptDest:');
+    const json = JSON.parse(
+      toJson(DEFAULTS, 'vector#zip', { adoptDest: 'generated-projects/adopt-intern-flat' }),
+    ) as { adoptDest?: string };
+    expect(json.adoptDest).toBe('generated-projects/adopt-intern-flat');
+    expect(
+      assembleZipYaml(DEFAULTS, 'vector#zip', {
+        adoptDest: 'generated-projects/adopt-intern-flat',
+      }),
+    ).toContain('adoptDest: generated-projects/adopt-intern-flat');
+  });
+
   it('prints user login URL only after a real GitHub login', () => {
     const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
     const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
@@ -810,7 +832,12 @@ describe('landing-config', () => {
     expect(zip?.filename).toBe('adopt-repo.zip');
     expect(zip?.blob.size).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(await postAdoptDestZip({ dest: 'generated-projects/assemble-java-default', hostname: 'localhost' })).toBeNull();
+    expect(
+      await postAdoptDestZip({
+        dest: 'generated-projects/assemble-java-default',
+        hostname: 'localhost',
+      }),
+    ).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1158,6 +1185,49 @@ describe('landing-config', () => {
     expect(yaml).toContain('via: idp');
     expect(yaml).not.toContain('via: oauth');
     expect(yaml).not.toContain('github.com/login');
+  });
+
+  it('cloud push YAML after Import carries adoptDest and never /api/assemble', async () => {
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-java-junit5-rest_assured-selenide';
+    const fetchMock = oauthDestCloudFetch(repoUrl);
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:adopt-cloud'),
+      revokeObjectURL: vi.fn(),
+    });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+      adoptDest: 'generated-projects/adopt-intern-flat',
+    });
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/cloud/repos');
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/cloud/repos/contents');
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/assemble');
+    expect(String(fetchMock.mock.calls[1]?.[0])).not.toContain('/assemble');
+    expect(createBody).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(pushBody).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(pushBody).toContain('destination: zip');
+    expect(pushBody).not.toContain('destination: cloud');
+    expect(pushBody.toLowerCase()).not.toContain('pat');
   });
 
   it('POSTs create then push when dest cloud has a session and writes created true', async () => {
