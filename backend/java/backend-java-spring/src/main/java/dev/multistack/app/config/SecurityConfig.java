@@ -26,7 +26,8 @@ public class SecurityConfig {
     /**
      * CSRF is disabled on purpose: product auth is Bearer JWT ({@link JwtAuthFilter}) with
      * {@link SessionCreationPolicy#STATELESS}. The GitHub OAuth cookie is httpOnly + SameSite=Lax
-     * on {@code /api/oauth} only — browsers will not send it on cross-site POST.
+     * on {@code /api/oauth} only ({@code /github}, {@code /repos}, {@code /repos/contents},
+     * {@code /github/adopt}) — browsers will not send it on cross-site POST.
      * School IdP cookie is httpOnly + SameSite=Lax on {@code /api/cloud} only
      * ({@code POST /api/oauth/idp} sets it; {@code POST /api/cloud/repos} and
      * {@code /repos/contents} read it).
@@ -50,7 +51,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/assemble").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/adopt", "/api/adopt/zip").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/oauth/github", "/api/oauth/github/repos",
-                                "/api/oauth/github/repos/contents", "/api/oauth/idp",
+                                "/api/oauth/github/repos/contents", "/api/oauth/github/adopt",
+                                "/api/oauth/idp",
                                 "/api/cloud/repos", "/api/cloud/repos/contents")
                                 .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()

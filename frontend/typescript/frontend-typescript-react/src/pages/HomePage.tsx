@@ -232,6 +232,7 @@ export function HomePage() {
       url: importUrl,
       file: importZip,
       hostname: window.location.hostname,
+      githubUser,
     })
       .then(async (result) => {
         setImportResult(result);

@@ -24,7 +24,9 @@ import java.util.regex.Pattern;
 
 /**
  * Home import URL/zip via {@code ADOPT_URL}. Same dest as CLI {@code adopt-fill.py}.
- * Never {@code POST /api/assemble}. Never a PAT.
+ * Never {@code POST /api/assemble}. Never a PAT. Never {@code GITHUB_CLOUD_TOKEN}.
+ * Private GitHub URL uses the {@code github_oauth} cookie as {@code Authorization}
+ * to the stand; the JSON body is {@code {url}} only.
  */
 @Component
 @EnableConfigurationProperties(AdoptProperties.class)
@@ -69,26 +71,14 @@ public class AdoptClient {
     }
 
     public Map<String, Object> fromUrl(Map<String, Object> body, boolean dryRun) {
-        if (body == null || body.isEmpty()) {
-            throw new AuthException(400, "one channel: url or zip");
+        return fromUrl(body, dryRun, null);
+    }
+
+    public Map<String, Object> fromPrivateUrl(Map<String, Object> body, boolean dryRun, String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new AuthException(401, "oauth cookie missing");
         }
-        for (String key : body.keySet()) {
-            String lower = key == null ? "" : key.toLowerCase(Locale.ROOT).strip();
-            if (PAT_KEYS.contains(lower)) {
-                throw new AuthException(400, "PAT not allowed");
-            }
-            if (!JSON_KEYS.contains(lower)) {
-                throw new AuthException(400, "one channel: url or zip");
-            }
-        }
-        Object rawUrl = body.get("url");
-        if (!(rawUrl instanceof String url) || url.isBlank()) {
-            throw new AuthException(400, "one channel: url or zip");
-        }
-        boolean runDry = dryRun
-                || Boolean.TRUE.equals(body.get("dry_run"))
-                || Boolean.TRUE.equals(body.get("dry-run"));
-        return postJson(assertPublicUrl(url), runDry);
+        return fromUrl(body, dryRun, accessToken);
     }
 
     public Map<String, Object> fromZip(MultipartFile zip, boolean dryRun) {
@@ -188,17 +178,45 @@ public class AdoptClient {
         return data != null && data.length >= 2 && data[0] == 'P' && data[1] == 'K';
     }
 
-    private Map<String, Object> postJson(String url, boolean dryRun) {
+    private Map<String, Object> fromUrl(Map<String, Object> body, boolean dryRun, String accessToken) {
+        if (body == null || body.isEmpty()) {
+            throw new AuthException(400, "one channel: url or zip");
+        }
+        for (String key : body.keySet()) {
+            String lower = key == null ? "" : key.toLowerCase(Locale.ROOT).strip();
+            if (PAT_KEYS.contains(lower)) {
+                throw new AuthException(400, "PAT not allowed");
+            }
+            if (!JSON_KEYS.contains(lower)) {
+                throw new AuthException(400, "one channel: url or zip");
+            }
+        }
+        Object rawUrl = body.get("url");
+        if (!(rawUrl instanceof String url) || url.isBlank()) {
+            throw new AuthException(400, "one channel: url or zip");
+        }
+        boolean runDry = dryRun
+                || Boolean.TRUE.equals(body.get("dry_run"))
+                || Boolean.TRUE.equals(body.get("dry-run"));
+        return postJson(assertPublicUrl(url), runDry, accessToken);
+    }
+
+    private Map<String, Object> postJson(String url, boolean dryRun, String accessToken) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("url", url);
-        return postStand(MediaType.APPLICATION_JSON, writeJson(body), null, dryRun);
+        return postStand(MediaType.APPLICATION_JSON, writeJson(body), null, dryRun, accessToken);
     }
 
     private Map<String, Object> postZip(byte[] zip, String filename, boolean dryRun) {
-        return postStand(ZIP, zip, "attachment; filename=\"" + filename + "\"", dryRun);
+        return postStand(ZIP, zip, "attachment; filename=\"" + filename + "\"", dryRun, null);
     }
 
-    private Map<String, Object> postStand(MediaType type, byte[] body, String disposition, boolean dryRun) {
+    private Map<String, Object> postStand(
+            MediaType type,
+            byte[] body,
+            String disposition,
+            boolean dryRun,
+            String accessToken) {
         if (!properties.configured()) {
             throw new AuthException(503, "adopt url missing");
         }
@@ -213,6 +231,9 @@ public class AdoptClient {
                     .headers(headers -> {
                         if (disposition != null) {
                             headers.set(HttpHeaders.CONTENT_DISPOSITION, disposition);
+                        }
+                        if (accessToken != null && !accessToken.isBlank()) {
+                            headers.setBearerAuth(accessToken);
                         }
                     })
                     .body(body)
@@ -241,7 +262,7 @@ public class AdoptClient {
         }
         Object error = parsed.get("error");
         String message = error == null ? "adopt missing" : String.valueOf(error);
-        int mapped = status == 400 || status == 413 || status == 504 ? status : 503;
+        int mapped = status == 400 || status == 401 || status == 413 || status == 504 ? status : 503;
         throw new AuthException(mapped, message);
     }
 

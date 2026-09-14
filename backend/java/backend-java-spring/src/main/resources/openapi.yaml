@@ -230,6 +230,52 @@ paths:
         "503":
           description: ASSEMBLE_URL missing, or ADOPT_URL missing when YAML has adoptDest
 
+  /api/oauth/github/adopt:
+    post:
+      operationId: githubOAuthAdopt
+      summary: Private Home import. github_oauth cookie required. Clone on ADOPT_URL without a token in JSON. Never PAT. Never GITHUB_CLOUD_TOKEN. Never push.
+      tags: [oauth]
+      security:
+        - githubOAuthCookie: []
+      parameters:
+        - in: query
+          name: dry_run
+          schema:
+            type: boolean
+          description: JSON only, skip dest write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  example: https://github.com/org/repo
+              additionalProperties: false
+            example:
+              url: https://github.com/org/repo
+      responses:
+        "200":
+          description: CLI adopt-fill JSON. dest is generated-projects/adopt-<id>. created is false. Never a token.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdoptResponse"
+        "400":
+          description: PAT or missing channel
+        "401":
+          description: Missing github_oauth cookie or oauth clone failed
+        "503":
+          description: ADOPT_URL missing or adopt stand down
+
   /api/oauth/idp:
     post:
       operationId: idpOAuthExchange
@@ -387,7 +433,7 @@ paths:
   /api/adopt:
     post:
       operationId: adoptImport
-      summary: Home import public GitHub URL or zip. Same dest as CLI adopt-fill. Never PAT. Never POST /api/assemble.
+      summary: Home import public GitHub URL or zip. Same dest as CLI adopt-fill. Never PAT. Never POST /api/assemble. Private URL → POST /api/oauth/github/adopt with github_oauth cookie.
       tags: [adopt]
       parameters:
         - in: query
@@ -717,6 +763,6 @@ tags:
   - name: auth
     description: Authentication per flows/login.md
   - name: oauth
-    description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)
+      description: GitHub OAuth for dest user (login cookie) and private Home import (same cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)
   - name: adopt
     description: Home import URL/zip and dest zip of adopt-<id>. Never PAT. Never POST /api/assemble

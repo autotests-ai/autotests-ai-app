@@ -6,6 +6,7 @@ import {
   type GithubCreatedRepo,
   type GithubPushedRepo,
   type GithubUserSession,
+  githubOAuthAdoptUrl,
   githubUserUrl,
   isGithubLogin,
   isGithubUserRepoUrl,
@@ -791,6 +792,15 @@ async function readAdoptJson(response: Response): Promise<AdoptResult | null> {
     if (!payload || typeof payload !== 'object') {
       return null;
     }
+    if (!response.ok) {
+      const error =
+        typeof payload.error === 'string' && payload.error
+          ? payload.error
+          : typeof payload.message === 'string' && payload.message
+            ? payload.message
+            : 'adopt missing';
+      return { ...payload, ok: false, error };
+    }
     return payload;
   } catch {
     return null;
@@ -808,6 +818,26 @@ export async function postAdoptUrl(
     const response = await fetch(api, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.trim() }),
+    });
+    return readAdoptJson(response);
+  } catch {
+    return null;
+  }
+}
+
+export async function postAdoptPrivateUrl(
+  url: string,
+  api: string = githubOAuthAdoptUrl(),
+): Promise<AdoptResult | null> {
+  if (!isPublicGithubUrl(url)) {
+    return { ok: false, error: 'url must be public https://github.com/org/repo' };
+  }
+  try {
+    const response = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ url: url.trim() }),
     });
     return readAdoptJson(response);
@@ -840,20 +870,24 @@ export async function importAdopt(input: {
   hostname: string;
   origin?: string;
   apiUrl?: string;
+  githubUser?: GithubUserSession | null;
 }): Promise<AdoptResult | null> {
   const hasUrl = input.url.trim().length > 0;
   const hasZip = input.file != null;
   if (hasUrl === hasZip) {
     return { ok: false, error: 'one channel: url or zip' };
   }
-  const api = input.apiUrl ?? adoptApiUrl();
+  const privateUrl = Boolean(input.githubUser) && hasUrl;
+  const api = input.apiUrl ?? (privateUrl ? githubOAuthAdoptUrl() : adoptApiUrl());
   const fallback =
-    shouldAdoptLoopback(input.hostname) && api === adoptApiUrl()
+    !privateUrl && shouldAdoptLoopback(input.hostname) && api === adoptApiUrl()
       ? `${input.origin ?? ADOPT_STAND_ORIGIN}/adopt`
       : null;
   const first = hasZip
     ? await postAdoptZip(input.file as File, api)
-    : await postAdoptUrl(input.url, api);
+    : privateUrl
+      ? await postAdoptPrivateUrl(input.url, api)
+      : await postAdoptUrl(input.url, api);
   // Home 4xx is `{message}` (not `{error}`). Only loopback-fallback when fetch/parse failed.
   if (first != null) {
     return first;

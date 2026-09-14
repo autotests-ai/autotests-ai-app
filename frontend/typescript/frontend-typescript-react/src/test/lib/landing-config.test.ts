@@ -743,6 +743,61 @@ describe('landing-config', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('imports a private URL via /api/oauth/github/adopt cookie, never PAT or /api/assemble', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('/api/oauth/github/adopt');
+      expect(String(input)).not.toContain('/assemble');
+      expect(String(input)).not.toBe('/api/adopt');
+      expect(init?.credentials).toBe('include');
+      expect(String(init?.body)).toContain('https://github.com/org/private-repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      expect(String(init?.body).toLowerCase()).not.toContain('pat');
+      expect(String(init?.body)).not.toContain('gho_');
+      return Promise.resolve({
+        ok: false,
+        status: 401,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ message: 'oauth cookie missing' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const missing = await importAdopt({
+      url: 'https://github.com/org/private-repo',
+      file: null,
+      hostname: 'autotests.ai',
+      githubUser: { login: 'octocat' },
+    });
+    expect(missing?.ok).toBe(false);
+    expect(missing?.error).toBe('oauth cookie missing');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('/api/oauth/github/adopt');
+      expect(init?.credentials).toBe('include');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-private-repo',
+        }),
+      } as Response);
+    });
+    const result = await importAdopt({
+      url: 'https://github.com/org/private-repo',
+      file: null,
+      hostname: 'localhost',
+      githubUser: { login: 'octocat' },
+    });
+    expect(result?.dest).toBe('generated-projects/adopt-private-repo');
+    expect(String(fetchMock.mock.calls.at(-1)?.[0])).not.toContain('3033');
+    expect(String(fetchMock.mock.calls.at(-1)?.[0])).not.toContain('/assemble');
+  });
+
   it('rejects PAT without fetch and falls back to adopt :3033, never assemble-zip', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

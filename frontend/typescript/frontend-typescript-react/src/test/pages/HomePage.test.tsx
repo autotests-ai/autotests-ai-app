@@ -632,7 +632,8 @@ describe('HomePage', () => {
     const href = String(go.mock.calls[0]?.[0]);
     expect(href).toContain('https://github.com/login/oauth/authorize');
     expect(href).toContain('client_id=test-github-oauth-client');
-    expect(href).toContain('scope=public_repo');
+    expect(href).toContain('scope=repo');
+    expect(href).not.toContain('public_repo');
     expect(href).not.toContain('token');
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
@@ -935,6 +936,51 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'adoptDest: generated-projects/adopt-repo',
     );
+  });
+
+  it('imports a private URL via /api/oauth/github/adopt, not PAT or /api/assemble', async () => {
+    writeGithubUserSession({ login: 'octocat' });
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      expect(url).toBe('/api/oauth/github/adopt');
+      expect(url).not.toContain('/assemble');
+      expect(url).not.toBe('/api/adopt');
+      expect(init?.credentials).toBe('include');
+      expect(String(init?.body)).toContain('https://github.com/org/private-repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-private-repo',
+        }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'catalog',
+      }),
+    );
+    await user.type(
+      screen.getByTestId('landing-field-importUrl'),
+      'https://github.com/org/private-repo',
+    );
+    await user.click(screen.getByTestId('landing-import-run'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
+        'generated-projects/adopt-private-repo',
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('imports a zip via /api/adopt FormData, then dest zip, not /api/assemble', async () => {
