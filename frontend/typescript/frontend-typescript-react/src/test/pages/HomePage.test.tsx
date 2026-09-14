@@ -138,6 +138,12 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'cursor: { access: write, module: .cursor/rules }',
     );
+    expect(screen.getByTestId('landing-seg-mill')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-seg-mill')).getByRole('button', { name: 'false' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('mill:');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('crystal');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('codeHost:');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('backendLanguage:');
   });
@@ -240,6 +246,16 @@ describe('HomePage', () => {
     );
 
     await user.click(
+      within(screen.getByTestId('landing-seg-mill')).getByRole('button', {
+        name: 'true',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'mill: { access: write, pack: pack-v1, generation: generation-v1 }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('crystal');
+
+    await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
         name: 'cloud',
       }),
@@ -334,11 +350,17 @@ describe('HomePage', () => {
         name: 'user',
       }),
     );
+    await user.click(
+      within(screen.getByTestId('landing-seg-mill')).getByRole('button', { name: 'true' }),
+    );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: true');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'cursor: { access: none, module: .cursor/rules }',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: user');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'mill: { access: write, pack: pack-v1, generation: generation-v1 }',
+    );
 
     await user.click(screen.getByTestId('landing-terminal-reset'));
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
@@ -352,6 +374,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'claude: { access: none, module: .claude }',
     );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('mill:');
     expect(screen.getByTestId('landing-terminal-vector')).toHaveTextContent(fingerprint(DEFAULTS));
 
     await user.click(screen.getByTestId('landing-terminal-copy'));
@@ -387,6 +410,8 @@ describe('HomePage', () => {
       expect(String(input)).not.toContain('/adopt');
       expect(init?.method).toBe('POST');
       expect(String(init?.body)).toContain('destination: zip');
+      expect(String(init?.body)).not.toContain('mill:');
+      expect(String(init?.body)).not.toContain('/adopt');
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -409,6 +434,54 @@ describe('HomePage', () => {
       expect(click).toHaveBeenCalled();
     });
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+  });
+
+  it('POSTs dest zip YAML with harness.mill when protect is true', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:mill');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(assembleApiUrl());
+      expect(String(input)).not.toContain('/adopt');
+      expect(String(init?.body)).toContain('destination: zip');
+      expect(String(init?.body)).toContain(
+        'mill: { access: write, pack: pack-v1, generation: generation-v1 }',
+      );
+      expect(String(init?.body)).not.toContain('crystal');
+      expect(String(init?.body).toLowerCase()).not.toContain('pat');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="assemble-java-default.zip"',
+        }),
+        blob: async () =>
+          new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], { type: 'application/zip' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-mill')).getByRole('button', { name: 'true' }),
+    );
+    await user.click(screen.getByTestId('landing-terminal-download'));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+      expect(click).toHaveBeenCalled();
+    });
   });
 
   it('opens the catalog href on Download and does not POST assemble-zip', async () => {
@@ -440,6 +513,35 @@ describe('HomePage', () => {
     expect(href).toHaveAttribute('target', '_blank');
     expect(href).toHaveAttribute('rel', 'noopener noreferrer');
 
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+      '_blank',
+      'noopener',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('opens catalog href with mill write and does not POST assemble-zip', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-mill')).getByRole('button', { name: 'true' }),
+    );
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'catalog',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'mill: { access: write, pack: pack-v1, generation: generation-v1 }',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: catalog');
     await user.click(screen.getByTestId('landing-terminal-download'));
     expect(open).toHaveBeenCalledWith(
       'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
@@ -857,6 +959,7 @@ describe('HomePage', () => {
     expect(document.documentElement.lang).toBe('ru');
     expect(screen.getByTestId('landing-project-title')).toHaveTextContent(ru.home.panelProject);
     expect(screen.getByTestId('landing-agents-title')).toHaveTextContent(ru.home.panelAgents);
+    expect(screen.getByTestId('landing-seg-mill')).toHaveTextContent(ru.home.millProtect);
     expect(screen.getByTestId('landing-import-title')).toHaveTextContent(ru.home.panelImport);
     expect(screen.getByTestId('landing-destination-title')).toHaveTextContent(
       ru.home.panelDestination,

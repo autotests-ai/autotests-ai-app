@@ -62,6 +62,8 @@ import {
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
+  millAccess,
+  millSegValue,
   OUTPUT_TABS,
   type OutputTabId,
   outputFilename,
@@ -71,6 +73,7 @@ import {
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
+  setMillAccess,
   shouldAdoptDestZip,
   TESTS_STACKS,
   toggleAgentAccess,
@@ -168,6 +171,7 @@ export function HomePage() {
     activeTab,
     config.destination,
     writeAgentIds(config.coverageProfile.harness.agents).join(','),
+    millAccess(config.coverageProfile),
   ].join(':');
 
   usePlaqueFieldMagnet({
@@ -204,6 +208,13 @@ export function HomePage() {
     setConfig((prev) => ({
       ...prev,
       coverageProfile: toggleAgentAccess(prev.coverageProfile, value),
+    }));
+  };
+
+  const setMill = (value: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      coverageProfile: setMillAccess(prev.coverageProfile, value),
     }));
   };
 
@@ -323,6 +334,15 @@ export function HomePage() {
                   values={writeAgentIds(config.coverageProfile.harness.agents)}
                   onToggle={toggleAgent}
                   data-testid="landing-tagstrip-agents"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label={copy.home.millProtect}>
+                <PlaqueFieldSeg
+                  label={copy.home.millProtect}
+                  paramId="mill"
+                  value={millSegValue(config.coverageProfile)}
+                  onValueChange={setMill}
+                  data-testid="landing-seg-mill"
                 />
               </PlaqueFieldGrid>
             </ConfigPanel>
