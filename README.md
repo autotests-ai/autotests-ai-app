@@ -23,6 +23,8 @@ curl -sf http://127.0.0.1:8081/stack/matrix.json
 
 From the monorepo: `python scripts/stands/ensure.py autotests-ai-app`. Dest zip (`POST /api/assemble`) and dest user/cloud tree need `ASSEMBLE_URL`. Local compose default `http://host.docker.internal:3032` → `ensure.py assemble-zip` (`extra_hosts` host-gateway). Prod overlay resets extra_hosts and uses docker0 `[http://172.17.0.1:3032](http://172.17.0.1:3032)` (Box3 systemd `assemble-zip`, not `0.0.0.0`, not nginx on autotests.ai). Empty URL → 503. Browser CORS to assemble-zip is loopback fallback only.
 
+Home import URL/zip is `POST /api/adopt` (`ADOPT_URL`), not `/api/assemble`. Local compose default `http://host.docker.internal:3033` → `ensure.py adopt`. Empty URL → 503. Never a PAT.
+
 Dest cloud is school IdP, not GitHub OAuth: YAML `cloud.via: idp`, `created: true` after `POST /api/cloud/repos`. Login after a session. Frontend env `VITE_IDP_AUTHORIZE_URL` + `VITE_IDP_CLIENT_ID` — empty → Home button hidden. Backend `POST /api/oauth/idp` exchanges the code (`IDP_CLIENT_SECRET`, `IDP_TOKEN_URL`, `IDP_USERINFO_URL`) and returns `{login}` only — no token in JSON; the IdP token is an httpOnly cookie (`Path=/api/cloud`). `POST /api/cloud/repos` creates `github.com/autotests-cloud/{idp-login}-{e2e.stack}` with `GITHUB_CLOUD_TOKEN` (empty → 503). Never a PAT, never push. Redirect `/oauth/idp/callback`. Keycloak client **`autotests-ai`** lives in `auth-qa-guru-home` (`ensure-autotests-ai-client.py`), not this repo. Secret: `~/.config/auth-qa-guru/autotests-ai.env` → host compose `IDP_CLIENT_SECRET`, never `VITE_`, never git.
 
 Postgres has no host port. First up after replacing the old terminal Flyway history uses volume `pgdata_v2` (does not `down -v` the matrix).

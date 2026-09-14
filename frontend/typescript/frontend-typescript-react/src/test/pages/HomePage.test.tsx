@@ -63,6 +63,7 @@ describe('HomePage', () => {
     );
     expect(screen.getByTestId('landing-project-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-agents-panel')).toHaveClass('panel--content');
+    expect(screen.getByTestId('landing-import-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-destination-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-build-panel')).toHaveClass('panel--content');
     expect(screen.getByTestId('landing-allure-panel')).toHaveClass('panel--content');
@@ -87,6 +88,10 @@ describe('HomePage', () => {
     );
     expect(screen.queryByRole('combobox', { name: 'frontend.module' })).not.toBeInTheDocument();
     expect(screen.getByTestId('landing-agents-stack')).toHaveClass(
+      'plaque-field-grid-stack',
+      'plaque-field-grid-stack--magnet',
+    );
+    expect(screen.getByTestId('landing-import-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
     );
@@ -117,6 +122,9 @@ describe('HomePage', () => {
       'testopsEnabled: false',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('importUrl');
+    expect(screen.queryByPlaceholderText(/pat/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/token/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('coverageProfile:');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'backend: { stack: java-spring, access: write }',
@@ -193,11 +201,15 @@ describe('HomePage', () => {
 
     const project = screen.getByTestId('landing-project-panel');
     const agents = screen.getByTestId('landing-agents-panel');
+    const imported = screen.getByTestId('landing-import-panel');
     const destination = screen.getByTestId('landing-destination-panel');
     const build = screen.getByTestId('landing-build-panel');
     expect(project.compareDocumentPosition(agents) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      agents.compareDocumentPosition(destination) & Node.DOCUMENT_POSITION_FOLLOWING,
+      agents.compareDocumentPosition(imported) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      imported.compareDocumentPosition(destination) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       destination.compareDocumentPosition(build) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -372,6 +384,7 @@ describe('HomePage', () => {
     });
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe(assembleApiUrl());
+      expect(String(input)).not.toContain('/adopt');
       expect(init?.method).toBe('POST');
       expect(String(init?.body)).toContain('destination: zip');
       return Promise.resolve({
@@ -843,6 +856,7 @@ describe('HomePage', () => {
     expect(document.documentElement.lang).toBe('ru');
     expect(screen.getByTestId('landing-project-title')).toHaveTextContent(ru.home.panelProject);
     expect(screen.getByTestId('landing-agents-title')).toHaveTextContent(ru.home.panelAgents);
+    expect(screen.getByTestId('landing-import-title')).toHaveTextContent(ru.home.panelImport);
     expect(screen.getByTestId('landing-destination-title')).toHaveTextContent(
       ru.home.panelDestination,
     );
@@ -854,5 +868,79 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-testops-title')).toHaveTextContent(ru.home.panelTestops);
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
     expect(screen.getByRole('combobox', { name: 'browser' })).toBeInTheDocument();
+  });
+
+  it('imports a public URL via /api/adopt and does not POST /api/assemble', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('/api/adopt');
+      expect(String(input)).not.toContain('/assemble');
+      expect(init?.method).toBe('POST');
+      expect(String(init?.body)).toContain('https://github.com/org/repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      expect(String(init?.body).toLowerCase()).not.toContain('pat');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-repo',
+        }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.type(screen.getByTestId('landing-field-importUrl'), 'https://github.com/org/repo');
+    await user.click(screen.getByTestId('landing-import-run'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
+        'generated-projects/adopt-repo',
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+  });
+
+  it('imports a zip via /api/adopt FormData, not /api/assemble', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('/api/adopt');
+      expect(init?.body).toBeInstanceOf(FormData);
+      const body = init?.body as FormData;
+      const zip = body.get('zip') as File;
+      expect(zip.name).toBe('takeaway-like.zip');
+      expect(body.get('token')).toBeNull();
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-takeaway-like',
+        }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
+      type: 'application/zip',
+    });
+    await user.upload(screen.getByTestId('landing-field-importZip'), file);
+    await user.click(screen.getByTestId('landing-import-run'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
+        'generated-projects/adopt-takeaway-like',
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

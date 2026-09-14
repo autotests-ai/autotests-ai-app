@@ -1,5 +1,6 @@
 import {
   Badge,
+  Button,
   type HighlightKind,
   highlightOutput,
   IconBtn,
@@ -33,6 +34,7 @@ import {
   startIdpLogin,
 } from '../lib/idp-login';
 import {
+  type AdoptResult,
   AGENT_CATALOG,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
@@ -54,6 +56,7 @@ import {
   downloadLandingOutput,
   fingerprint,
   IMAGES,
+  importAdopt,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
@@ -143,6 +146,10 @@ export function HomePage() {
   const { copy } = useI18n();
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
+  const [importUrl, setImportUrl] = useState('');
+  const [importZip, setImportZip] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<AdoptResult | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
   const emitOptions = { githubUser, idpSession };
@@ -203,6 +210,27 @@ export function HomePage() {
 
   const resetConfig = () => {
     setConfig(cloneConfig(DEFAULTS));
+    setImportUrl('');
+    setImportZip(null);
+    setImportResult(null);
+  };
+
+  const runImport = () => {
+    if (importBusy) {
+      return;
+    }
+    setImportBusy(true);
+    void importAdopt({
+      url: importUrl,
+      file: importZip,
+      hostname: window.location.hostname,
+    })
+      .then((result) => {
+        setImportResult(result);
+      })
+      .finally(() => {
+        setImportBusy(false);
+      });
   };
 
   return (
@@ -274,6 +302,55 @@ export function HomePage() {
                   data-testid="landing-tagstrip-agents"
                 />
               </PlaqueFieldGrid>
+            </ConfigPanel>
+
+            <ConfigPanel
+              title={copy.home.panelImport}
+              testId="landing-import-panel"
+              titleTestId="landing-import-title"
+              stackTestId="landing-import-stack"
+              magnetSyncKey={magnetSyncKey}
+            >
+              <PlaqueFieldGrid layout="solo" aria-label={copy.home.importUrl}>
+                <PlaqueField
+                  label={copy.home.importUrl}
+                  paramId="importUrl"
+                  labelVariant="param"
+                  value={importUrl}
+                  placeholder={copy.home.importPlaceholder}
+                  onChange={(event) => setImportUrl(event.target.value)}
+                  data-testid="landing-field-importUrl"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label={copy.home.importZip}>
+                <PlaqueField
+                  label={copy.home.importZip}
+                  paramId="importZip"
+                  labelVariant="param"
+                  type="file"
+                  accept=".zip,application/zip"
+                  onChange={(event) => {
+                    const input = event.target as HTMLInputElement;
+                    setImportZip(input.files?.[0] ?? null);
+                  }}
+                  data-testid="landing-field-importZip"
+                />
+              </PlaqueFieldGrid>
+              <PlaqueFieldGrid layout="solo" aria-label={copy.home.importRun}>
+                <Button
+                  variant="secondary"
+                  data-testid="landing-import-run"
+                  disabled={importBusy}
+                  onClick={runImport}
+                >
+                  {copy.home.importRun}
+                </Button>
+              </PlaqueFieldGrid>
+              {importResult ? (
+                <pre className="panel__code" data-testid="landing-import-output">
+                  {JSON.stringify(importResult, null, 2)}
+                </pre>
+              ) : null}
             </ConfigPanel>
 
             <ConfigPanel

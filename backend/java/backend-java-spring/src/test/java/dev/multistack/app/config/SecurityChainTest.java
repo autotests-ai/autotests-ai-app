@@ -1,6 +1,7 @@
 package dev.multistack.app.config;
 
 import dev.multistack.app.allure.SliceTestBase;
+import dev.multistack.app.controller.AdoptController;
 import dev.multistack.app.controller.ApiController;
 import dev.multistack.app.controller.AssembleController;
 import dev.multistack.app.controller.AuthController;
@@ -15,6 +16,7 @@ import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.dto.UserProfileResponse;
+import dev.multistack.app.service.AdoptClient;
 import dev.multistack.app.service.AssembleTree;
 import dev.multistack.app.service.AuthService;
 import dev.multistack.app.service.CloudRepoService;
@@ -37,6 +39,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -61,7 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Feature("Security chain")
 @Severity(SeverityLevel.CRITICAL)
 @WebMvcTest(controllers = {
-        ApiController.class, AssembleController.class, AuthController.class, OpenApiController.class,
+        ApiController.class, AssembleController.class, AdoptController.class, AuthController.class, OpenApiController.class,
         GithubOAuthController.class, CloudRepoController.class
 })
 @Import({SecurityChainTest.RealJwtConfig.class, SecurityConfig.class, CorsConfig.class})
@@ -99,6 +103,9 @@ class SecurityChainTest extends SliceTestBase {
 
     @MockitoBean
     private AssembleTree assembleTree;
+
+    @MockitoBean
+    private AdoptClient adoptClient;
 
     @Test
     @DisplayName("GET /api/auth/me with a real bearer token passes the filter chain")
@@ -247,6 +254,27 @@ class SecurityChainTest extends SliceTestBase {
                         "attachment; filename=\"assemble-java-default.zip\""))
                 .andExpect(content().bytes(zip))
                 .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt is public and returns dest JSON, not zip")
+    void adoptPermitAllReturnsJson() throws Exception {
+        when(adoptClient.fromUrl(any(), anyBoolean()))
+                .thenReturn(Map.of(
+                        "ok", true,
+                        "mode", "adopt",
+                        "created", false,
+                        "dest", "generated-projects/adopt-takeaway-like"));
+
+        mockMvc.perform(post("/api/adopt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://github.com/org/repo\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("adopt"))
+                .andExpect(jsonPath("$.dest").value("generated-projects/adopt-takeaway-like"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
     }
 
     @Test

@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/assemble").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/adopt").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/oauth/github", "/api/oauth/github/repos",
                                 "/api/oauth/github/repos/contents", "/api/oauth/idp",
                                 "/api/cloud/repos", "/api/cloud/repos/contents")

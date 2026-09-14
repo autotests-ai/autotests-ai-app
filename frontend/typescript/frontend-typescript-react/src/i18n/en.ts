@@ -25,6 +25,11 @@ export const en: Dictionary = {
     remotePlaceholder: 'empty = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',
     driverPlaywright: 'Playwright engine',
+    panelImport: 'Import',
+    importUrl: 'url',
+    importZip: 'zip',
+    importRun: 'Import',
+    importPlaceholder: 'https://github.com/org/repo',
   },
   stack: {
     loading: '→ Loading matrix…',
