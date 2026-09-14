@@ -2,10 +2,23 @@ package dev.multistack.app.config;
 
 import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.controller.ApiController;
+import dev.multistack.app.controller.AssembleController;
 import dev.multistack.app.controller.AuthController;
+import dev.multistack.app.controller.CloudRepoController;
+import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
+import dev.multistack.app.dto.AssembleZip;
+import dev.multistack.app.dto.CloudRepoPushResponse;
+import dev.multistack.app.dto.CloudRepoResponse;
+import dev.multistack.app.dto.GithubOAuthPushResponse;
+import dev.multistack.app.dto.GithubOAuthRepoResponse;
+import dev.multistack.app.dto.GithubOAuthRequest;
+import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.dto.UserProfileResponse;
+import dev.multistack.app.service.AssembleTree;
 import dev.multistack.app.service.AuthService;
+import dev.multistack.app.service.CloudRepoService;
+import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.ItemService;
 import dev.multistack.app.service.JwtService;
 import io.qameta.allure.Epic;
@@ -20,12 +33,21 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,7 +60,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Epic("Security")
 @Feature("Security chain")
 @Severity(SeverityLevel.CRITICAL)
-@WebMvcTest(controllers = {ApiController.class, AuthController.class, OpenApiController.class})
+@WebMvcTest(controllers = {
+        ApiController.class, AssembleController.class, AuthController.class, OpenApiController.class,
+        GithubOAuthController.class, CloudRepoController.class
+})
 @Import({SecurityChainTest.RealJwtConfig.class, SecurityConfig.class, CorsConfig.class})
 @DisplayName("Security chain with real JWT filter")
 class SecurityChainTest extends SliceTestBase {
@@ -65,6 +90,15 @@ class SecurityChainTest extends SliceTestBase {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private GithubOAuthService githubOAuthService;
+
+    @MockitoBean
+    private CloudRepoService cloudRepoService;
+
+    @MockitoBean
+    private AssembleTree assembleTree;
 
     @Test
     @DisplayName("GET /api/auth/me with a real bearer token passes the filter chain")
@@ -96,6 +130,123 @@ class SecurityChainTest extends SliceTestBase {
         mockMvc.perform(get("/api/auth/me")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + expired))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github is public and returns login without a token")
+    void oauthGithubPermitAllReturnsLogin() throws Exception {
+        when(githubOAuthService.exchange(any(GithubOAuthRequest.class)))
+                .thenReturn(new GithubOAuthSession("octocat", "gho_secret"));
+        when(githubOAuthService.toCookie(any(), anyBoolean()))
+                .thenReturn(ResponseCookie.from(GithubOAuthService.COOKIE_NAME, "gho_secret")
+                        .httpOnly(true)
+                        .path(GithubOAuthService.COOKIE_PATH)
+                        .build());
+
+        mockMvc.perform(post("/api/oauth/github")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"gh-code\",\"state\":\"csrf\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.login").value("octocat"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("token"))))
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos is public (cookie, not JWT)")
+    void oauthCreateRepoPermitAll() throws Exception {
+        when(githubOAuthService.createRepo(nullable(String.class), nullable(String.class)))
+                .thenReturn(new GithubOAuthRepoResponse(
+                        "octocat",
+                        GithubOAuthService.htmlUrl("octocat", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/oauth/github/repos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/repos/contents is public (cookie, not JWT)")
+    void oauthPushTreePermitAll() throws Exception {
+        when(githubOAuthService.pushTree(nullable(String.class), nullable(String.class)))
+                .thenReturn(new GithubOAuthPushResponse(
+                        "octocat",
+                        GithubOAuthService.htmlUrl("octocat", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/oauth/github/repos/contents")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pushed").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos is public (IdP cookie, not JWT)")
+    void cloudCreateRepoPermitAll() throws Exception {
+        when(cloudRepoService.createRepo(nullable(String.class), nullable(String.class)))
+                .thenReturn(new CloudRepoResponse(
+                        "qaguru",
+                        CloudRepoService.htmlUrl("qaguru", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/cloud/repos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.url").value(
+                        "https://github.com/autotests-cloud/qaguru-python-pytest"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.pushed").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("idp_secret"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/cloud/repos/contents is public (IdP cookie, not JWT)")
+    void cloudPushTreePermitAll() throws Exception {
+        when(cloudRepoService.pushTree(nullable(String.class), nullable(String.class)))
+                .thenReturn(new CloudRepoPushResponse(
+                        "qaguru",
+                        CloudRepoService.htmlUrl("qaguru", "python-pytest"),
+                        true));
+
+        mockMvc.perform(post("/api/cloud/repos/contents")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pushed").value(true))
+                .andExpect(jsonPath("$.url").value(
+                        "https://github.com/autotests-cloud/qaguru-python-pytest"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.created").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("idp_secret"))))
+                .andExpect(content().string(not(containsString("octocat"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/assemble is public and returns zip bytes")
+    void assemblePermitAllReturnsZip() throws Exception {
+        byte[] zip = new byte[] {0x50, 0x4b, 0x03, 0x04};
+        when(assembleTree.zip(nullable(String.class)))
+                .thenReturn(new AssembleZip(zip, "assemble-java-default.zip"));
+
+        mockMvc.perform(post("/api/assemble")
+                        .contentType(MediaType.parseMediaType("application/yaml"))
+                        .content("destination: zip\n"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/zip"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"assemble-java-default.zip\""))
+                .andExpect(content().bytes(zip))
+                .andExpect(content().string(not(containsString("gho_secret"))));
     }
 
     @Test
@@ -135,7 +286,8 @@ class SecurityChainTest extends SliceTestBase {
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(
-                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"));
+                        HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
     }
 
     @Test

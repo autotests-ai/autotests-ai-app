@@ -2,6 +2,7 @@ import {
   Badge,
   type HighlightKind,
   highlightOutput,
+  IconBtn,
   IconCopy,
   IconDownload,
   IconReset,
@@ -18,6 +19,20 @@ import {
 import { type ChangeEvent, type ReactNode, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
+  githubOAuthClientId,
+  githubUserUrl,
+  readGithubUserSession,
+  startGithubOAuth,
+} from '../lib/github-oauth';
+import {
+  IDP_MARK_PATH,
+  idpAuthorizeUrl,
+  idpClientId,
+  idpGate,
+  readIdpSession,
+  startIdpLogin,
+} from '../lib/idp-login';
+import {
   AGENT_CATALOG,
   ALLURE_REPORT_MODES,
   ALLURE_VERSIONS,
@@ -30,15 +45,15 @@ import {
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
   buildWrapperOptions,
+  catalogDocument,
   cloneConfig,
   copyText,
   DEFAULTS,
   DESTINATIONS,
+  type DestinationId,
   downloadLandingOutput,
   fingerprint,
   IMAGES,
-  isAgentId,
-  isDestinationId,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
@@ -51,14 +66,16 @@ import {
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
   TESTS_STACKS,
+  toggleAgentAccess,
   toJson,
   toYaml,
   writeAgentIds,
 } from '../lib/landing-config';
+import { GITHUB_MARK_PATH } from '../lib/stack-matrix';
 
 type AxisChoice = { value: string; label: string };
 
-function AxisField({
+export function AxisField({
   label,
   paramId,
   value,
@@ -126,6 +143,9 @@ export function HomePage() {
   const { copy } = useI18n();
   const [config, setConfig] = useState<LandingConfig>(() => cloneConfig(DEFAULTS));
   const [activeTab, setActiveTab] = useState<OutputTabId>('yaml');
+  const githubUser = readGithubUserSession();
+  const idpSession = readIdpSession();
+  const emitOptions = { githubUser, idpSession };
 
   const magnetSyncKey = [
     config.images.length,
@@ -140,8 +160,9 @@ export function HomePage() {
   });
 
   const vectorId = fingerprint(config);
-  const yaml = toYaml(config, vectorId);
-  const json = toJson(config, vectorId);
+  const yaml = toYaml(config, vectorId, emitOptions);
+  const json = toJson(config, vectorId, emitOptions);
+  const catalog = catalogDocument(config.coverageProfile);
   const activeOutput = activeTab === 'json' ? json : yaml;
   const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
   const highlightedHtml = highlightOutput(activeOutput, highlightKind);
@@ -161,24 +182,14 @@ export function HomePage() {
   };
 
   const setDestination = (value: string) => {
-    if (isDestinationId(value)) {
-      patch({ destination: value });
-    }
+    patch({ destination: value as DestinationId });
   };
 
   const toggleAgent = (value: string) => {
-    if (!isAgentId(value)) {
-      return;
-    }
-    setConfig((prev) => {
-      const next = cloneConfig(prev);
-      const current = next.coverageProfile.harness.agents[value];
-      if (!current) {
-        return prev;
-      }
-      current.access = current.access === 'write' ? 'none' : 'write';
-      return next;
-    });
+    setConfig((prev) => ({
+      ...prev,
+      coverageProfile: toggleAgentAccess(prev.coverageProfile, value),
+    }));
   };
 
   const toggleImage = (value: string) => {
@@ -282,6 +293,90 @@ export function HomePage() {
                   data-testid="landing-seg-destination"
                 />
               </PlaqueFieldGrid>
+              {config.destination === 'catalog' ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.catalogHref}>
+                  <IconBtn
+                    as="a"
+                    href={catalog.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={copy.home.catalogHref}
+                    title={catalog.url}
+                    data-testid="landing-catalog-href"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d={GITHUB_MARK_PATH} />
+                    </svg>
+                  </IconBtn>
+                </PlaqueFieldGrid>
+              ) : null}
+              {config.destination === 'cloud' && idpGate.configured() ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.idpLogin}>
+                  {idpSession ? (
+                    <IconBtn
+                      aria-label={copy.home.idpLogin}
+                      title={idpSession.login}
+                      data-testid="landing-cloud-idp"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={IDP_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  ) : (
+                    <IconBtn
+                      aria-label={copy.home.idpLogin}
+                      title={copy.home.idpLogin}
+                      data-testid="landing-cloud-idp"
+                      onClick={() =>
+                        startIdpLogin({
+                          clientId: idpClientId(),
+                          authorizeUrl: idpAuthorizeUrl(),
+                          origin: window.location.origin,
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={IDP_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  )}
+                </PlaqueFieldGrid>
+              ) : null}
+              {config.destination === 'user' ? (
+                <PlaqueFieldGrid layout="solo" aria-label={copy.home.githubOauth}>
+                  {githubUser ? (
+                    <IconBtn
+                      as="a"
+                      href={githubUserUrl(githubUser.login)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={copy.home.githubOauth}
+                      title={githubUserUrl(githubUser.login)}
+                      data-testid="landing-user-oauth"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={GITHUB_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  ) : (
+                    <IconBtn
+                      aria-label={copy.home.githubOauth}
+                      title={copy.home.githubOauth}
+                      data-testid="landing-user-oauth"
+                      onClick={() =>
+                        startGithubOAuth({
+                          clientId: githubOAuthClientId(),
+                          origin: window.location.origin,
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d={GITHUB_MARK_PATH} />
+                      </svg>
+                    </IconBtn>
+                  )}
+                </PlaqueFieldGrid>
+              ) : null}
             </ConfigPanel>
 
             <ConfigPanel
@@ -762,6 +857,12 @@ export function HomePage() {
                         yaml,
                         text: activeOutput,
                         textFilename: outputFilename(activeTab),
+                        catalogUrl: catalog.url,
+                        githubUser: config.destination === 'user' ? githubUser : null,
+                        idpSession: config.destination === 'cloud' ? idpSession : null,
+                        landingConfig: config,
+                        vectorId,
+                        outputTab: activeTab,
                       }),
                     'data-testid': 'landing-terminal-download',
                   },

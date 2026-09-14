@@ -38,6 +38,16 @@ services:
       DB_PASSWORD: autotests
       SERVER_PORT: 8080
       JWT_SECRET: ${JWT_SECRET:-autotests-ai-app-dev-secret-change-in-production-min-32-chars}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      GITHUB_CLOUD_TOKEN: ${GITHUB_CLOUD_TOKEN:-}
+      IDP_CLIENT_ID: ${IDP_CLIENT_ID:-}
+      IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET:-}
+      IDP_TOKEN_URL: ${IDP_TOKEN_URL:-}
+      IDP_USERINFO_URL: ${IDP_USERINFO_URL:-}
+      ASSEMBLE_URL: ${ASSEMBLE_URL:-http://host.docker.internal:3032}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,6 +64,9 @@ services:
         org.opencontainers.image.url: https://autotests.ai/
         org.opencontainers.image.vendor: autotests-ai
       context: ./frontend/typescript/frontend-typescript-react
+      args:
+        VITE_IDP_CLIENT_ID: ${VITE_IDP_CLIENT_ID:-}
+        VITE_IDP_AUTHORIZE_URL: ${VITE_IDP_AUTHORIZE_URL:-}
     restart: unless-stopped
     networks:
       - autotests_ai_app_internal

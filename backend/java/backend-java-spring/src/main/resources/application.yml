@@ -26,3 +26,26 @@ app:
     password: ${SEED_PASSWORD:password1}
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:[*],http://127.0.0.1:[*]}
+
+github:
+  oauth:
+    client-id: ${GITHUB_OAUTH_CLIENT_ID:}
+    client-secret: ${GITHUB_OAUTH_CLIENT_SECRET:}
+    token-url: ${GITHUB_OAUTH_TOKEN_URL:https://github.com/login/oauth/access_token}
+    user-url: ${GITHUB_OAUTH_USER_URL:https://api.github.com/user}
+    repos-url: ${GITHUB_OAUTH_REPOS_URL:https://api.github.com/user/repos}
+    repo-api-base: ${GITHUB_OAUTH_REPO_API_BASE:https://api.github.com/repos}
+  cloud:
+    token: ${GITHUB_CLOUD_TOKEN:}
+    repos-url: ${GITHUB_CLOUD_REPOS_URL:https://api.github.com/orgs/autotests-cloud/repos}
+    repo-api-base: ${GITHUB_CLOUD_REPO_API_BASE:https://api.github.com/repos}
+
+idp:
+  oauth:
+    client-id: ${IDP_CLIENT_ID:}
+    client-secret: ${IDP_CLIENT_SECRET:}
+    token-url: ${IDP_TOKEN_URL:}
+    userinfo-url: ${IDP_USERINFO_URL:}
+
+assemble:
+  url: ${ASSEMBLE_URL:}

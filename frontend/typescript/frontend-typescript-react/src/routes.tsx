@@ -1,6 +1,8 @@
 import type { RouteObject } from 'react-router-dom';
 import { App } from './App';
+import { GithubOAuthCallbackPage } from './pages/GithubOAuthCallbackPage';
 import { HomePage } from './pages/HomePage';
+import { IdpCallbackPage } from './pages/IdpCallbackPage';
 import { StackPage } from './pages/StackPage';
 
 /**
@@ -15,6 +17,8 @@ export const routes: RouteObject[] = [
     element: <App />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'oauth/github/callback', element: <GithubOAuthCallbackPage /> },
+      { path: 'oauth/idp/callback', element: <IdpCallbackPage /> },
       { path: 'stack', element: <StackPage /> },
       { path: 'stack/*', element: <StackPage /> },
     ],

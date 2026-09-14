@@ -1,5 +1,26 @@
 /** Home configurator selection — cfg-keys + harvested presets. Not a matrix profile id. */
 
+import { apiUrl } from './appBase';
+import {
+  createGithubUserRepo,
+  type GithubCreatedRepo,
+  type GithubPushedRepo,
+  type GithubUserSession,
+  githubUserUrl,
+  isGithubLogin,
+  isGithubUserRepoUrl,
+  pushGithubUserRepo,
+} from './github-oauth';
+import {
+  type CloudCreatedRepo,
+  type CloudPushedRepo,
+  createCloudRepo,
+  type IdpSession,
+  isCloudRepoUrl,
+  isSchoolLogin,
+  pushCloudRepo,
+} from './idp-login';
+
 export type LandingConfig = {
   buildOs: string;
   buildOsVersion: string;
@@ -44,6 +65,37 @@ export type LandingConfig = {
 };
 
 export type DestinationId = 'zip' | 'catalog' | 'cloud' | 'user';
+
+export type CatalogHref = {
+  profile: string;
+  url: string;
+};
+
+export type CloudContract = {
+  org: string;
+  created: boolean;
+  via: 'idp';
+  login?: string;
+  url?: string;
+  pushed?: true;
+};
+
+export type UserContract = {
+  created: boolean;
+  via: 'oauth';
+  login?: string;
+  url?: string;
+  pushed?: true;
+};
+
+export type LandingEmitOptions = {
+  githubUser?: GithubUserSession | null;
+  createdRepo?: GithubCreatedRepo | null;
+  pushedRepo?: GithubPushedRepo | null;
+  idpSession?: IdpSession | null;
+  createdCloudRepo?: CloudCreatedRepo | null;
+  pushedCloudRepo?: CloudPushedRepo | null;
+};
 export type AgentAccess = 'write' | 'none';
 export type LayerAccess = 'write';
 
@@ -189,8 +241,115 @@ export function isDestinationId(value: string): value is DestinationId {
   return DESTINATIONS.some((option) => option.value === value);
 }
 
+/** matrix.yaml defaults.generation.github_org — frozen, not invent. */
+export const CATALOG_GITHUB_ORG = 'autotests-ai';
+
+/** School contour org. Login after IdP session only. Never unknown. */
+export const CLOUD_GITHUB_ORG = 'autotests-cloud';
+
+/** Frozen tests stack → github.com/autotests-ai/<e2e.stack>. */
+export function catalogProfileId(profile: CoverageProfile): string {
+  return profile.automation.e2e.stack;
+}
+
+export function catalogHref(profileId: string, org: string = CATALOG_GITHUB_ORG): string {
+  return `https://github.com/${org}/${profileId}`;
+}
+
+export function catalogDocument(profile: CoverageProfile): CatalogHref {
+  const id = catalogProfileId(profile);
+  return { profile: id, url: catalogHref(id) };
+}
+
+export function cloudDocument(
+  session?: IdpSession | null,
+  createdRepo?: CloudCreatedRepo | null,
+  pushedRepo?: CloudPushedRepo | null,
+): CloudContract {
+  if (
+    createdRepo &&
+    createdRepo.created === true &&
+    isSchoolLogin(createdRepo.login) &&
+    isCloudRepoUrl(createdRepo.login, createdRepo.url)
+  ) {
+    const doc: CloudContract = {
+      org: CLOUD_GITHUB_ORG,
+      created: true,
+      via: 'idp',
+      login: createdRepo.login,
+      url: createdRepo.url,
+    };
+    if (
+      pushedRepo &&
+      pushedRepo.pushed === true &&
+      pushedRepo.login === createdRepo.login &&
+      pushedRepo.url === createdRepo.url
+    ) {
+      doc.pushed = true;
+    }
+    return doc;
+  }
+  const doc: CloudContract = { org: CLOUD_GITHUB_ORG, created: false, via: 'idp' };
+  if (session && isSchoolLogin(session.login)) {
+    doc.login = session.login;
+  }
+  return doc;
+}
+
+export function userDocument(
+  session?: GithubUserSession | null,
+  createdRepo?: GithubCreatedRepo | null,
+  pushedRepo?: GithubPushedRepo | null,
+): UserContract {
+  if (
+    createdRepo &&
+    createdRepo.created === true &&
+    isGithubLogin(createdRepo.login) &&
+    isGithubUserRepoUrl(createdRepo.login, createdRepo.url)
+  ) {
+    const doc: UserContract = {
+      created: true,
+      via: 'oauth',
+      login: createdRepo.login,
+      url: createdRepo.url,
+    };
+    if (
+      pushedRepo &&
+      pushedRepo.pushed === true &&
+      pushedRepo.login === createdRepo.login &&
+      pushedRepo.url === createdRepo.url
+    ) {
+      doc.pushed = true;
+    }
+    return doc;
+  }
+  const doc: UserContract = { created: false, via: 'oauth' };
+  if (session && isGithubLogin(session.login)) {
+    doc.login = session.login;
+    doc.url = githubUserUrl(session.login);
+  }
+  return doc;
+}
+
+export function openCatalogHref(url: string): void {
+  window.open(url, '_blank', 'noopener');
+}
+
 export function isAgentAccess(value: string): value is AgentAccess {
   return value === 'write' || value === 'none';
+}
+
+export function toggleAgentAccess(profile: CoverageProfile, value: string): CoverageProfile {
+  if (!isAgentId(value)) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  const current = next.harness.agents[value];
+  if (!current) {
+    return profile;
+  }
+  current.access = current.access === 'write' ? 'none' : 'write';
+  return next;
 }
 
 export function cloneCoverageProfile(profile: CoverageProfile): CoverageProfile {
@@ -396,7 +555,10 @@ export function fingerprint(config: LandingConfig): string {
   return `vector#${vectorHash(config)}`;
 }
 
-export function toDocument(config: LandingConfig): Record<string, unknown> {
+export function toDocument(
+  config: LandingConfig,
+  options?: LandingEmitOptions,
+): Record<string, unknown> {
   const doc: Record<string, unknown> = {};
   for (const key of Object.keys(DEFAULTS) as (keyof LandingConfig)[]) {
     if (key === 'destination' || key === 'coverageProfile') {
@@ -415,6 +577,19 @@ export function toDocument(config: LandingConfig): Record<string, unknown> {
   }
   doc.destination = config.destination;
   doc.coverageProfile = cloneCoverageProfile(config.coverageProfile);
+  if (config.destination === 'catalog') {
+    doc.catalog = catalogDocument(config.coverageProfile);
+  }
+  if (config.destination === 'cloud') {
+    doc.cloud = cloudDocument(
+      options?.idpSession,
+      options?.createdCloudRepo,
+      options?.pushedCloudRepo,
+    );
+  }
+  if (config.destination === 'user') {
+    doc.user = userDocument(options?.githubUser, options?.createdRepo, options?.pushedRepo);
+  }
   return doc;
 }
 
@@ -463,12 +638,62 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
   return lines;
 }
 
-export function toYaml(config: LandingConfig, vectorId: string): string {
+export function toYaml(
+  config: LandingConfig,
+  vectorId: string,
+  options?: LandingEmitOptions,
+): string {
   const lines = [`# ${vectorId}`];
-  const doc = toDocument(config);
+  const doc = toDocument(config, options);
   for (const [key, value] of Object.entries(doc)) {
     if (key === 'coverageProfile') {
       lines.push(...yamlCoverageProfile(value as CoverageProfile));
+      continue;
+    }
+    if (key === 'catalog' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const catalog = value as CatalogHref;
+      lines.push(
+        'catalog:',
+        `  profile: ${yamlScalar(catalog.profile)}`,
+        `  url: ${yamlScalar(catalog.url)}`,
+      );
+      continue;
+    }
+    if (key === 'cloud' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const cloud = value as CloudContract;
+      lines.push(
+        'cloud:',
+        `  org: ${yamlScalar(cloud.org)}`,
+        `  created: ${yamlScalar(cloud.created)}`,
+        `  via: ${yamlScalar(cloud.via)}`,
+      );
+      if (cloud.login) {
+        lines.push(`  login: ${yamlScalar(cloud.login)}`);
+      }
+      if (cloud.url) {
+        lines.push(`  url: ${yamlScalar(cloud.url)}`);
+      }
+      if (cloud.pushed === true) {
+        lines.push(`  pushed: ${yamlScalar(cloud.pushed)}`);
+      }
+      continue;
+    }
+    if (key === 'user' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const user = value as UserContract;
+      lines.push(
+        'user:',
+        `  created: ${yamlScalar(user.created)}`,
+        `  via: ${yamlScalar(user.via)}`,
+      );
+      if (user.login) {
+        lines.push(`  login: ${yamlScalar(user.login)}`);
+      }
+      if (user.url) {
+        lines.push(`  url: ${yamlScalar(user.url)}`);
+      }
+      if (user.pushed === true) {
+        lines.push(`  pushed: ${yamlScalar(user.pushed)}`);
+      }
       continue;
     }
     if (Array.isArray(value)) {
@@ -487,23 +712,40 @@ export function toYaml(config: LandingConfig, vectorId: string): string {
   return lines.join('\n');
 }
 
-export function toJson(config: LandingConfig, vectorId: string): string {
-  return JSON.stringify({ ...toDocument(config), vector: vectorId }, null, 2);
+export function toJson(
+  config: LandingConfig,
+  vectorId: string,
+  options?: LandingEmitOptions,
+): string {
+  return JSON.stringify({ ...toDocument(config, options), vector: vectorId }, null, 2);
+}
+
+/** Dest zip dump of the Home form. Channel user/catalog/cloud stays off the assemble-zip POST. */
+export function assembleZipYaml(config: LandingConfig, vectorId: string): string {
+  return toYaml({ ...config, destination: 'zip' }, vectorId);
 }
 
 export function outputFilename(tab: OutputTabId): string {
   return tab === 'json' ? 'config.json' : 'config.yaml';
 }
 
-/** Registry `assemble-zip` bind (scripts/stands/registry.json). Not window.location. */
+/** Registry `assemble-zip` bind (scripts/stands/registry.json). Loopback CORS fallback only. */
 export const ASSEMBLE_ZIP_ORIGIN = 'http://127.0.0.1:3032';
+
+export function assembleApiUrl(): string {
+  return apiUrl('/assemble');
+}
 
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
-export function shouldAssembleZip(destination: DestinationId, hostname: string): boolean {
-  return destination === 'zip' && isLoopbackHostname(hostname);
+export function shouldAssembleZip(destination: DestinationId): boolean {
+  return destination === 'zip';
+}
+
+export function shouldAssembleZipLoopback(hostname: string): boolean {
+  return isLoopbackHostname(hostname);
 }
 
 export function zipFilenameFromDisposition(
@@ -541,10 +783,10 @@ export function downloadText(contents: string, filename: string): void {
 
 export async function postAssembleZip(
   yaml: string,
-  origin: string = ASSEMBLE_ZIP_ORIGIN,
+  url: string = assembleApiUrl(),
 ): Promise<{ blob: Blob; filename: string } | null> {
   try {
-    const response = await fetch(`${origin}/assemble`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/yaml' },
       body: yaml,
@@ -576,13 +818,56 @@ export async function downloadLandingOutput(input: {
   text: string;
   textFilename: string;
   origin?: string;
-}): Promise<'zip' | 'text'> {
-  if (shouldAssembleZip(input.destination, input.hostname)) {
-    const assembled = await postAssembleZip(input.yaml, input.origin ?? ASSEMBLE_ZIP_ORIGIN);
-    if (assembled) {
-      downloadBlob(assembled.blob, assembled.filename);
-      return 'zip';
+  catalogUrl?: string;
+  githubUser?: GithubUserSession | null;
+  landingConfig?: LandingConfig;
+  vectorId?: string;
+  outputTab?: OutputTabId;
+  apiUrl?: string;
+  idpSession?: IdpSession | null;
+}): Promise<'zip' | 'catalog' | 'text'> {
+  if (input.destination === 'catalog') {
+    openCatalogHref(input.catalogUrl ?? catalogHref(TAKEAWAY_TESTS_STACK));
+    return 'catalog';
+  }
+  if (input.destination === 'cloud') {
+    let output = input.text;
+    if (input.idpSession && input.landingConfig && input.vectorId) {
+      const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
+      const createdCloudRepo = await createCloudRepo({ yaml });
+      const pushedCloudRepo = createdCloudRepo ? await pushCloudRepo({ yaml }) : null;
+      const options = { idpSession: input.idpSession, createdCloudRepo, pushedCloudRepo };
+      output =
+        input.outputTab === 'json'
+          ? toJson(input.landingConfig, input.vectorId, options)
+          : toYaml(input.landingConfig, input.vectorId, options);
     }
+    downloadText(output, input.textFilename);
+    return 'text';
+  }
+  if (input.destination === 'user') {
+    let output = input.text;
+    if (input.githubUser && input.landingConfig && input.vectorId) {
+      const yaml = assembleZipYaml(input.landingConfig, input.vectorId);
+      const createdRepo = await createGithubUserRepo({ yaml });
+      const pushedRepo = createdRepo ? await pushGithubUserRepo({ yaml }) : null;
+      const options = { githubUser: input.githubUser, createdRepo, pushedRepo };
+      output =
+        input.outputTab === 'json'
+          ? toJson(input.landingConfig, input.vectorId, options)
+          : toYaml(input.landingConfig, input.vectorId, options);
+    }
+    downloadText(output, input.textFilename);
+    return 'text';
+  }
+  const assembled =
+    (await postAssembleZip(input.yaml, input.apiUrl ?? assembleApiUrl())) ??
+    (shouldAssembleZipLoopback(input.hostname)
+      ? await postAssembleZip(input.yaml, `${input.origin ?? ASSEMBLE_ZIP_ORIGIN}/assemble`)
+      : null);
+  if (assembled) {
+    downloadBlob(assembled.blob, assembled.filename);
+    return 'zip';
   }
   downloadText(input.text, input.textFilename);
   return 'text';

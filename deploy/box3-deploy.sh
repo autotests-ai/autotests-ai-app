@@ -72,11 +72,17 @@ if [[ -n "${GHCR_TOKEN:-}" ]]; then
 fi
 
 COMPOSE=(docker compose --project-name "$COMPOSE_PROJECT" -f docker-compose.yml -f docker-compose.prod.yml)
+# Compose --env-file replaces the default .env, it does not merge. Stage's
+# deploy/stage.env would hide host IDP_* / GITHUB_CLOUD_TOKEN / ASSEMBLE_URL.
+if [[ -f "$APP_DIR/.env" ]]; then
+  COMPOSE+=(--env-file "$APP_DIR/.env")
+fi
 if [[ -n "$COMPOSE_ENV_FILE" ]]; then
   COMPOSE+=(--env-file "$COMPOSE_ENV_FILE")
 fi
 
 # Empty IMAGE_TAG → compose default :latest
+# Host .env (600) interpolates IDP_*, GITHUB_CLOUD_TOKEN, ASSEMBLE_URL; never cat / echo it.
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 echo "=== compose pull (${COMPOSE_PROJECT}, IMAGE_TAG=${IMAGE_TAG}) ==="
@@ -102,6 +108,12 @@ if [[ "$ok" != "1" ]]; then
 fi
 curl -fsS "$HEALTH_URL" | grep -q '"status":"ok"'
 curl -fsS "${HEALTH_URL%/api/health}/stack/matrix.json" | grep -q '"backends"'
+
+if curl -fsS --max-time 3 http://172.17.0.1:3032/health >/dev/null 2>&1; then
+  echo "=== assemble-zip docker0 health ok ==="
+else
+  echo "WARN: assemble-zip http://172.17.0.1:3032/health failed (dest zip / cloud tree 503)" >&2
+fi
 
 if [[ "$REFRESH_STACK_NGINX" == "1" ]]; then
   echo "=== teaching nginx fragments (no reset --hard) ==="

@@ -40,7 +40,7 @@ class CorsConfigTest extends UnitTestBase {
 
         assertNotNull(cors);
         assertEquals(DEV_ORIGINS, cors.getAllowedOriginPatterns());
-        assertFalse(Boolean.TRUE.equals(cors.getAllowCredentials()));
+        assertTrue(Boolean.TRUE.equals(cors.getAllowCredentials()));
     }
 
     @Test

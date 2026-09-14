@@ -1,20 +1,35 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ASSEMBLE_ZIP_ORIGIN,
+  assembleApiUrl,
+  assembleZipYaml,
   buildWrapperOptions,
+  CLOUD_GITHUB_ORG,
+  catalogDocument,
+  catalogHref,
+  catalogProfileId,
   cloneConfig,
+  cloudDocument,
   copyText,
   DEFAULTS,
   downloadLandingOutput,
   downloadText,
   fingerprint,
+  isAgentAccess,
+  isAgentId,
+  isDestinationId,
   isLoopbackHostname,
   type LandingConfig,
   outputFilename,
   shouldAssembleZip,
+  shouldAssembleZipLoopback,
+  TAKEAWAY_COVERAGE_PROFILE,
+  TAKEAWAY_TESTS_STACK,
   toDocument,
+  toggleAgentAccess,
   toJson,
   toYaml,
+  userDocument,
   vectorHash,
   zipFilenameFromDisposition,
 } from '../../lib/landing-config';
@@ -23,6 +38,46 @@ describe('landing-config', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  function oauthDestCloudFetch(repoUrl: string) {
+    return vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response;
+    });
+  }
+
+  function oauthDestUserFetch(repoUrl: string) {
+    return vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response;
+    });
+  }
+
+  it('omits a harness agent from YAML when the profile has no entry', () => {
+    const config = cloneConfig(DEFAULTS);
+    delete config.coverageProfile.harness.agents.cline;
+    const yaml = toYaml(config, 'vector#agents');
+    expect(yaml).not.toContain('cline:');
+    expect(yaml).toContain('cursor:');
   });
 
   it('clones images so mutations stay local', () => {
@@ -38,6 +93,26 @@ describe('landing-config', () => {
     copy.destination = 'cloud';
     expect(DEFAULTS.coverageProfile.harness.agents.cursor.access).toBe('write');
     expect(DEFAULTS.destination).toBe('zip');
+  });
+
+  it('toggles agent access and ignores unknown or missing agents', () => {
+    expect(isAgentAccess('write')).toBe(true);
+    expect(isAgentAccess('none')).toBe(true);
+    expect(isAgentAccess('read')).toBe(false);
+    expect(isAgentId('cursor')).toBe(true);
+    expect(isAgentId('not-an-agent')).toBe(false);
+    expect(isDestinationId('user')).toBe(true);
+    expect(isDestinationId('zip')).toBe(true);
+    expect(isDestinationId('nope')).toBe(false);
+    const profile = cloneConfig(DEFAULTS).coverageProfile;
+    expect(toggleAgentAccess(profile, 'not-an-agent')).toBe(profile);
+    const missing = cloneConfig(DEFAULTS).coverageProfile;
+    delete missing.harness.agents.cursor;
+    expect(toggleAgentAccess(missing, 'cursor')).toBe(missing);
+    const toggled = toggleAgentAccess(profile, 'cursor');
+    expect(toggled).not.toBe(profile);
+    expect(toggled.harness.agents.cursor.access).toBe('none');
+    expect(toggleAgentAccess(toggled, 'cursor').harness.agents.cursor.access).toBe('write');
   });
 
   it('fingerprints the selection as vector# plus 8 hex chars', () => {
@@ -68,8 +143,22 @@ describe('landing-config', () => {
     expect(doc.destination).toBe('zip');
     expect(doc.coverageProfile).toEqual(DEFAULTS.coverageProfile);
     expect(doc.coverageProfile).not.toBe(DEFAULTS.coverageProfile);
+    expect(doc).not.toHaveProperty('catalog');
+    expect(doc).not.toHaveProperty('cloud');
+    expect(doc).not.toHaveProperty('user');
     expect(doc).not.toHaveProperty('backend');
     expect(doc).not.toHaveProperty('codeHost');
+  });
+
+  it('resolves catalog href from frozen e2e stack and matrix github_org', () => {
+    expect(catalogProfileId(TAKEAWAY_COVERAGE_PROFILE)).toBe(TAKEAWAY_TESTS_STACK);
+    expect(catalogHref(TAKEAWAY_TESTS_STACK)).toBe(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    expect(catalogDocument(TAKEAWAY_COVERAGE_PROFILE)).toEqual({
+      profile: TAKEAWAY_TESTS_STACK,
+      url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    });
   });
 
   it('prints live YAML with vector comment, quoted URL, and empty image list', () => {
@@ -109,6 +198,329 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('codeHost:');
     expect(yaml).not.toContain('backendLanguage:');
     expect(yaml.indexOf('destination: zip')).toBeGreaterThan(yaml.indexOf('testopsEnabled: false'));
+  });
+
+  it('prints catalog profile and url when destination is catalog', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'catalog' };
+    const yaml = toYaml(config, 'vector#catalog');
+    expect(yaml).toContain('destination: catalog');
+    expect(yaml).toContain('catalog:');
+    expect(yaml).toContain(`profile: ${TAKEAWAY_TESTS_STACK}`);
+    expect(yaml).toContain(
+      'url: "https://github.com/autotests-ai/java-junit5-rest_assured-selenide"',
+    );
+    const json = JSON.parse(toJson(config, 'vector#catalog')) as {
+      destination: string;
+      catalog: { profile: string; url: string };
+    };
+    expect(json.destination).toBe('catalog');
+    expect(json.catalog).toEqual({
+      profile: TAKEAWAY_TESTS_STACK,
+      url: 'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    });
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncatalog:');
+  });
+
+  it('prints cloud org and created false when destination is cloud', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const yaml = toYaml(config, 'vector#cloud');
+    expect(yaml).toContain('destination: cloud');
+    expect(yaml).toContain('cloud:');
+    expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: idp');
+    expect(yaml).not.toContain('\ncatalog:');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml).not.toContain('unknown');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('login:');
+    const json = JSON.parse(toJson(config, 'vector#cloud')) as {
+      destination: string;
+      cloud: { org: string; created: boolean; via: string; login?: string };
+      catalog?: unknown;
+      url?: string;
+    };
+    expect(json.destination).toBe('cloud');
+    expect(json.cloud).toEqual(cloudDocument());
+    expect(json.cloud.created).toBe(false);
+    expect(json.cloud.via).toBe('idp');
+    expect(json.cloud.login).toBeUndefined();
+    expect(json).not.toHaveProperty('catalog');
+    expect(json).not.toHaveProperty('url');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\ncloud:');
+  });
+
+  it('prints cloud login only after a real IdP session', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const yaml = toYaml(config, 'vector#cloud', { idpSession: { login: 'qaguru' } });
+    expect(yaml).toContain('via: idp');
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('login: qaguru');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('token');
+    expect(toYaml(config, 'vector#cloud', { idpSession: { login: 'unknown' } })).not.toContain(
+      'login:',
+    );
+    expect(toYaml(config, 'vector#cloud', { githubUser: { login: 'octocat' } })).not.toContain(
+      'login: octocat',
+    );
+    const json = JSON.parse(
+      toJson(config, 'vector#cloud', { idpSession: { login: 'qaguru' } }),
+    ) as { cloud: { created: boolean; via: string; login?: string; url?: string } };
+    expect(json.cloud).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: false,
+      via: 'idp',
+      login: 'qaguru',
+    });
+    expect(json.cloud).not.toHaveProperty('url');
+  });
+
+  it('prints created true and the org repo URL only after dest cloud create', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    const createdCloudRepo = {
+      login: 'qaguru',
+      url: 'https://github.com/autotests-cloud/qaguru-python-pytest',
+      created: true as const,
+    };
+    const yaml = toYaml(config, 'vector#cloud', {
+      idpSession: { login: 'qaguru' },
+      createdCloudRepo,
+    });
+    expect(yaml).toContain('created: true');
+    expect(yaml).toContain('via: idp');
+    expect(yaml).toContain('login: qaguru');
+    expect(yaml).toContain('url: "https://github.com/autotests-cloud/qaguru-python-pytest"');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('token');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('pushed:');
+    expect(cloudDocument({ login: 'qaguru' }, createdCloudRepo)).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: true,
+      via: 'idp',
+      login: 'qaguru',
+      url: createdCloudRepo.url,
+    });
+    const pushedCloudRepo = { login: 'qaguru', url: createdCloudRepo.url, pushed: true as const };
+    const yamlPushed = toYaml(config, 'vector#cloud', {
+      idpSession: { login: 'qaguru' },
+      createdCloudRepo,
+      pushedCloudRepo,
+    });
+    expect(yamlPushed).toContain('pushed: true');
+    expect(yamlPushed).not.toContain('token');
+    expect(yamlPushed.toLowerCase()).not.toContain('pat');
+    expect(yamlPushed).not.toContain('via: oauth');
+    expect(cloudDocument({ login: 'qaguru' }, createdCloudRepo, pushedCloudRepo)).toEqual({
+      org: CLOUD_GITHUB_ORG,
+      created: true,
+      via: 'idp',
+      login: 'qaguru',
+      url: createdCloudRepo.url,
+      pushed: true,
+    });
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'qaguru',
+        url: 'https://github.com/qaguru/python-pytest',
+        pushed: true,
+      }),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'hubot',
+        url: createdCloudRepo.url,
+        pushed: true,
+      }),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
+    expect(
+      cloudDocument({ login: 'qaguru' }, createdCloudRepo, {
+        login: 'qaguru',
+        url: createdCloudRepo.url,
+        pushed: false,
+      } as unknown as Parameters<typeof cloudDocument>[2]),
+    ).toEqual(cloudDocument({ login: 'qaguru' }, createdCloudRepo));
+    expect(
+      cloudDocument(
+        { login: 'qaguru' },
+        {
+          login: 'qaguru',
+          url: 'https://github.com/qaguru/python-pytest',
+          created: true,
+        },
+      ),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+    expect(
+      cloudDocument(
+        { login: 'qaguru' },
+        {
+          login: 'unknown',
+          url: createdCloudRepo.url,
+          created: true,
+        },
+      ),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+    expect(
+      cloudDocument({ login: 'qaguru' }, {
+        login: 'qaguru',
+        url: createdCloudRepo.url,
+        created: false,
+      } as unknown as Parameters<typeof cloudDocument>[1]),
+    ).toEqual(cloudDocument({ login: 'qaguru' }));
+  });
+
+  it('prints user created false via oauth when destination is user', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const yaml = toYaml(config, 'vector#user');
+    expect(yaml).toContain('destination: user');
+    expect(yaml).toContain('user:');
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).not.toContain('\ncatalog:');
+    expect(yaml).not.toContain('\ncloud:');
+    expect(yaml).not.toContain('token');
+    expect(yaml).not.toContain('unknown');
+    expect(yaml).not.toContain(`${CLOUD_GITHUB_ORG}/`);
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    const json = JSON.parse(toJson(config, 'vector#user')) as {
+      destination: string;
+      user: { created: boolean; via: string };
+      catalog?: unknown;
+      cloud?: unknown;
+      url?: string;
+      token?: string;
+    };
+    expect(json.destination).toBe('user');
+    expect(json.user).toEqual(userDocument());
+    expect(json.user.created).toBe(false);
+    expect(json.user.via).toBe('oauth');
+    expect(json).not.toHaveProperty('catalog');
+    expect(json).not.toHaveProperty('cloud');
+    expect(json).not.toHaveProperty('url');
+    expect(json).not.toHaveProperty('token');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('\nuser:');
+  });
+
+  it('assembleZipYaml is the dest zip Home dump, not destination user', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    config.coverageProfile.harness.agents.cursor.access = 'none';
+    const yaml = assembleZipYaml(config, 'vector#user');
+    expect(yaml).toContain('destination: zip');
+    expect(yaml).not.toContain('destination: user');
+    expect(yaml).not.toContain('\nuser:');
+    expect(yaml).toContain('coverageProfile:');
+    expect(yaml).toContain('cursor: { access: none, module: .cursor/rules }');
+    expect(yaml.toLowerCase()).not.toContain('ghp_');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('3032');
+    expect(yaml).not.toContain('assemble-landing.yaml');
+  });
+
+  it('prints user login URL only after a real GitHub login', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).toContain('login: octocat');
+    expect(yaml).toContain('url: "https://github.com/octocat"');
+    expect(yaml).not.toContain('unknown');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('token');
+    const json = JSON.parse(
+      toJson(config, 'vector#user', { githubUser: { login: 'octocat' } }),
+    ) as {
+      user: { created: boolean; via: string; login: string; url: string };
+    };
+    expect(json.user).toEqual(userDocument({ login: 'octocat' }));
+    expect(json.user.created).toBe(false);
+    expect(toYaml(config, 'vector#user', { githubUser: { login: 'unknown' } })).not.toContain(
+      'login:',
+    );
+  });
+
+  it('prints created true and the user repo URL only after GitHub create', () => {
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    const createdRepo = {
+      login: 'octocat',
+      url: 'https://github.com/octocat/python-pytest',
+      created: true as const,
+    };
+    const yaml = toYaml(config, 'vector#user', {
+      githubUser: { login: 'octocat' },
+      createdRepo,
+    });
+    expect(yaml).toContain('created: true');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).toContain('login: octocat');
+    expect(yaml).toContain('url: "https://github.com/octocat/python-pytest"');
+    expect(yaml).not.toContain('token');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(yaml).not.toContain('autotests-cloud');
+    expect(userDocument({ login: 'octocat' }, createdRepo)).toEqual({
+      created: true,
+      via: 'oauth',
+      login: 'octocat',
+      url: createdRepo.url,
+    });
+    const pushedRepo = { login: 'octocat', url: createdRepo.url, pushed: true as const };
+    const yamlPushed = toYaml(config, 'vector#user', {
+      githubUser: { login: 'octocat' },
+      createdRepo,
+      pushedRepo,
+    });
+    expect(yamlPushed).toContain('pushed: true');
+    expect(yamlPushed).not.toContain('token');
+    expect(yamlPushed.toLowerCase()).not.toContain('pat');
+    expect(userDocument({ login: 'octocat' }, createdRepo, pushedRepo)).toEqual({
+      created: true,
+      via: 'oauth',
+      login: 'octocat',
+      url: createdRepo.url,
+      pushed: true,
+    });
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'octocat',
+        url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+        pushed: true,
+      }),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'hubot',
+        url: createdRepo.url,
+        pushed: true,
+      }),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
+    expect(
+      userDocument({ login: 'octocat' }, createdRepo, {
+        login: 'octocat',
+        url: createdRepo.url,
+        pushed: false,
+      } as unknown as Parameters<typeof userDocument>[2]),
+    ).toEqual(userDocument({ login: 'octocat' }, createdRepo));
+    expect(
+      userDocument(
+        { login: 'octocat' },
+        {
+          login: 'octocat',
+          url: 'https://github.com/autotests-cloud/java-junit5-rest_assured-selenide',
+          created: true,
+        },
+      ),
+    ).toEqual(userDocument({ login: 'octocat' }));
+    expect(
+      userDocument({ login: 'octocat' }, { login: 'unknown', url: createdRepo.url, created: true }),
+    ).toEqual(userDocument({ login: 'octocat' }));
+    expect(
+      userDocument({ login: 'octocat' }, {
+        login: 'octocat',
+        url: createdRepo.url,
+        created: false,
+      } as unknown as Parameters<typeof userDocument>[1]),
+    ).toEqual(userDocument({ login: 'octocat' }));
   });
 
   it('labels build wrappers from the selected tool', () => {
@@ -180,15 +592,18 @@ describe('landing-config', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:landing');
   });
 
-  it('assembles a zip only on loopback dest zip', () => {
+  it('assembles dest zip via same-origin API; loopback CORS is fallback', () => {
+    expect(assembleApiUrl()).toBe('/api/assemble');
     expect(isLoopbackHostname('localhost')).toBe(true);
     expect(isLoopbackHostname('127.0.0.1')).toBe(true);
     expect(isLoopbackHostname('autotests.ai')).toBe(false);
-    expect(shouldAssembleZip('zip', 'localhost')).toBe(true);
-    expect(shouldAssembleZip('zip', 'autotests.ai')).toBe(false);
-    expect(shouldAssembleZip('catalog', 'localhost')).toBe(false);
-    expect(shouldAssembleZip('cloud', '127.0.0.1')).toBe(false);
-    expect(shouldAssembleZip('user', 'localhost')).toBe(false);
+    expect(shouldAssembleZip('zip')).toBe(true);
+    expect(shouldAssembleZip('catalog')).toBe(false);
+    expect(shouldAssembleZip('cloud')).toBe(false);
+    expect(shouldAssembleZip('user')).toBe(false);
+    expect(shouldAssembleZipLoopback('localhost')).toBe(true);
+    expect(shouldAssembleZipLoopback('127.0.0.1')).toBe(true);
+    expect(shouldAssembleZipLoopback('autotests.ai')).toBe(false);
   });
 
   it('reads a zip filename from Content-Disposition and rejects paths', () => {
@@ -201,7 +616,7 @@ describe('landing-config', () => {
     expect(zipFilenameFromDisposition('attachment; filename="config.yaml"')).toBe('assemble.zip');
   });
 
-  it('POSTs YAML to assemble-zip and downloads the zip body', async () => {
+  it('POSTs YAML to /api/assemble and downloads the zip body', async () => {
     const anchors: HTMLAnchorElement[] = [];
     const createObjectURL = vi.fn(() => 'blob:zip');
     const revokeObjectURL = vi.fn();
@@ -232,6 +647,60 @@ describe('landing-config', () => {
 
     const kind = await downloadLandingOutput({
       destination: 'zip',
+      hostname: 'autotests.ai',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+    });
+
+    expect(kind).toBe('zip');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      assembleApiUrl(),
+      expect.objectContaining({
+        method: 'POST',
+        body: yaml,
+        headers: { 'Content-Type': 'application/yaml' },
+      }),
+    );
+    expect(assembleApiUrl()).not.toContain('3032');
+    expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('falls back to loopback assemble-zip only when /api/assemble fails on localhost', async () => {
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:zip');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const yaml = 'destination: zip\n';
+    const zipOk = {
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'application/zip',
+        'content-disposition': 'attachment; filename="assemble-java-default.zip"',
+      }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+    } as Response;
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(zipOk);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const kind = await downloadLandingOutput({
+      destination: 'zip',
       hostname: 'localhost',
       yaml,
       text: yaml,
@@ -239,19 +708,20 @@ describe('landing-config', () => {
     });
 
     expect(kind).toBe('zip');
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      assembleApiUrl(),
+      expect.objectContaining({ method: 'POST', body: yaml }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
       `${ASSEMBLE_ZIP_ORIGIN}/assemble`,
-      expect.objectContaining({
-        method: 'POST',
-        body: yaml,
-        headers: { 'Content-Type': 'application/yaml' },
-      }),
+      expect.objectContaining({ method: 'POST', body: yaml }),
     );
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
-    expect(click).toHaveBeenCalled();
   });
 
-  it('falls back to text when prod, dest is not zip, stand is dead, or body is not zip', async () => {
+  it('falls back to text when dest is not zip, API is down, or body is not zip', async () => {
     const createObjectURL = vi.fn(() => 'blob:text');
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
@@ -267,6 +737,8 @@ describe('landing-config', () => {
 
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     expect(
       await downloadLandingOutput({
         destination: 'zip',
@@ -276,19 +748,26 @@ describe('landing-config', () => {
         textFilename: 'config.yaml',
       }),
     ).toBe('text');
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      assembleApiUrl(),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('3032');
 
+    fetchMock.mockClear();
     expect(
       await downloadLandingOutput({
-        destination: 'catalog',
+        destination: 'cloud',
         hostname: 'localhost',
-        yaml: 'destination: catalog\n',
+        yaml: 'destination: cloud\n',
         text: 'kind: yaml',
         textFilename: 'config.yaml',
       }),
     ).toBe('text');
     expect(fetchMock).not.toHaveBeenCalled();
 
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     expect(
       await downloadLandingOutput({
@@ -300,7 +779,24 @@ describe('landing-config', () => {
         origin: 'http://127.0.0.1:9',
       }),
     ).toBe('text');
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://127.0.0.1:9/assemble',
+      expect.objectContaining({ method: 'POST' }),
+    );
 
+    const notZip = (headers: Headers) =>
+      ({
+        ok: true,
+        status: 200,
+        headers,
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+      }) as Response;
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob(['{"ok":false}']),
+    } as Response);
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -323,6 +819,12 @@ describe('landing-config', () => {
       headers: new Headers({ 'content-type': 'application/json' }),
       blob: async () => new Blob(['{"ok":true}']),
     } as Response);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob(['{"ok":true}']),
+    } as Response);
     expect(
       await downloadLandingOutput({
         destination: 'zip',
@@ -333,12 +835,8 @@ describe('landing-config', () => {
       }),
     ).toBe('text');
 
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: new Headers(),
-      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
-    } as Response);
+    fetchMock.mockResolvedValueOnce(notZip(new Headers()));
+    fetchMock.mockResolvedValueOnce(notZip(new Headers()));
     expect(
       await downloadLandingOutput({
         destination: 'zip',
@@ -355,6 +853,12 @@ describe('landing-config', () => {
       headers: new Headers({ 'content-type': 'application/zip' }),
       blob: async () => new Blob([]),
     } as Response);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/zip' }),
+      blob: async () => new Blob([]),
+    } as Response);
     expect(
       await downloadLandingOutput({
         destination: 'zip',
@@ -364,6 +868,500 @@ describe('landing-config', () => {
         textFilename: 'config.yaml',
       }),
     ).toBe('text');
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('opens the catalog cell href and does not POST assemble-zip', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+
+    const url = catalogHref(TAKEAWAY_TESTS_STACK);
+    const kind = await downloadLandingOutput({
+      destination: 'catalog',
+      hostname: 'localhost',
+      yaml: 'destination: catalog\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      catalogUrl: url,
+    });
+
+    expect(kind).toBe('catalog');
+    expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
+
+    await downloadLandingOutput({
+      destination: 'catalog',
+      hostname: 'localhost',
+      yaml: 'destination: catalog\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+    });
+    expect(open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+  });
+
+  it('downloads cloud as yaml and does not POST assemble-zip or open catalog', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:cloud');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const yaml = toYaml({ ...cloneConfig(DEFAULTS), destination: 'cloud' }, 'vector#cloud');
+    const kind = await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      catalogUrl: catalogHref(TAKEAWAY_TESTS_STACK),
+    });
+
+    expect(kind).toBe('text');
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain(`org: ${CLOUD_GITHUB_ORG}`);
+    expect(yaml).toContain('via: idp');
+    expect(yaml).not.toContain('via: oauth');
+    expect(yaml).not.toContain('github.com/login');
+  });
+
+  it('POSTs create then push when dest cloud has a session and writes created true', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-python-pytest';
+    const fetchMock = oauthDestCloudFetch(repoUrl);
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:cloud-created');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+    const yaml = toYaml(config, 'vector#cloud', { idpSession: { login: 'qaguru' } });
+    const kind = await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+    });
+
+    expect(kind).toBe('text');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/cloud\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('stack: python-pytest'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/cloud/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(pushBody).toContain('coverageProfile:');
+    expect(pushBody).toContain('stack: python-pytest');
+    expect(pushBody).toContain('cursor:');
+    expect(pushBody).not.toContain('destination: cloud');
+    expect(pushBody).not.toContain('destination: user');
+    expect(pushBody).not.toContain('3032');
+    expect(pushBody).not.toContain('assemble-landing.yaml');
+    expect(pushBody).toContain('e2e: { access: write, stack: python-pytest');
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    expect(createBody).toContain('destination: zip');
+    expect(createBody).toContain('e2e: { access: write, stack: python-pytest');
+    expect(createBody).not.toContain('destination: cloud');
+    expect(createBody).not.toContain('3032');
+    expect(createBody.toLowerCase()).not.toContain('pat');
+    expect(open).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).toContain('via: idp');
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
+  it('keeps created false when dest cloud create fails and downloads JSON after success', async () => {
+    const createObjectURL = vi.fn(() => 'blob:cloud-json');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-python-pytest';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
+      } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+    });
+    expect(blobs[0]).toContain('created: false');
+    expect(blobs[0]).toContain('login: qaguru');
+    expect(blobs[0]).not.toContain('pushed:');
+
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: '{}',
+      textFilename: 'config.json',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+      outputTab: 'json',
+    });
+    expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain('"pushed": true');
+    expect(blobs[1]).toContain(repoUrl);
+  });
+
+  it('does not POST create when dest cloud has no session or emit ids', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:cloud'), revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'cloud' };
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+    });
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      vectorId: 'vector#cloud',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:user');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const yaml = toYaml({ ...cloneConfig(DEFAULTS), destination: 'user' }, 'vector#user');
+    const kind = await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      catalogUrl: catalogHref(TAKEAWAY_TESTS_STACK),
+    });
+
+    expect(kind).toBe('text');
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(yaml).toContain('created: false');
+    expect(yaml).toContain('via: oauth');
+    expect(yaml).not.toContain('\ncloud:');
+    expect(yaml).not.toContain('\ncatalog:');
+  });
+
+  it('POSTs create then push when dest user has a session and writes created true', async () => {
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = 'https://github.com/octocat/python-pytest';
+    const fetchMock = oauthDestUserFetch(repoUrl);
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:user-created');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'user';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+    const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
+    const kind = await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml,
+      text: yaml,
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+    });
+
+    expect(kind).toBe('text');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/oauth\/github\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('stack: python-pytest'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/oauth/github/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(pushBody).toContain('coverageProfile:');
+    expect(pushBody).toContain('stack: python-pytest');
+    expect(pushBody).toContain('cursor:');
+    expect(pushBody).not.toContain('destination: user');
+    expect(pushBody).not.toContain('3032');
+    expect(pushBody).not.toContain('assemble-landing.yaml');
+    expect(pushBody).toContain('e2e: { access: write, stack: python-pytest');
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    expect(createBody).toContain('e2e: { access: write, stack: python-pytest');
+    expect(createBody).not.toContain(
+      'e2e: { access: write, stack: java-junit5-rest_assured-selenide',
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(click).toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
+  it('keeps created false when dest user create fails and downloads JSON after success', async () => {
+    const createObjectURL = vi.fn(() => 'blob:user-json');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const repoUrl = 'https://github.com/octocat/python-pytest';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
+      } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'user';
+    config.coverageProfile.automation.e2e.stack = 'python-pytest';
+
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+    });
+    expect(blobs[0]).toContain('created: false');
+    expect(blobs[0]).toContain('login: octocat');
+
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: '{}',
+      textFilename: 'config.json',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+      vectorId: 'vector#user',
+      outputTab: 'json',
+    });
+    expect(blobs[1]).toContain('"created": true');
+    expect(blobs[1]).toContain('"pushed": true');
+    expect(blobs[1]).toContain(repoUrl);
+  });
+
+  it('does not POST create when dest user has no session or emit ids', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:user'), revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      landingConfig: config,
+    });
+    await downloadLandingOutput({
+      destination: 'user',
+      hostname: 'localhost',
+      yaml: 'destination: user\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      githubUser: { login: 'octocat' },
+      vectorId: 'vector#user',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
   });
 });

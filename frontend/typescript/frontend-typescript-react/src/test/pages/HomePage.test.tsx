@@ -3,12 +3,20 @@ import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HEADER_LANG_CHANGE, ru } from '../../i18n';
-import { ASSEMBLE_ZIP_ORIGIN, DEFAULTS, fingerprint } from '../../lib/landing-config';
-import { HomePage } from '../../pages/HomePage';
+import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oauth';
+import { idpAssign, idpGate, writeIdpSession } from '../../lib/idp-login';
+import {
+  assembleApiUrl,
+  DEFAULTS,
+  fingerprint,
+  TAKEAWAY_TESTS_STACK,
+} from '../../lib/landing-config';
+import { AxisField, HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     document.documentElement.lang = 'en';
   });
 
@@ -16,7 +24,26 @@ describe('HomePage', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     localStorage.clear();
+    sessionStorage.clear();
     document.documentElement.lang = 'en';
+  });
+
+  it('renders AxisField as a select when there are more than two options', () => {
+    const onChange = vi.fn();
+    render(
+      <AxisField
+        label="lang"
+        paramId="lang"
+        value="21"
+        options={[
+          { value: '17', label: '17' },
+          { value: '21', label: '21' },
+          { value: '25', label: '25' },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByTestId('landing-select-lang')).toBeInTheDocument();
   });
 
   it('renders the configurator shell and sticky terminal, not an empty page-shell', () => {
@@ -206,6 +233,17 @@ describe('HomePage', () => {
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('catalog:');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-cloud-idp')).toHaveAttribute(
+      'aria-label',
+      'Continue with school IdP',
+    );
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -316,7 +354,7 @@ describe('HomePage', () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  it('POSTs YAML to assemble-zip and downloads a .zip when dest is zip', async () => {
+  it('POSTs YAML to /api/assemble and downloads a .zip when dest is zip', async () => {
     const user = userEvent.setup();
     const anchors: HTMLAnchorElement[] = [];
     const createObjectURL = vi.fn(() => 'blob:assemble');
@@ -333,7 +371,7 @@ describe('HomePage', () => {
       return el;
     });
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe(`${ASSEMBLE_ZIP_ORIGIN}/assemble`);
+      expect(String(input)).toBe(assembleApiUrl());
       expect(init?.method).toBe('POST');
       expect(String(init?.body)).toContain('destination: zip');
       return Promise.resolve({
@@ -358,6 +396,438 @@ describe('HomePage', () => {
       expect(click).toHaveBeenCalled();
     });
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+  });
+
+  it('opens the catalog href on Download and does not POST assemble-zip', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'catalog',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: catalog');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      `profile: ${TAKEAWAY_TESTS_STACK}`,
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    const href = screen.getByTestId('landing-catalog-href');
+    expect(href).toHaveAttribute(
+      'href',
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+    );
+    expect(href).toHaveAttribute('target', '_blank');
+    expect(href).toHaveAttribute('rel', 'noopener noreferrer');
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
+      '_blank',
+      'noopener',
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('downloads cloud as yaml and does not POST assemble-zip or open catalog', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:cloud');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('org: autotests-cloud');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'https://github.com/autotests-ai/',
+    );
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('hides the dest cloud IdP button when client env is missing', async () => {
+    vi.spyOn(idpGate, 'configured').mockReturnValue(false);
+    const user = userEvent.setup();
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+    expect(screen.queryByTestId('landing-cloud-idp')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+  });
+
+  it('starts school IdP from dest cloud and does not start GitHub OAuth', async () => {
+    const user = userEvent.setup();
+    const go = vi.spyOn(idpAssign, 'go').mockImplementation(() => undefined);
+    const githubGo = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    await user.click(screen.getByTestId('landing-cloud-idp'));
+    expect(go).toHaveBeenCalledTimes(1);
+    const href = String(go.mock.calls[0]?.[0]);
+    expect(href).toContain('https://idp.example/auth');
+    expect(href).toContain('client_id=test-idp-client');
+    expect(href).toContain('response_type=code');
+    expect(href).toContain('scope=openid');
+    expect(href).not.toContain('github.com/login');
+    expect(href).not.toContain('token');
+    expect(githubGo).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+  });
+
+  it('prints the school login only after a real IdP session', async () => {
+    writeIdpSession({ login: 'qaguru' });
+    const user = userEvent.setup();
+    const go = vi.spyOn(idpAssign, 'go').mockImplementation(() => undefined);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    const idp = screen.getByTestId('landing-cloud-idp');
+    expect(idp).toHaveAttribute('title', 'qaguru');
+    expect(idp).not.toHaveAttribute('href');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: qaguru');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'autotests-cloud/qaguru',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('via: oauth');
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    await user.click(idp);
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it('downloads user as yaml and does not POST assemble-zip or open catalog', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const createObjectURL = vi.fn(() => 'blob:user');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: user');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: oauth');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'org: autotests-cloud',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent(
+      'https://github.com/autotests-ai/',
+    );
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
+    expect(screen.getByTestId('landing-user-oauth')).toHaveAttribute(
+      'aria-label',
+      'Continue with GitHub',
+    );
+    expect(screen.queryByLabelText(/token/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/pat/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /token/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(open).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('starts GitHub OAuth from dest user and does not keep a PAT', async () => {
+    const user = userEvent.setup();
+    const go = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    await user.click(screen.getByTestId('landing-user-oauth'));
+    expect(go).toHaveBeenCalledTimes(1);
+    const href = String(go.mock.calls[0]?.[0]);
+    expect(href).toContain('https://github.com/login/oauth/authorize');
+    expect(href).toContain('client_id=test-github-oauth-client');
+    expect(href).toContain('scope=public_repo');
+    expect(href).not.toContain('token');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: oauth');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
+  });
+
+  it('prints the GitHub profile URL only after a real login', async () => {
+    writeGithubUserSession({ login: 'octocat' });
+    const user = userEvent.setup();
+    const go = vi.spyOn(githubOAuthAssign, 'go').mockImplementation(() => undefined);
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    const oauth = screen.getByTestId('landing-user-oauth');
+    expect(oauth).toHaveAttribute('href', 'https://github.com/octocat');
+    expect(oauth).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: octocat');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'https://github.com/octocat',
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('token');
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it('downloads created true after dest user create and push and never a PAT', async () => {
+    writeGithubUserSession({ login: 'octocat' });
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = `https://github.com/octocat/${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'octocat', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'octocat', url: repoUrl, created: true }),
+      } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:home-user');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'user',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/oauth\/github\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining(`stack: ${TAKEAWAY_TESTS_STACK}`),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/oauth/github/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+      }),
+    );
+    const createInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(String(createInit?.body)).toContain(`stack: ${TAKEAWAY_TESTS_STACK}`);
+    expect(String(createInit?.body)).toContain('coverageProfile:');
+    const pushInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(String(pushInit?.body)).toContain('coverageProfile:');
+    expect(String(pushInit?.body)).not.toContain('destination: user');
+    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
+      '3032',
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
+  });
+
+  it('downloads created true after dest cloud create and push and never a PAT', async () => {
+    writeIdpSession({ login: 'qaguru' });
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const repoUrl = `https://github.com/autotests-cloud/qaguru-${TAKEAWAY_TESTS_STACK}`;
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+      const href = String(url);
+      if (href.includes('/repos/contents')) {
+        return {
+          ok: true,
+          json: async () => ({ login: 'qaguru', url: repoUrl, pushed: true }),
+        } as Response;
+      }
+      return {
+        ok: true,
+        json: async () => ({ login: 'qaguru', url: repoUrl, created: true }),
+      } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const blobs: string[] = [];
+    vi.stubGlobal(
+      'Blob',
+      class {
+        constructor(init?: BlobPart[]) {
+          blobs.push(String(init?.[0] ?? ''));
+        }
+      },
+    );
+    const createObjectURL = vi.fn(() => 'blob:home-cloud');
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL: vi.fn() });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: qaguru');
+    await user.click(screen.getByTestId('landing-terminal-download'));
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/cloud\/repos$/),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining(`stack: ${TAKEAWAY_TESTS_STACK}`),
+        headers: expect.objectContaining({ 'Content-Type': 'application/yaml' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/cloud/repos/contents'),
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: expect.stringContaining('destination: zip'),
+      }),
+    );
+    const createInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(String(createInit?.body)).toContain(`stack: ${TAKEAWAY_TESTS_STACK}`);
+    expect(String(createInit?.body)).toContain('coverageProfile:');
+    expect(String(createInit?.body)).toContain('destination: zip');
+    expect(String(createInit?.body)).not.toContain('destination: cloud');
+    const pushInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(String(pushInit?.body)).toContain('coverageProfile:');
+    expect(String(pushInit?.body)).not.toContain('destination: cloud');
+    expect(String(fetchMock.mock.calls.map(([url]) => String(url)).join(' '))).not.toContain(
+      '/oauth/github',
+    );
+    expect(open).not.toHaveBeenCalled();
+    expect(blobs[0]).toContain('created: true');
+    expect(blobs[0]).toContain('pushed: true');
+    expect(blobs[0]).toContain(repoUrl);
+    expect(blobs[0]).toContain('via: idp');
+    expect(blobs[0]).not.toContain('token');
+    expect(blobs[0]?.toLowerCase()).not.toContain('pat');
   });
 
   it('translates panel chrome on header:lang-change and keeps option tokens', async () => {

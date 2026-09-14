@@ -12,7 +12,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Allow browser frontends on another origin (Vite / ng serve / …) to call {@code /api/**}.
- * Auth is Bearer JWT in headers — credential cookies are not required.
+ * Product auth is Bearer JWT. GitHub OAuth uses an httpOnly cookie, so credentialed
+ * CORS must be allowed for {@code POST /api/oauth/github}, {@code /repos}, and
+ * {@code /repos/contents}. School IdP uses an httpOnly cookie on {@code /api/cloud}
+ * ({@code POST /api/oauth/idp}, {@code POST /api/cloud/repos}, and {@code /repos/contents}).
  *
  * <p>Matrix deployments serve UI and API from one public host (different paths, same origin).
  * Browsers still send an {@code Origin} header on POST, so Spring validates it against this
@@ -54,7 +57,7 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true);
         return config;
     }
 

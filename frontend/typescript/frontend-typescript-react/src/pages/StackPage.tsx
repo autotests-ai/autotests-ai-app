@@ -28,7 +28,6 @@ import {
   LOAD_BOARD_HREF,
   localComponentTestsPath,
   type ModuleStatus,
-  PERFORMANCE_ROW_LAYERS,
   parseTestsId,
   performanceTestsMeta,
   resolveSelection,
@@ -959,9 +958,7 @@ export function StackPage() {
               <tbody>
                 {summary.performance.map((item) => {
                   const openable = isOpenable(item.status);
-                  const layers = layersLabel(
-                    item.layers?.length ? item.layers : PERFORMANCE_ROW_LAYERS,
-                  );
+                  const layers = layersLabel(item.layers);
                   return (
                     <tr key={item.id}>
                       <td title={`${item.id} · ${performanceTestsMeta(item)}`}>
