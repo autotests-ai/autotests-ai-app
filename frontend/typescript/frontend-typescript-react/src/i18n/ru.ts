@@ -25,6 +25,11 @@ export const ru: Dictionary = {
     remotePlaceholder: 'пусто = local driver',
     driverWebdriver: 'Selenium WebDriver / Selenoid',
     driverPlaywright: 'Playwright движок',
+    panelImport: 'Импорт',
+    importUrl: 'url',
+    importZip: 'zip',
+    importRun: 'Импорт',
+    importPlaceholder: 'https://github.com/org/repo',
   },
   stack: {
     loading: '→ Загрузка matrix…',

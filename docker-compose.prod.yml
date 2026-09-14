@@ -12,6 +12,7 @@ services:
     extra_hosts: !reset []
     environment:
       ASSEMBLE_URL: ${ASSEMBLE_URL:-http://172.17.0.1:3032}
+      ADOPT_URL: ${ADOPT_URL:-http://172.17.0.1:3033}
   frontend-typescript-react:
     restart: unless-stopped
   gateway:

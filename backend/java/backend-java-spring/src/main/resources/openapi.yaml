@@ -384,6 +384,60 @@ paths:
         "503":
           description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
 
+  /api/adopt:
+    post:
+      operationId: adoptImport
+      summary: Home import public GitHub URL or zip. Same dest as CLI adopt-fill. Never PAT. Never POST /api/assemble.
+      tags: [adopt]
+      parameters:
+        - in: query
+          name: dry_run
+          schema:
+            type: boolean
+          description: JSON only, skip dest write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  example: https://github.com/org/repo
+              additionalProperties: false
+            example:
+              url: https://github.com/org/repo
+          multipart/form-data:
+            schema:
+              type: object
+              required: [zip]
+              properties:
+                zip:
+                  type: string
+                  format: binary
+          application/zip:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: CLI adopt-fill JSON. dest is generated-projects/adopt-<id>. created is false.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdoptResponse"
+        "400":
+          description: PAT, private URL, or missing channel
+        "503":
+          description: ADOPT_URL missing or adopt stand down
+
 components:
   schemas:
     HealthResponse:
@@ -396,6 +450,23 @@ components:
         service:
           type: string
           example: backend-java-spring
+
+    AdoptResponse:
+      type: object
+      required: [ok, mode, created, dest]
+      properties:
+        ok:
+          type: boolean
+        mode:
+          type: string
+          example: adopt
+        created:
+          type: boolean
+          example: false
+        dest:
+          type: string
+          example: generated-projects/adopt-takeaway-like
+      description: CLI adopt-fill JSON. Never token, access_token, or PAT. Never dest zip bytes.
 
     ItemDto:
       type: object
@@ -606,3 +677,5 @@ tags:
     description: Authentication per flows/login.md
   - name: oauth
     description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)
+  - name: adopt
+    description: Home import URL/zip. Same dest as CLI adopt-fill. Never PAT. Never POST /api/assemble

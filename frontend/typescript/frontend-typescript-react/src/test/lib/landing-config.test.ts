@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  ADOPT_STAND_ORIGIN,
   ASSEMBLE_ZIP_ORIGIN,
+  adoptApiUrl,
   assembleApiUrl,
   assembleZipYaml,
   buildWrapperOptions,
@@ -15,10 +17,12 @@ import {
   downloadLandingOutput,
   downloadText,
   fingerprint,
+  importAdopt,
   isAgentAccess,
   isAgentId,
   isDestinationId,
   isLoopbackHostname,
+  isPublicGithubUrl,
   type LandingConfig,
   outputFilename,
   shouldAssembleZip,
@@ -594,6 +598,10 @@ describe('landing-config', () => {
 
   it('assembles dest zip via same-origin API; loopback CORS is fallback', () => {
     expect(assembleApiUrl()).toBe('/api/assemble');
+    expect(adoptApiUrl()).toBe('/api/adopt');
+    expect(adoptApiUrl()).not.toBe(assembleApiUrl());
+    expect(ADOPT_STAND_ORIGIN).toBe('http://127.0.0.1:3033');
+    expect(ADOPT_STAND_ORIGIN).not.toContain('3032');
     expect(isLoopbackHostname('localhost')).toBe(true);
     expect(isLoopbackHostname('127.0.0.1')).toBe(true);
     expect(isLoopbackHostname('autotests.ai')).toBe(false);
@@ -664,8 +672,105 @@ describe('landing-config', () => {
       }),
     );
     expect(assembleApiUrl()).not.toContain('3032');
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/adopt');
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
     expect(click).toHaveBeenCalled();
+  });
+
+  it('imports a public GitHub URL via /api/adopt, never /api/assemble', async () => {
+    expect(isPublicGithubUrl('https://github.com/org/repo')).toBe(true);
+    expect(isPublicGithubUrl('https://github.com/org/repo?token=ghp_x')).toBe(false);
+    expect(isPublicGithubUrl('git@github.com:org/repo.git')).toBe(false);
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(adoptApiUrl());
+      expect(String(input)).not.toContain('/assemble');
+      expect(String(init?.body)).toContain('https://github.com/org/repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-repo',
+        }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await importAdopt({
+      url: 'https://github.com/org/repo',
+      file: null,
+      hostname: 'autotests.ai',
+    });
+    expect(result?.dest).toBe('generated-projects/adopt-repo');
+    expect(result?.created).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects PAT without fetch and falls back to adopt :3033, never assemble-zip', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const pat = await importAdopt({
+      url: 'https://github.com/org/repo?token=ghp_x',
+      file: null,
+      hostname: 'localhost',
+    });
+    expect(pat?.ok).toBe(false);
+    expect(pat?.error).toMatch(/public/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === adoptApiUrl()) {
+        return Promise.reject(new Error('api down'));
+      }
+      expect(url).toBe(`${ADOPT_STAND_ORIGIN}/adopt`);
+      expect(url).not.toContain('3032');
+      expect(url).not.toContain('/assemble');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({
+          ok: true,
+          mode: 'adopt',
+          created: false,
+          dest: 'generated-projects/adopt-takeaway-like',
+        }),
+      } as Response);
+    });
+    const zip = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
+      type: 'application/zip',
+    });
+    const result = await importAdopt({
+      url: '',
+      file: zip,
+      hostname: 'localhost',
+    });
+    expect(result?.dest).toBe('generated-projects/adopt-takeaway-like');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not CORS-fallback when /api/adopt already returned JSON', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      expect(String(input)).toBe(adoptApiUrl());
+      return Promise.resolve({
+        ok: false,
+        status: 400,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ message: 'репо не публичный' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await importAdopt({
+      url: 'https://github.com/org/repo',
+      file: null,
+      hostname: 'localhost',
+    });
+    expect(result?.message).toBe('репо не публичный');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to loopback assemble-zip only when /api/assemble fails on localhost', async () => {

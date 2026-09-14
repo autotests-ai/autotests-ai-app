@@ -736,6 +736,120 @@ export function assembleApiUrl(): string {
   return apiUrl('/assemble');
 }
 
+export function adoptApiUrl(): string {
+  return apiUrl('/adopt');
+}
+
+/** Registry `adopt` bind. Loopback CORS fallback only. Not assemble-zip :3032. */
+export const ADOPT_STAND_ORIGIN = 'http://127.0.0.1:3033';
+
+export type AdoptResult = {
+  ok: boolean;
+  mode?: string;
+  dest?: string;
+  created?: boolean;
+  error?: string;
+  message?: string;
+  [key: string]: unknown;
+};
+
+const PUBLIC_GITHUB = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?\/?$/i;
+
+export function isPublicGithubUrl(url: string): boolean {
+  const text = url.trim();
+  if (!text || /token=|pat=/i.test(text) || text.includes('@')) {
+    return false;
+  }
+  return PUBLIC_GITHUB.test(text);
+}
+
+export function shouldAdoptLoopback(hostname: string): boolean {
+  return isLoopbackHostname(hostname);
+}
+
+async function readAdoptJson(response: Response): Promise<AdoptResult | null> {
+  const type = (response.headers.get('content-type') || '').toLowerCase();
+  if (type.includes('application/zip')) {
+    return null;
+  }
+  try {
+    const payload = (await response.json()) as AdoptResult;
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export async function postAdoptUrl(
+  url: string,
+  api: string = adoptApiUrl(),
+): Promise<AdoptResult | null> {
+  if (!isPublicGithubUrl(url)) {
+    return { ok: false, error: 'url must be public https://github.com/org/repo' };
+  }
+  try {
+    const response = await fetch(api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.trim() }),
+    });
+    return readAdoptJson(response);
+  } catch {
+    return null;
+  }
+}
+
+export async function postAdoptZip(
+  file: File,
+  api: string = adoptApiUrl(),
+): Promise<AdoptResult | null> {
+  const name = file.name.split(/[/\\]/).pop() ?? '';
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.zip$/i.test(name)) {
+    return { ok: false, error: 'zip filename required' };
+  }
+  const body = new FormData();
+  body.append('zip', file, name);
+  try {
+    const response = await fetch(api, { method: 'POST', body });
+    return readAdoptJson(response);
+  } catch {
+    return null;
+  }
+}
+
+export async function importAdopt(input: {
+  url: string;
+  file: File | null;
+  hostname: string;
+  origin?: string;
+  apiUrl?: string;
+}): Promise<AdoptResult | null> {
+  const hasUrl = input.url.trim().length > 0;
+  const hasZip = input.file != null;
+  if (hasUrl === hasZip) {
+    return { ok: false, error: 'one channel: url or zip' };
+  }
+  const api = input.apiUrl ?? adoptApiUrl();
+  const fallback =
+    shouldAdoptLoopback(input.hostname) && api === adoptApiUrl()
+      ? `${input.origin ?? ADOPT_STAND_ORIGIN}/adopt`
+      : null;
+  const first = hasZip
+    ? await postAdoptZip(input.file as File, api)
+    : await postAdoptUrl(input.url, api);
+  // Home 4xx is `{message}` (not `{error}`). Only loopback-fallback when fetch/parse failed.
+  if (first != null) {
+    return first;
+  }
+  if (!fallback) {
+    return first;
+  }
+  return hasZip ? postAdoptZip(input.file as File, fallback) : postAdoptUrl(input.url, fallback);
+}
+
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 }

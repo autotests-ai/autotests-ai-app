@@ -1,0 +1,25 @@
+# Box3 adopt stand. Bind docker0 only — not 0.0.0.0, not host-gateway, not :3032.
+# Install: sudo install -m 644 deploy/adopt.service /etc/systemd/system/adopt.service
+#          sudo systemctl daemon-reload && sudo systemctl enable --now adopt
+# Health: curl -sf http://172.17.0.1:3033/health
+# Probe:  POST http://172.17.0.1:3033/adopt?dry_run=1 (JSON {url} or zip). Not GET /health alone.
+# Root is /opt/assemble-zip (same monorepo subset as assemble-zip). Not /opt/adopt.
+# This repo does not vendor adopt-*.py.
+
+[Unit]
+Description=adopt (docker0 172.17.0.1:3033)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=qaguru
+Group=qaguru
+WorkingDirectory=/opt/assemble-zip
+ExecStart=/usr/bin/python3 /opt/assemble-zip/scripts/adopt-serve.py --host 172.17.0.1 --port 3033 --root /opt/assemble-zip
+Restart=on-failure
+RestartSec=5
+UMask=077
+
+[Install]
+WantedBy=multi-user.target

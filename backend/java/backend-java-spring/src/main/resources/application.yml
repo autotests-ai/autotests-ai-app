@@ -49,3 +49,6 @@ idp:
 
 assemble:
   url: ${ASSEMBLE_URL:}
+
+adopt:
+  url: ${ADOPT_URL:}

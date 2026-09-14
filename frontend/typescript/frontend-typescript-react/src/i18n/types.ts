@@ -25,6 +25,11 @@ export interface Dictionary {
     remotePlaceholder: string;
     driverWebdriver: string;
     driverPlaywright: string;
+    panelImport: string;
+    importUrl: string;
+    importZip: string;
+    importRun: string;
+    importPlaceholder: string;
   };
   stack: {
     loading: string;
