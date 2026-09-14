@@ -3,6 +3,7 @@ import {
   ADOPT_STAND_ORIGIN,
   ASSEMBLE_ZIP_ORIGIN,
   adoptApiUrl,
+  adoptZipApiUrl,
   assembleApiUrl,
   assembleZipYaml,
   buildWrapperOptions,
@@ -18,6 +19,7 @@ import {
   downloadText,
   fingerprint,
   importAdopt,
+  isAdoptDest,
   isAgentAccess,
   isAgentId,
   isDestinationId,
@@ -25,6 +27,8 @@ import {
   isPublicGithubUrl,
   type LandingConfig,
   outputFilename,
+  postAdoptDestZip,
+  shouldAdoptDestZip,
   shouldAssembleZip,
   shouldAssembleZipLoopback,
   TAKEAWAY_COVERAGE_PROFILE,
@@ -422,6 +426,28 @@ describe('landing-config', () => {
     expect(yaml).not.toContain('assemble-landing.yaml');
   });
 
+  it('prints adoptDest after Import and not etalon dest', () => {
+    const yaml = toYaml(DEFAULTS, 'vector#zip', {
+      adoptDest: 'generated-projects/adopt-intern-flat',
+    });
+    expect(yaml).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(yaml).not.toContain('generated-projects/assemble-java-default');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    expect(toYaml(DEFAULTS, 'vector#zip')).not.toContain('adoptDest:');
+    expect(
+      toYaml(DEFAULTS, 'vector#zip', { adoptDest: 'generated-projects/assemble-java-default' }),
+    ).not.toContain('adoptDest:');
+    const json = JSON.parse(
+      toJson(DEFAULTS, 'vector#zip', { adoptDest: 'generated-projects/adopt-intern-flat' }),
+    ) as { adoptDest?: string };
+    expect(json.adoptDest).toBe('generated-projects/adopt-intern-flat');
+    expect(
+      assembleZipYaml(DEFAULTS, 'vector#zip', {
+        adoptDest: 'generated-projects/adopt-intern-flat',
+      }),
+    ).toContain('adoptDest: generated-projects/adopt-intern-flat');
+  });
+
   it('prints user login URL only after a real GitHub login', () => {
     const config: LandingConfig = { ...cloneConfig(DEFAULTS), destination: 'user' };
     const yaml = toYaml(config, 'vector#user', { githubUser: { login: 'octocat' } });
@@ -599,6 +625,8 @@ describe('landing-config', () => {
   it('assembles dest zip via same-origin API; loopback CORS is fallback', () => {
     expect(assembleApiUrl()).toBe('/api/assemble');
     expect(adoptApiUrl()).toBe('/api/adopt');
+    expect(adoptZipApiUrl()).toBe('/api/adopt/zip');
+    expect(adoptZipApiUrl()).not.toBe(assembleApiUrl());
     expect(adoptApiUrl()).not.toBe(assembleApiUrl());
     expect(ADOPT_STAND_ORIGIN).toBe('http://127.0.0.1:3033');
     expect(ADOPT_STAND_ORIGIN).not.toContain('3032');
@@ -606,6 +634,12 @@ describe('landing-config', () => {
     expect(isLoopbackHostname('127.0.0.1')).toBe(true);
     expect(isLoopbackHostname('autotests.ai')).toBe(false);
     expect(shouldAssembleZip('zip')).toBe(true);
+    expect(shouldAdoptDestZip('zip')).toBe(true);
+    expect(shouldAdoptDestZip('catalog')).toBe(false);
+    expect(shouldAdoptDestZip('cloud')).toBe(false);
+    expect(shouldAdoptDestZip('user')).toBe(false);
+    expect(isAdoptDest('generated-projects/adopt-repo')).toBe(true);
+    expect(isAdoptDest('generated-projects/assemble-java-default')).toBe(false);
     expect(shouldAssembleZip('catalog')).toBe(false);
     expect(shouldAssembleZip('cloud')).toBe(false);
     expect(shouldAssembleZip('user')).toBe(false);
@@ -771,6 +805,110 @@ describe('landing-config', () => {
     });
     expect(result?.message).toBe('репо не публичный');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads adopt dest zip via /api/adopt/zip, never /api/assemble', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(adoptZipApiUrl());
+      expect(String(input)).not.toContain('/assemble');
+      expect(init?.method).toBe('POST');
+      expect(String(init?.body)).toContain('generated-projects/adopt-repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-repo.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const zip = await postAdoptDestZip({
+      dest: 'generated-projects/adopt-repo',
+      hostname: 'autotests.ai',
+    });
+    expect(zip?.filename).toBe('adopt-repo.zip');
+    expect(zip?.blob.size).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(
+      await postAdoptDestZip({
+        dest: 'generated-projects/assemble-java-default',
+        hostname: 'localhost',
+      }),
+    ).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to adopt :3033 /adopt/zip when /api/adopt/zip fails on localhost', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === adoptZipApiUrl()) {
+        return Promise.reject(new Error('api down'));
+      }
+      expect(url).toBe(`${ADOPT_STAND_ORIGIN}/adopt/zip`);
+      expect(url).not.toContain('3032');
+      expect(url).not.toContain('/assemble');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-takeaway-like.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const zip = await postAdoptDestZip({
+      dest: 'generated-projects/adopt-takeaway-like',
+      hostname: 'localhost',
+    });
+    expect(zip?.filename).toBe('adopt-takeaway-like.zip');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not dest-zip on a non-zip body, 4xx, empty blob, or prod when API is down', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/zip' }),
+      blob: async () => new Blob([]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/assemble');
   });
 
   it('falls back to loopback assemble-zip only when /api/assemble fails on localhost', async () => {
@@ -1047,6 +1185,49 @@ describe('landing-config', () => {
     expect(yaml).toContain('via: idp');
     expect(yaml).not.toContain('via: oauth');
     expect(yaml).not.toContain('github.com/login');
+  });
+
+  it('cloud push YAML after Import carries adoptDest and never /api/assemble', async () => {
+    const repoUrl = 'https://github.com/autotests-cloud/qaguru-java-junit5-rest_assured-selenide';
+    const fetchMock = oauthDestCloudFetch(repoUrl);
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:adopt-cloud'),
+      revokeObjectURL: vi.fn(),
+    });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
+    const config = cloneConfig(DEFAULTS);
+    config.destination = 'cloud';
+    await downloadLandingOutput({
+      destination: 'cloud',
+      hostname: 'localhost',
+      yaml: 'destination: cloud\n',
+      text: 'kind: yaml',
+      textFilename: 'config.yaml',
+      idpSession: { login: 'qaguru' },
+      landingConfig: config,
+      vectorId: 'vector#cloud',
+      adoptDest: 'generated-projects/adopt-intern-flat',
+    });
+    const createBody = String(fetchMock.mock.calls[0]?.[1]?.body ?? '');
+    const pushBody = String(fetchMock.mock.calls[1]?.[1]?.body ?? '');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/cloud/repos');
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/cloud/repos/contents');
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/assemble');
+    expect(String(fetchMock.mock.calls[1]?.[0])).not.toContain('/assemble');
+    expect(createBody).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(pushBody).toContain('adoptDest: generated-projects/adopt-intern-flat');
+    expect(pushBody).toContain('destination: zip');
+    expect(pushBody).not.toContain('destination: cloud');
+    expect(pushBody.toLowerCase()).not.toContain('pat');
   });
 
   it('POSTs create then push when dest cloud has a session and writes created true', async () => {

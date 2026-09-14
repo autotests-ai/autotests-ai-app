@@ -53,10 +53,12 @@ import {
   DEFAULTS,
   DESTINATIONS,
   type DestinationId,
+  downloadBlob,
   downloadLandingOutput,
   fingerprint,
   IMAGES,
   importAdopt,
+  isAdoptDest,
   LANGUAGE_VERSIONS,
   type LandingConfig,
   LOAD_STACKS,
@@ -65,9 +67,11 @@ import {
   outputFilename,
   PRODUCT_BACKEND_STACKS,
   PRODUCT_FRONTEND_STACKS,
+  postAdoptDestZip,
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
+  shouldAdoptDestZip,
   TESTS_STACKS,
   toggleAgentAccess,
   toJson,
@@ -152,7 +156,11 @@ export function HomePage() {
   const [importBusy, setImportBusy] = useState(false);
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
-  const emitOptions = { githubUser, idpSession };
+  const adoptDest =
+    importResult?.ok && typeof importResult.dest === 'string' && isAdoptDest(importResult.dest)
+      ? importResult.dest
+      : undefined;
+  const emitOptions = { githubUser, idpSession, adoptDest };
 
   const magnetSyncKey = [
     config.images.length,
@@ -225,8 +233,22 @@ export function HomePage() {
       file: importZip,
       hostname: window.location.hostname,
     })
-      .then((result) => {
+      .then(async (result) => {
         setImportResult(result);
+        if (
+          result?.ok &&
+          shouldAdoptDestZip(config.destination) &&
+          typeof result.dest === 'string' &&
+          result.dest.length > 0
+        ) {
+          const zip = await postAdoptDestZip({
+            dest: result.dest,
+            hostname: window.location.hostname,
+          });
+          if (zip) {
+            downloadBlob(zip.blob, zip.filename);
+          }
+        }
       })
       .finally(() => {
         setImportBusy(false);
@@ -940,6 +962,7 @@ export function HomePage() {
                         landingConfig: config,
                         vectorId,
                         outputTab: activeTab,
+                        adoptDest,
                       }),
                     'data-testid': 'landing-terminal-download',
                   },

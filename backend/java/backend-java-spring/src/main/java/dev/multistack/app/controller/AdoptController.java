@@ -1,5 +1,6 @@
 package dev.multistack.app.controller;
 
+import dev.multistack.app.dto.AdoptZip;
 import dev.multistack.app.service.AdoptClient;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +21,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class AdoptController {
+
+    private static final MediaType ZIP = MediaType.parseMediaType("application/zip");
 
     private final AdoptClient adoptClient;
 
@@ -50,6 +53,17 @@ public class AdoptController {
                 ? ""
                 : disposition;
         return json(adoptClient.fromZipBytes(zip, filename, dryRun));
+    }
+
+    @PostMapping(value = "/adopt/zip", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<byte[]> destZip(@RequestBody(required = false) Map<String, Object> body) {
+        AdoptZip zip = adoptClient.destZip(body);
+        return ResponseEntity.ok()
+                .contentType(ZIP)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + zip.filename() + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(zip.body());
     }
 
     private static ResponseEntity<Map<String, Object>> json(Map<String, Object> body) {

@@ -3,6 +3,7 @@ package dev.multistack.app.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.multistack.app.config.AdoptProperties;
+import dev.multistack.app.dto.AdoptZip;
 import dev.multistack.app.exception.AuthException;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpHeaders;
@@ -40,6 +41,9 @@ public class AdoptClient {
             "secret",
             "authorization");
     static final Set<String> JSON_KEYS = Set.of("url", "dry_run", "dry-run");
+    static final Set<String> ZIP_JSON_KEYS = Set.of("dest");
+    private static final Pattern ADOPT_DEST = Pattern.compile(
+            "^generated-projects/adopt-[A-Za-z0-9][A-Za-z0-9._-]*$");
     private static final Pattern GITHUB_HTTPS = Pattern.compile(
             "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?(?:\\.git)?/?$",
             Pattern.CASE_INSENSITIVE);
@@ -115,13 +119,48 @@ public class AdoptClient {
         return postZip(zip, name, dryRun);
     }
 
+    public AdoptZip destZip(Map<String, Object> body) {
+        String dest = assertDestBody(body);
+        if (!properties.configured()) {
+            throw new AuthException(503, "adopt url missing");
+        }
+        byte[] json = writeJson(Map.of("dest", dest));
+        try {
+            return restClient.post()
+                    .uri(properties.adoptZipEndpoint())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json)
+                    .exchange((request, response) -> readDestZip(
+                            response.getStatusCode().value(),
+                            response.getBody().readAllBytes(),
+                            response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)));
+        } catch (AuthException ex) {
+            throw ex;
+        } catch (RestClientException ex) {
+            throw new AuthException(503, "adopt zip missing");
+        }
+    }
+
+    static String assertAdoptDest(String dest) {
+        String text = dest == null ? "" : dest.strip();
+        if (!ADOPT_DEST.matcher(text).matches()) {
+            throw new AuthException(400, "dest must be generated-projects/adopt-<id>");
+        }
+        return text;
+    }
+
+    static String destZipFilename(String header) {
+        String name = zipFilename(header);
+        return name == null ? AdoptZip.DEFAULT_FILENAME : name;
+    }
+
     static String assertPublicUrl(String url) {
         String text = url == null ? "" : url.strip();
         String lower = text.toLowerCase(Locale.ROOT);
         if (lower.contains("token=") || lower.contains("pat=")) {
             throw new AuthException(400, "PAT not allowed");
         }
-        if (text.contains("@") || text.startsWith("git@") || lower.startsWith("ssh://")) {
+        if (text.startsWith("git@") || lower.startsWith("ssh://") || text.contains("@")) {
             throw new AuthException(400, "репо не публичный");
         }
         if (!GITHUB_HTTPS.matcher(text).matches()) {
@@ -204,6 +243,47 @@ public class AdoptClient {
         String message = error == null ? "adopt missing" : String.valueOf(error);
         int mapped = status == 400 || status == 413 || status == 504 ? status : 503;
         throw new AuthException(mapped, message);
+    }
+
+    private AdoptZip readDestZip(int status, byte[] body, String disposition) {
+        if (status >= 200 && status < 300 && zipMagic(body)) {
+            return new AdoptZip(body, destZipFilename(disposition));
+        }
+        Map<String, Object> parsed;
+        try {
+            parsed = objectMapper.readValue(body, MAP);
+        } catch (IOException ex) {
+            throw new AuthException(503, "adopt zip missing");
+        }
+        if (parsed == null) {
+            throw new AuthException(503, "adopt zip missing");
+        }
+        Object error = parsed.get("error");
+        String message = error == null ? "adopt zip missing" : String.valueOf(error);
+        if (status == 400 || status == 413 || status == 504) {
+            throw new AuthException(status, message);
+        }
+        throw new AuthException(503, message);
+    }
+
+    private String assertDestBody(Map<String, Object> body) {
+        if (body == null || body.isEmpty()) {
+            throw new AuthException(400, "dest must be generated-projects/adopt-<id>");
+        }
+        for (String key : body.keySet()) {
+            String lower = key == null ? "" : key.toLowerCase(Locale.ROOT).strip();
+            if (PAT_KEYS.contains(lower)) {
+                throw new AuthException(400, "PAT not allowed");
+            }
+            if (!ZIP_JSON_KEYS.contains(lower)) {
+                throw new AuthException(400, "dest must be generated-projects/adopt-<id>");
+            }
+        }
+        Object raw = body.get("dest");
+        if (!(raw instanceof String dest) || dest.isBlank()) {
+            throw new AuthException(400, "dest must be generated-projects/adopt-<id>");
+        }
+        return assertAdoptDest(dest);
     }
 
     private byte[] writeJson(Map<String, Object> body) {

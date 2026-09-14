@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,9 +31,9 @@ import java.util.zip.ZipInputStream;
 
 /**
  * Dest user and dest cloud push YAML = Home dump; classpath is not canon.
- * Tree = unzip of the dest zip (POST YAML to {@code ASSEMBLE_URL}, destination forced zip).
- * Dest zip download = the same POST, zip bytes on {@code POST /api/assemble}.
- * Dest cloud push uses this same zip. Never a PAT, never {@code assemble-landing.yaml}.
+ * Tree = unzip of the dest zip. YAML {@code adoptDest} after Import → {@code ADOPT_URL}
+ * {@code /adopt/zip}. Without the field → {@code ASSEMBLE_URL} as before.
+ * Dest zip download = {@code POST /api/assemble} (assemble stand only). Never a PAT.
  */
 @Component
 @EnableConfigurationProperties(AssembleProperties.class)
@@ -72,22 +73,35 @@ public class AssembleTree {
     private static final Pattern FLOW_STACK = Pattern.compile(
             "\\bstack:\\s*([A-Za-z0-9][A-Za-z0-9._-]*)");
     private static final Pattern STACK_LINE = Pattern.compile("^[ \\t]*stack:\\s*(\\S+)\\s*$");
+    private static final Pattern ADOPT_DEST_LINE = Pattern.compile(
+            "(?m)^adoptDest:\\s*[\"']?(generated-projects/adopt-[A-Za-z0-9][A-Za-z0-9._-]*)[\"']?\\s*$");
+    private static final Pattern ADOPT_DEST_PRESENT = Pattern.compile("(?m)^adoptDest:\\s*");
 
     private final List<GithubTreeBlob> injected;
     private final AssembleProperties properties;
     private final RestClient restClient;
+    private final AdoptClient adoptClient;
+
+    AssembleTree(AssembleProperties properties, RestClient.Builder restClientBuilder) {
+        this(properties, restClientBuilder, null);
+    }
 
     @Autowired
-    public AssembleTree(AssembleProperties properties, RestClient.Builder restClientBuilder) {
+    public AssembleTree(
+            AssembleProperties properties,
+            RestClient.Builder restClientBuilder,
+            AdoptClient adoptClient) {
         this.injected = null;
         this.properties = properties;
         this.restClient = restClientBuilder.build();
+        this.adoptClient = adoptClient;
     }
 
     AssembleTree(List<GithubTreeBlob> blobs) {
         this.injected = List.copyOf(blobs);
         this.properties = null;
         this.restClient = null;
+        this.adoptClient = null;
     }
 
     AssembleTree(byte[] zip) {
@@ -101,6 +115,10 @@ public class AssembleTree {
     public List<GithubTreeBlob> blobs(String yaml) {
         if (injected != null) {
             return injected;
+        }
+        String dest = adoptDest(yaml);
+        if (dest != null) {
+            return fromZip(adoptZip(dest));
         }
         return fromZip(postStand(yaml).body());
     }
@@ -138,6 +156,18 @@ public class AssembleTree {
             return "";
         }
         return DESTINATION_CHANNEL.matcher(yaml.strip()).replaceAll("destination: zip");
+    }
+
+    /** After Import: {@code adoptDest: generated-projects/adopt-<id>}. Absent → assemble stand. */
+    static String adoptDest(String yaml) {
+        if (yaml == null || yaml.isBlank() || !ADOPT_DEST_PRESENT.matcher(yaml).find()) {
+            return null;
+        }
+        Matcher match = ADOPT_DEST_LINE.matcher(yaml);
+        if (!match.find()) {
+            throw new AuthException(400, "dest must be generated-projects/adopt-<id>");
+        }
+        return AdoptClient.assertAdoptDest(match.group(1));
     }
 
     /** Dest user repo name = coverageProfile.automation.e2e.stack from YAML Home. Never a frozen stack. */
@@ -308,6 +338,13 @@ public class AssembleTree {
             return false;
         }
         return data[0] == 'P' && data[1] == 'K';
+    }
+
+    private byte[] adoptZip(String dest) {
+        if (adoptClient == null) {
+            throw new AuthException(503, "adopt url missing");
+        }
+        return adoptClient.destZip(Map.of("dest", dest)).body();
     }
 
     private AssembleZip postStand(String yaml) {

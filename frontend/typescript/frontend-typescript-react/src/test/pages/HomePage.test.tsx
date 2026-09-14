@@ -870,15 +870,134 @@ describe('HomePage', () => {
     expect(screen.getByRole('combobox', { name: 'browser' })).toBeInTheDocument();
   });
 
-  it('imports a public URL via /api/adopt and does not POST /api/assemble', async () => {
+  it('imports a public URL via /api/adopt then dest zip via /api/adopt/zip, not /api/assemble', async () => {
     const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:adopt');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+      }
+      return el;
+    });
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      expect(url).not.toContain('/assemble');
+      expect(init?.method).toBe('POST');
+      if (url === '/api/adopt') {
+        expect(String(init?.body)).toContain('https://github.com/org/repo');
+        expect(String(init?.body).toLowerCase()).not.toContain('token');
+        expect(String(init?.body).toLowerCase()).not.toContain('pat');
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            ok: true,
+            mode: 'adopt',
+            created: false,
+            dest: 'generated-projects/adopt-repo',
+          }),
+        } as Response);
+      }
+      expect(url).toBe('/api/adopt/zip');
+      expect(String(init?.body)).toContain('generated-projects/adopt-repo');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-repo.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    await user.type(screen.getByTestId('landing-field-importUrl'), 'https://github.com/org/repo');
+    await user.click(screen.getByTestId('landing-import-run'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
+        'generated-projects/adopt-repo',
+      );
+    });
+    await waitFor(() => {
+      expect(click).toHaveBeenCalled();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'adoptDest: generated-projects/adopt-repo',
+    );
+  });
+
+  it('imports a zip via /api/adopt FormData, then dest zip, not /api/assemble', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:adopt');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      expect(url).not.toContain('/assemble');
+      if (url === '/api/adopt') {
+        expect(init?.body).toBeInstanceOf(FormData);
+        const body = init?.body as FormData;
+        const zip = body.get('zip') as File;
+        expect(zip.name).toBe('takeaway-like.zip');
+        expect(body.get('token')).toBeNull();
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            ok: true,
+            mode: 'adopt',
+            created: false,
+            dest: 'generated-projects/adopt-takeaway-like',
+          }),
+        } as Response);
+      }
+      expect(url).toBe('/api/adopt/zip');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-takeaway-like.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
+      type: 'application/zip',
+    });
+    await user.upload(screen.getByTestId('landing-field-importZip'), file);
+    await user.click(screen.getByTestId('landing-import-run'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
+        'generated-projects/adopt-takeaway-like',
+      );
+    });
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('does not dest-zip after Import when destination is catalog', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
       expect(String(input)).toBe('/api/adopt');
       expect(String(input)).not.toContain('/assemble');
-      expect(init?.method).toBe('POST');
-      expect(String(init?.body)).toContain('https://github.com/org/repo');
-      expect(String(init?.body).toLowerCase()).not.toContain('token');
-      expect(String(init?.body).toLowerCase()).not.toContain('pat');
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -894,51 +1013,17 @@ describe('HomePage', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'catalog',
+      }),
+    );
     await user.type(screen.getByTestId('landing-field-importUrl'), 'https://github.com/org/repo');
     await user.click(screen.getByTestId('landing-import-run'));
 
     await waitFor(() => {
       expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
         'generated-projects/adopt-repo',
-      );
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
-  });
-
-  it('imports a zip via /api/adopt FormData, not /api/assemble', async () => {
-    const user = userEvent.setup();
-    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe('/api/adopt');
-      expect(init?.body).toBeInstanceOf(FormData);
-      const body = init?.body as FormData;
-      const zip = body.get('zip') as File;
-      expect(zip.name).toBe('takeaway-like.zip');
-      expect(body.get('token')).toBeNull();
-      return Promise.resolve({
-        ok: true,
-        status: 200,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({
-          ok: true,
-          mode: 'adopt',
-          created: false,
-          dest: 'generated-projects/adopt-takeaway-like',
-        }),
-      } as Response);
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    render(<HomePage />);
-    const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
-      type: 'application/zip',
-    });
-    await user.upload(screen.getByTestId('landing-field-importZip'), file);
-    await user.click(screen.getByTestId('landing-import-run'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('landing-import-output')).toHaveTextContent(
-        'generated-projects/adopt-takeaway-like',
       );
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);

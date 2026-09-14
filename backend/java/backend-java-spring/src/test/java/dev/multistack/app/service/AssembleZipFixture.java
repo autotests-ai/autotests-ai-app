@@ -87,6 +87,29 @@ final class AssembleZipFixture {
         return "{\"ok\":true}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
 
+    /** Intern dest after Import: backend module + filled tests, no frontend, no etalon README. */
+    static byte[] internZip() {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try (ZipOutputStream zip = new ZipOutputStream(out)) {
+                text(zip, "adopt-intern-flat/backend/java/backend-java-spring/build.gradle",
+                        "plugins { id 'java' }\n");
+                text(zip, "adopt-intern-flat/backend/java/backend-java-spring/src/main/java/App.java",
+                        "class App {}\n");
+                text(zip,
+                        "adopt-intern-flat/tests/java/tests-java-junit5-rest_assured-selenide/src/test/java/LoginTest.java",
+                        "class LoginTest {}\n");
+                text(zip, "adopt-intern-flat/docs/coverage-profile.md", "intern\n");
+                text(zip, "adopt-intern-flat/docs/agent-skills/PACK.md", "pack\n");
+                text(zip, "adopt-intern-flat/.clinerules/01-qa-java-gradle.md", "os\n");
+                text(zip, "adopt-intern-flat/node_modules/left-pad/index.js", "skip\n");
+            }
+            return out.toByteArray();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
     private static void directory(ZipOutputStream zip, String name) throws IOException {
         zip.putNextEntry(new ZipEntry(name));
         zip.closeEntry();

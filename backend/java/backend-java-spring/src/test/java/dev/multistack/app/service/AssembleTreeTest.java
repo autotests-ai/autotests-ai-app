@@ -1,6 +1,8 @@
 package dev.multistack.app.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.multistack.app.allure.UnitTestBase;
+import dev.multistack.app.config.AdoptProperties;
 import dev.multistack.app.config.AssembleProperties;
 import dev.multistack.app.dto.AssembleZip;
 import dev.multistack.app.dto.GithubTreeBlob;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.client.ExpectedCount.never;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -44,7 +47,15 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class AssembleTreeTest extends UnitTestBase {
 
     private static final String ASSEMBLE_URL = "http://127.0.0.1:3032/assemble";
+    private static final String ADOPT_ZIP_URL = "http://127.0.0.1:3033/adopt/zip";
     private static final String YAML = "destination: zip\ncoverageProfile:\n  product: {}\n";
+    private static final String ADOPT_YAML = """
+            destination: zip
+            adoptDest: generated-projects/adopt-intern-flat
+            coverageProfile:
+              automation:
+                e2e: { access: write, stack: java-junit5-rest_assured-selenide, module: tests/java }
+            """;
     private static final String HOME_USER_YAML = """
             destination: user
             coverageProfile:
@@ -472,5 +483,111 @@ class AssembleTreeTest extends UnitTestBase {
                 AuthException.class,
                 () -> new AssembleTree(AssembleZipFixture.cellZip()).zip(YAML));
         assertEquals("assemble zip missing", fromBytes.getMessage());
+    }
+
+    @Test
+    @DisplayName("adoptDest absent is assemble; intern zip is intern tree")
+    void adoptDestParsesAndInternZipUnzips() {
+        assertEquals(null, AssembleTree.adoptDest(null));
+        assertEquals(null, AssembleTree.adoptDest("  "));
+        assertEquals(null, AssembleTree.adoptDest(YAML));
+        assertEquals(
+                "generated-projects/adopt-intern-flat",
+                AssembleTree.adoptDest(ADOPT_YAML));
+        assertEquals(
+                "generated-projects/adopt-intern-flat",
+                AssembleTree.adoptDest("adoptDest: \"generated-projects/adopt-intern-flat\"\n"));
+        AuthException etalon = assertThrows(
+                AuthException.class,
+                () -> AssembleTree.adoptDest("adoptDest: generated-projects/assemble-java-default\n"));
+        assertEquals(400, etalon.getStatus());
+        assertEquals("dest must be generated-projects/adopt-<id>", etalon.getMessage());
+        assertEquals(
+                "dest must be generated-projects/adopt-<id>",
+                assertThrows(AuthException.class, () -> AssembleTree.adoptDest("adoptDest:\n"))
+                        .getMessage());
+        List<String> intern = AssembleTree.fromZip(AssembleZipFixture.internZip()).stream()
+                .map(GithubTreeBlob::path)
+                .toList();
+        assertTrue(intern.contains("backend/java/backend-java-spring/src/main/java/App.java"));
+        assertTrue(intern.contains("tests/java/tests-java-junit5-rest_assured-selenide/src/test/java/LoginTest.java"));
+        assertTrue(intern.contains("docs/coverage-profile.md"));
+        assertTrue(intern.contains("docs/agent-skills/PACK.md"));
+        assertFalse(intern.stream().anyMatch(path -> path.contains("frontend")));
+        assertFalse(intern.contains("README.md"));
+        assertFalse(intern.stream().anyMatch(path -> path.contains("node_modules")));
+    }
+
+    @Test
+    @DisplayName("adoptDest POSTs /adopt/zip and never ASSEMBLE_URL")
+    void adoptDestFetchesInternZip() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ADOPT_ZIP_URL))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(containsString("generated-projects/adopt-intern-flat")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("/assemble"))))
+                .andRespond(withSuccess(
+                        AssembleZipFixture.internZip(), MediaType.parseMediaType("application/zip")));
+        server.expect(never(), requestTo(ASSEMBLE_URL));
+
+        List<String> paths = tree(builder)
+                .blobs(ADOPT_YAML)
+                .stream()
+                .map(GithubTreeBlob::path)
+                .toList();
+        assertTrue(paths.contains("backend/java/backend-java-spring/src/main/java/App.java"));
+        assertTrue(paths.contains("docs/agent-skills/PACK.md"));
+        assertFalse(paths.stream().anyMatch(path -> path.contains("frontend")));
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("adoptDest without AdoptClient is 503 like dest")
+    void adoptDestMissingClientIsUnavailable() {
+        AuthException missing = assertThrows(
+                AuthException.class,
+                () -> new AssembleTree(new AssembleProperties("http://127.0.0.1:3032"), RestClient.builder())
+                        .blobs(ADOPT_YAML));
+        assertEquals(503, missing.getStatus());
+        assertEquals("adopt url missing", missing.getMessage());
+        assertFalse(missing.getMessage().contains("assemble"));
+    }
+
+    @Test
+    @DisplayName("adoptDest missing ADOPT_URL is 503 like dest")
+    void adoptDestMissingUrlIsUnavailable() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(never(), requestTo(ASSEMBLE_URL));
+        AssembleTree tree = new AssembleTree(
+                new AssembleProperties("http://127.0.0.1:3032"),
+                builder,
+                new AdoptClient(new AdoptProperties(""), builder, new ObjectMapper()));
+        AuthException missing = assertThrows(AuthException.class, () -> tree.blobs(ADOPT_YAML));
+        assertEquals(503, missing.getStatus());
+        assertEquals("adopt url missing", missing.getMessage());
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("zip ignores adoptDest and still POSTs ASSEMBLE_URL")
+    void zipIgnoresAdoptDest() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ASSEMBLE_URL))
+                .andRespond(withSuccess(AssembleZipFixture.cellZip(), MediaType.parseMediaType("application/zip")));
+        server.expect(never(), requestTo(ADOPT_ZIP_URL));
+        AssembleZip zip = tree(builder).zip(ADOPT_YAML);
+        assertTrue(AssembleTree.zipMagic(zip.body()));
+        server.verify();
+    }
+
+    private static AssembleTree tree(RestClient.Builder builder) {
+        return new AssembleTree(
+                new AssembleProperties("http://127.0.0.1:3032"),
+                builder,
+                new AdoptClient(new AdoptProperties("http://127.0.0.1:3033"), builder, new ObjectMapper()));
     }
 }

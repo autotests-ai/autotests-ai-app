@@ -3,6 +3,7 @@ package dev.multistack.app.controller;
 import dev.multistack.app.allure.SliceTestBase;
 import dev.multistack.app.config.CorsConfig;
 import dev.multistack.app.config.SecurityConfig;
+import dev.multistack.app.dto.AdoptZip;
 import dev.multistack.app.exception.AuthException;
 import dev.multistack.app.service.AdoptClient;
 import dev.multistack.app.service.JwtService;
@@ -78,7 +79,67 @@ class AdoptControllerTest extends SliceTestBase {
                 .andExpect(content().string(not(containsString("assemble"))))
                 .andExpect(content().string(not(containsString("ghp_"))));
 
-        verify(adoptClient).fromUrl(any(), eq(true));
+        verify(adoptClient).fromUrl(any(), anyBoolean());
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt/zip returns adopt dest zip, not /api/assemble")
+    void destZipReturnsBytes() throws Exception {
+        when(adoptClient.destZip(any())).thenReturn(
+                new AdoptZip(new byte[] {0x50, 0x4b, 0x03, 0x04}, "adopt-takeaway-like.zip"));
+
+        mockMvc.perform(post("/api/adopt/zip")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dest\":\"generated-projects/adopt-takeaway-like\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/zip"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"adopt-takeaway-like.zip\""))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                .andExpect(content().bytes(new byte[] {0x50, 0x4b, 0x03, 0x04}))
+                .andExpect(content().string(not(containsString("assemble"))));
+
+        verify(adoptClient).destZip(any());
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt/zip is 400 on etalon dest")
+    void destZipRejectsEtalon() throws Exception {
+        when(adoptClient.destZip(any()))
+                .thenThrow(new AuthException(400, "dest must be generated-projects/adopt-<id>"));
+
+        mockMvc.perform(post("/api/adopt/zip")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dest\":\"generated-projects/assemble-java-default\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("dest must be generated-projects/adopt-<id>"))
+                .andExpect(jsonPath("$.token").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt zip bytes uses Content-Disposition filename")
+    void adoptZipRawReturnsDest() throws Exception {
+        when(adoptClient.fromZipBytes(any(), any(), anyBoolean())).thenReturn(DEST);
+
+        mockMvc.perform(post("/api/adopt")
+                        .contentType("application/zip")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"takeaway-like.zip\"")
+                        .content(new byte[] {0x50, 0x4b, 0x03, 0x04}))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dest").value("generated-projects/adopt-takeaway-like"))
+                .andExpect(jsonPath("$.token").doesNotExist());
+
+        mockMvc.perform(post("/api/adopt")
+                        .contentType("application/zip")
+                        .content(new byte[] {0x50, 0x4b, 0x03, 0x04}))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/adopt")
+                        .contentType("application/zip")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "   ")
+                        .content(new byte[] {0x50, 0x4b, 0x03, 0x04}))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -122,5 +183,18 @@ class AdoptControllerTest extends SliceTestBase {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.message").value("adopt url missing"))
                 .andExpect(content().string(not(containsString("assemble url missing"))));
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt/zip is 503 without ADOPT_URL")
+    void destZipRequiresUrl() throws Exception {
+        when(adoptClient.destZip(any()))
+                .thenThrow(new AuthException(503, "adopt url missing"));
+
+        mockMvc.perform(post("/api/adopt/zip")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dest\":\"generated-projects/adopt-takeaway-like\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("adopt url missing"));
     }
 }
