@@ -1,10 +1,10 @@
-/** GitHub OAuth for dest user. Session is login only — never a PAT. Token is an httpOnly cookie. */
+/** GitHub OAuth for dest user and private Home import. Session is login only — never a PAT. Token is an httpOnly cookie. */
 
 import { apiUrl } from './appBase';
 
 export const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
 export const GITHUB_OAUTH_CALLBACK_PATH = '/oauth/github/callback';
-export const GITHUB_OAUTH_SCOPE = 'public_repo';
+export const GITHUB_OAUTH_SCOPE = 'repo';
 export const GITHUB_USER_SESSION_KEY = 'autotests-ai.github-user';
 export const GITHUB_OAUTH_STATE_KEY = 'autotests-ai.github-oauth-state';
 
@@ -63,6 +63,10 @@ export function githubOAuthReposUrl(): string {
 
 export function githubOAuthContentsUrl(): string {
   return apiUrl('/oauth/github/repos/contents');
+}
+
+export function githubOAuthAdoptUrl(): string {
+  return apiUrl('/oauth/github/adopt');
 }
 
 export function githubOAuthRedirectUri(origin: string): string {

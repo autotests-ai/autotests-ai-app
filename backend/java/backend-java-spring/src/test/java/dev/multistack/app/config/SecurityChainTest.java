@@ -279,6 +279,26 @@ class SecurityChainTest extends SliceTestBase {
     }
 
     @Test
+    @DisplayName("POST /api/oauth/github/adopt is public (cookie, not JWT)")
+    void oauthAdoptPermitAll() throws Exception {
+        when(adoptClient.fromPrivateUrl(any(), anyBoolean(), nullable(String.class)))
+                .thenReturn(Map.of(
+                        "ok", true,
+                        "mode", "adopt",
+                        "created", false,
+                        "dest", "generated-projects/adopt-takeaway-like"));
+
+        mockMvc.perform(post("/api/oauth/github/adopt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://github.com/org/repo\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("adopt"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("GITHUB_CLOUD_TOKEN"))));
+    }
+
+    @Test
     @DisplayName("POST /api/adopt/zip is public and returns zip bytes")
     void adoptDestZipPermitAllReturnsZip() throws Exception {
         byte[] zip = new byte[] {0x50, 0x4b, 0x03, 0x04};

@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.headerDoesNotExist;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
@@ -110,6 +111,55 @@ class AdoptClientTest extends UnitTestBase {
     }
 
     @Test
+    @DisplayName("private URL is 401 without github_oauth cookie")
+    void privateUrlRequiresCookie() {
+        AdoptClient client = new AdoptClient(
+                new AdoptProperties("http://127.0.0.1:3033"), RestClient.builder(), new ObjectMapper());
+        AuthException missing = assertThrows(
+                AuthException.class,
+                () -> client.fromPrivateUrl(Map.of("url", "https://github.com/org/repo"), true, null));
+        assertEquals(401, missing.getStatus());
+        assertEquals("oauth cookie missing", missing.getMessage());
+        assertEquals("oauth cookie missing", assertThrows(
+                AuthException.class,
+                () -> client.fromPrivateUrl(Map.of("url", "https://github.com/org/repo"), true, "  "))
+                .getMessage());
+        AuthException pat = assertThrows(
+                AuthException.class,
+                () -> client.fromPrivateUrl(
+                        Map.of("url", "https://github.com/org/repo", "token", "ghp_x"),
+                        true,
+                        "gho_secret"));
+        assertEquals(400, pat.getStatus());
+        assertEquals("PAT not allowed", pat.getMessage());
+    }
+
+    @Test
+    @DisplayName("private URL POSTs to ADOPT_URL with Bearer cookie, never token in JSON")
+    void privateUrlPostsBearerNotJson() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ADOPT_URL + "?dry_run=1"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(containsString("https://github.com/org/repo")))
+                .andExpect(content().string(not(containsString("token"))))
+                .andExpect(content().string(not(containsString("gho_secret"))))
+                .andExpect(content().string(not(containsString("GITHUB_CLOUD_TOKEN"))))
+                .andExpect(content().string(not(containsString("/assemble"))))
+                .andRespond(withSuccess(JSON, MediaType.APPLICATION_JSON));
+
+        Map<String, Object> payload = new AdoptClient(
+                new AdoptProperties("http://127.0.0.1:3033"), builder, new ObjectMapper())
+                .fromPrivateUrl(Map.of("url", "https://github.com/org/repo"), true, "gho_secret");
+        assertEquals("adopt", payload.get("mode"));
+        assertEquals("generated-projects/adopt-takeaway-like", payload.get("dest"));
+        assertFalse(payload.containsKey("token"));
+        server.verify();
+    }
+
+    @Test
     @DisplayName("POSTs public URL JSON to ADOPT_URL, not /api/assemble")
     void postsUrlJson() {
         RestClient.Builder builder = RestClient.builder();
@@ -119,7 +169,9 @@ class AdoptClientTest extends UnitTestBase {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(content().string(containsString("https://github.com/org/repo")))
                 .andExpect(content().string(not(containsString("token"))))
+                .andExpect(content().string(not(containsString("gho_"))))
                 .andExpect(content().string(not(containsString("/assemble"))))
+                .andExpect(headerDoesNotExist(HttpHeaders.AUTHORIZATION))
                 .andRespond(withSuccess(JSON, MediaType.APPLICATION_JSON));
 
         Map<String, Object> payload = new AdoptClient(
@@ -128,6 +180,27 @@ class AdoptClientTest extends UnitTestBase {
         assertEquals("adopt", payload.get("mode"));
         assertEquals("generated-projects/adopt-takeaway-like", payload.get("dest"));
         assertEquals(false, payload.get("created"));
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("private URL maps stand 401 without leaking the cookie")
+    void privateUrlMapsStand401() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(ADOPT_URL + "?dry_run=1"))
+                .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer gho_secret"))
+                .andRespond(withStatus(HttpStatus.UNAUTHORIZED)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"ok\":false,\"error\":\"oauth clone failed\"}"));
+        AuthException mapped = assertThrows(
+                AuthException.class,
+                () -> new AdoptClient(
+                        new AdoptProperties("http://127.0.0.1:3033"), builder, new ObjectMapper())
+                        .fromPrivateUrl(Map.of("url", "https://github.com/org/repo"), true, "gho_secret"));
+        assertEquals(401, mapped.getStatus());
+        assertEquals("oauth clone failed", mapped.getMessage());
+        assertFalse(mapped.getMessage().contains("gho_"));
         server.verify();
     }
 

@@ -12,6 +12,7 @@ import {
   GITHUB_OAUTH_SCOPE,
   GITHUB_USER_SESSION_KEY,
   githubAuthorizeUrl,
+  githubOAuthAdoptUrl,
   githubOAuthAssign,
   githubOAuthClientId,
   githubOAuthContentsUrl,
@@ -168,6 +169,10 @@ describe('github-oauth', () => {
     expect(url.startsWith(`${GITHUB_AUTHORIZE_URL}?`)).toBe(true);
     expect(url).toContain('client_id=test-github-oauth-client');
     expect(url).toContain(`scope=${encodeURIComponent(GITHUB_OAUTH_SCOPE)}`);
+    expect(GITHUB_OAUTH_SCOPE).toBe('repo');
+    expect(GITHUB_OAUTH_SCOPE).not.toBe('public_repo');
+    expect(githubOAuthAdoptUrl()).toBe('/api/oauth/github/adopt');
+    expect(githubOAuthAdoptUrl()).not.toBe(githubOAuthReposUrl());
     expect(url).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A8081%2Foauth%2Fgithub%2Fcallback');
     expect(url.toLowerCase()).not.toContain('pat');
     expect(url).not.toContain('token');

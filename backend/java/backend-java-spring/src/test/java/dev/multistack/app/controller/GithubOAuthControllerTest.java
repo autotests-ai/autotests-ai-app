@@ -10,6 +10,7 @@ import dev.multistack.app.dto.GithubOAuthRepoResponse;
 import dev.multistack.app.dto.GithubOAuthRequest;
 import dev.multistack.app.dto.GithubOAuthSession;
 import dev.multistack.app.exception.AuthException;
+import dev.multistack.app.service.AdoptClient;
 import dev.multistack.app.service.GithubOAuthService;
 import dev.multistack.app.service.JwtService;
 import io.qameta.allure.Epic;
@@ -28,11 +29,14 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Map;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -68,6 +72,9 @@ class GithubOAuthControllerTest extends SliceTestBase {
 
     @MockitoBean
     private GithubOAuthService githubOAuthService;
+
+    @MockitoBean
+    private AdoptClient adoptClient;
 
     @MockitoBean
     private JwtService jwtService;
@@ -346,6 +353,68 @@ class GithubOAuthControllerTest extends SliceTestBase {
                 .andExpect(jsonPath("$.message").value("oauth create failed"))
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(jsonPath("$.url").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/adopt is 401 without the GitHub cookie")
+    void adoptRequiresCookie() throws Exception {
+        when(adoptClient.fromPrivateUrl(any(), anyBoolean(), isNull()))
+                .thenThrow(new AuthException(401, "oauth cookie missing"));
+
+        mockMvc.perform(post("/api/oauth/github/adopt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://github.com/org/repo\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("oauth cookie missing"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.dest").doesNotExist())
+                .andExpect(content().string(not(containsString("access_token"))))
+                .andExpect(content().string(not(containsString("gho_"))))
+                .andExpect(content().string(not(containsString("GITHUB_CLOUD_TOKEN"))));
+        verify(adoptClient).fromPrivateUrl(any(), anyBoolean(), isNull());
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/adopt returns dest JSON without a token")
+    void adoptReturnsDestWithoutToken() throws Exception {
+        when(adoptClient.fromPrivateUrl(any(), eq(true), eq(TOKEN)))
+                .thenReturn(Map.of(
+                        "ok", true,
+                        "mode", "adopt",
+                        "created", false,
+                        "dest", "generated-projects/adopt-takeaway-like"));
+
+        mockMvc.perform(post("/api/oauth/github/adopt")
+                        .param("dry_run", "true")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://github.com/org/repo\"}")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                .andExpect(jsonPath("$.mode").value("adopt"))
+                .andExpect(jsonPath("$.dest").value("generated-projects/adopt-takeaway-like"))
+                .andExpect(jsonPath("$.created").value(false))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString(TOKEN))))
+                .andExpect(content().string(not(containsString("assemble"))))
+                .andExpect(content().string(not(containsString("GITHUB_CLOUD_TOKEN"))));
+        verify(adoptClient).fromPrivateUrl(any(), eq(true), eq(TOKEN));
+    }
+
+    @Test
+    @DisplayName("POST /api/oauth/github/adopt is 400 on PAT and never a token in JSON")
+    void adoptRejectsPat() throws Exception {
+        when(adoptClient.fromPrivateUrl(any(), anyBoolean(), eq(TOKEN)))
+                .thenThrow(new AuthException(400, "PAT not allowed"));
+
+        mockMvc.perform(post("/api/oauth/github/adopt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"url\":\"https://github.com/org/repo\",\"token\":\"ghp_x\"}")
+                        .cookie(new Cookie(GithubOAuthService.COOKIE_NAME, TOKEN)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("PAT not allowed"))
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(content().string(not(containsString(TOKEN))));
     }
 
     private static ResponseCookie httpOnlyCookie(boolean secure) {
