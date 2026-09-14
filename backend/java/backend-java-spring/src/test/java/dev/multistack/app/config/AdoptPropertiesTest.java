@@ -48,4 +48,31 @@ class AdoptPropertiesTest extends UnitTestBase {
         assertEquals("/adopt", new AdoptProperties("").adoptEndpoint());
         assertFalse(new AdoptProperties("http://127.0.0.1:3033").adoptEndpoint().contains("/assemble"));
     }
+
+    @Test
+    @DisplayName("dest zip endpoint is POST /adopt/zip on the stand URL, not /assemble")
+    void adoptZipEndpointJoinsPath() {
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033").adoptZipEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033/").adoptZipEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033/adopt").adoptZipEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033/adopt/").adoptZipEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033/adopt/zip").adoptZipEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3033/adopt/zip",
+                new AdoptProperties("http://127.0.0.1:3033/adopt/zip/").adoptZipEndpoint());
+        assertEquals("/adopt/zip", new AdoptProperties(null).adoptZipEndpoint());
+        assertEquals("/adopt/zip", new AdoptProperties("").adoptZipEndpoint());
+        assertEquals("/adopt/zip", new AdoptProperties("   ").adoptZipEndpoint());
+        assertFalse(new AdoptProperties("http://127.0.0.1:3033").adoptZipEndpoint().contains("/assemble"));
+    }
 }

@@ -8,6 +8,7 @@ import dev.multistack.app.controller.AuthController;
 import dev.multistack.app.controller.CloudRepoController;
 import dev.multistack.app.controller.GithubOAuthController;
 import dev.multistack.app.controller.OpenApiController;
+import dev.multistack.app.dto.AdoptZip;
 import dev.multistack.app.dto.AssembleZip;
 import dev.multistack.app.dto.CloudRepoPushResponse;
 import dev.multistack.app.dto.CloudRepoResponse;
@@ -275,6 +276,25 @@ class SecurityChainTest extends SliceTestBase {
                 .andExpect(jsonPath("$.token").doesNotExist())
                 .andExpect(content().string(not(containsString("gho_secret"))))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    @DisplayName("POST /api/adopt/zip is public and returns zip bytes")
+    void adoptDestZipPermitAllReturnsZip() throws Exception {
+        byte[] zip = new byte[] {0x50, 0x4b, 0x03, 0x04};
+        when(adoptClient.destZip(any()))
+                .thenReturn(new AdoptZip(zip, "adopt-takeaway-like.zip"));
+
+        mockMvc.perform(post("/api/adopt/zip")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dest\":\"generated-projects/adopt-takeaway-like\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/zip"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"adopt-takeaway-like.zip\""))
+                .andExpect(content().bytes(zip))
+                .andExpect(content().string(not(containsString("gho_secret"))));
     }
 
     @Test

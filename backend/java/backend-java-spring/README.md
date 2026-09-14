@@ -38,6 +38,8 @@ behavioral tests; entity plumbing is executed by the persistence slice, not by r
 | GET | `/api/auth/me` | Bearer | 200 | `{"username"}` |
 | DELETE | `/api/auth/me` | Bearer | 204 | empty |
 | POST | `/api/assemble` | — | 200 | dest zip bytes (`application/zip`) via `ASSEMBLE_URL`; empty YAML = 400; missing stand = 503 |
+| POST | `/api/adopt` | — | 200 | adopt-fill JSON `{ok, mode:adopt, dest, created:false}` via `ADOPT_URL`; never PAT; never dest zip bytes |
+| POST | `/api/adopt/zip` | — | 200 | zip bytes of `generated-projects/adopt-<id>` via `ADOPT_URL` `/adopt/zip`; etalon dest = 400; missing stand = 503 |
 | POST | `/api/oauth/github` | — | 200 | `{"login"}` + httpOnly cookie (never token/PAT) |
 | POST | `/api/oauth/github/repos` | cookie + YAML | 200 | `{"login","url","created":true}` — repo name = `coverageProfile.automation.e2e.stack`; empty YAML = 400, never frozen |
 | POST | `/api/oauth/github/repos/contents` | cookie + YAML | 200 | `{"login","url","pushed":true}` — Home dump, dest zip for assemble-zip, same e2e.stack name; empty YAML = 400, not classpath |

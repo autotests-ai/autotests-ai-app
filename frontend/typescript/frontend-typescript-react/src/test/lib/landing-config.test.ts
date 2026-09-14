@@ -3,6 +3,7 @@ import {
   ADOPT_STAND_ORIGIN,
   ASSEMBLE_ZIP_ORIGIN,
   adoptApiUrl,
+  adoptZipApiUrl,
   assembleApiUrl,
   assembleZipYaml,
   buildWrapperOptions,
@@ -18,6 +19,7 @@ import {
   downloadText,
   fingerprint,
   importAdopt,
+  isAdoptDest,
   isAgentAccess,
   isAgentId,
   isDestinationId,
@@ -25,6 +27,8 @@ import {
   isPublicGithubUrl,
   type LandingConfig,
   outputFilename,
+  postAdoptDestZip,
+  shouldAdoptDestZip,
   shouldAssembleZip,
   shouldAssembleZipLoopback,
   TAKEAWAY_COVERAGE_PROFILE,
@@ -599,6 +603,8 @@ describe('landing-config', () => {
   it('assembles dest zip via same-origin API; loopback CORS is fallback', () => {
     expect(assembleApiUrl()).toBe('/api/assemble');
     expect(adoptApiUrl()).toBe('/api/adopt');
+    expect(adoptZipApiUrl()).toBe('/api/adopt/zip');
+    expect(adoptZipApiUrl()).not.toBe(assembleApiUrl());
     expect(adoptApiUrl()).not.toBe(assembleApiUrl());
     expect(ADOPT_STAND_ORIGIN).toBe('http://127.0.0.1:3033');
     expect(ADOPT_STAND_ORIGIN).not.toContain('3032');
@@ -606,6 +612,12 @@ describe('landing-config', () => {
     expect(isLoopbackHostname('127.0.0.1')).toBe(true);
     expect(isLoopbackHostname('autotests.ai')).toBe(false);
     expect(shouldAssembleZip('zip')).toBe(true);
+    expect(shouldAdoptDestZip('zip')).toBe(true);
+    expect(shouldAdoptDestZip('catalog')).toBe(false);
+    expect(shouldAdoptDestZip('cloud')).toBe(false);
+    expect(shouldAdoptDestZip('user')).toBe(false);
+    expect(isAdoptDest('generated-projects/adopt-repo')).toBe(true);
+    expect(isAdoptDest('generated-projects/assemble-java-default')).toBe(false);
     expect(shouldAssembleZip('catalog')).toBe(false);
     expect(shouldAssembleZip('cloud')).toBe(false);
     expect(shouldAssembleZip('user')).toBe(false);
@@ -771,6 +783,105 @@ describe('landing-config', () => {
     });
     expect(result?.message).toBe('репо не публичный');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads adopt dest zip via /api/adopt/zip, never /api/assemble', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(adoptZipApiUrl());
+      expect(String(input)).not.toContain('/assemble');
+      expect(init?.method).toBe('POST');
+      expect(String(init?.body)).toContain('generated-projects/adopt-repo');
+      expect(String(init?.body).toLowerCase()).not.toContain('token');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-repo.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const zip = await postAdoptDestZip({
+      dest: 'generated-projects/adopt-repo',
+      hostname: 'autotests.ai',
+    });
+    expect(zip?.filename).toBe('adopt-repo.zip');
+    expect(zip?.blob.size).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await postAdoptDestZip({ dest: 'generated-projects/assemble-java-default', hostname: 'localhost' })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to adopt :3033 /adopt/zip when /api/adopt/zip fails on localhost', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === adoptZipApiUrl()) {
+        return Promise.reject(new Error('api down'));
+      }
+      expect(url).toBe(`${ADOPT_STAND_ORIGIN}/adopt/zip`);
+      expect(url).not.toContain('3032');
+      expect(url).not.toContain('/assemble');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="adopt-takeaway-like.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])]),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const zip = await postAdoptDestZip({
+      dest: 'generated-projects/adopt-takeaway-like',
+      hostname: 'localhost',
+    });
+    expect(zip?.filename).toBe('adopt-takeaway-like.zip');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not dest-zip on a non-zip body, 4xx, empty blob, or prod when API is down', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/zip' }),
+      blob: async () => new Blob([]),
+    } as Response);
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    expect(
+      await postAdoptDestZip({ dest: 'generated-projects/adopt-repo', hostname: 'autotests.ai' }),
+    ).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/assemble');
   });
 
   it('falls back to loopback assemble-zip only when /api/assemble fails on localhost', async () => {

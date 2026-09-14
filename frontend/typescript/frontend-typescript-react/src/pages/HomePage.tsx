@@ -53,6 +53,7 @@ import {
   DEFAULTS,
   DESTINATIONS,
   type DestinationId,
+  downloadBlob,
   downloadLandingOutput,
   fingerprint,
   IMAGES,
@@ -63,11 +64,13 @@ import {
   OUTPUT_TABS,
   type OutputTabId,
   outputFilename,
+  postAdoptDestZip,
   PRODUCT_BACKEND_STACKS,
   PRODUCT_FRONTEND_STACKS,
   ROOT_LOG_LEVELS,
   SCREEN_RESOLUTIONS,
   SESSION_TIMEOUTS,
+  shouldAdoptDestZip,
   TESTS_STACKS,
   toggleAgentAccess,
   toJson,
@@ -225,8 +228,22 @@ export function HomePage() {
       file: importZip,
       hostname: window.location.hostname,
     })
-      .then((result) => {
+      .then(async (result) => {
         setImportResult(result);
+        if (
+          result?.ok &&
+          shouldAdoptDestZip(config.destination) &&
+          typeof result.dest === 'string' &&
+          result.dest.length > 0
+        ) {
+          const zip = await postAdoptDestZip({
+            dest: result.dest,
+            hostname: window.location.hostname,
+          });
+          if (zip) {
+            downloadBlob(zip.blob, zip.filename);
+          }
+        }
       })
       .finally(() => {
         setImportBusy(false);

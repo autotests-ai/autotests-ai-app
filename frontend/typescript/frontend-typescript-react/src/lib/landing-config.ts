@@ -740,6 +740,10 @@ export function adoptApiUrl(): string {
   return apiUrl('/adopt');
 }
 
+export function adoptZipApiUrl(): string {
+  return apiUrl('/adopt/zip');
+}
+
 /** Registry `adopt` bind. Loopback CORS fallback only. Not assemble-zip :3032. */
 export const ADOPT_STAND_ORIGIN = 'http://127.0.0.1:3033';
 
@@ -850,12 +854,77 @@ export async function importAdopt(input: {
   return hasZip ? postAdoptZip(input.file as File, fallback) : postAdoptUrl(input.url, fallback);
 }
 
+export async function postAdoptDestZip(input: {
+  dest: string;
+  hostname: string;
+  origin?: string;
+  apiUrl?: string;
+}): Promise<{ blob: Blob; filename: string } | null> {
+  if (!isAdoptDest(input.dest)) {
+    return null;
+  }
+  const dest = input.dest.trim();
+  const api = input.apiUrl ?? adoptZipApiUrl();
+  const fallback =
+    shouldAdoptLoopback(input.hostname) && api === adoptZipApiUrl()
+      ? `${input.origin ?? ADOPT_STAND_ORIGIN}/adopt/zip`
+      : null;
+  const first = await fetchAdoptDestZip(dest, api);
+  if (first != null) {
+    return first;
+  }
+  if (!fallback) {
+    return null;
+  }
+  return fetchAdoptDestZip(dest, fallback);
+}
+
+async function fetchAdoptDestZip(
+  dest: string,
+  url: string,
+): Promise<{ blob: Blob; filename: string } | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dest }),
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const type = (response.headers.get('content-type') || '').toLowerCase();
+    if (!type.includes('application/zip')) {
+      return null;
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      return null;
+    }
+    return {
+      blob,
+      filename: zipFilenameFromDisposition(response.headers.get('content-disposition'), 'adopt.zip'),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1';
 }
 
 export function shouldAssembleZip(destination: DestinationId): boolean {
   return destination === 'zip';
+}
+
+export function shouldAdoptDestZip(destination: DestinationId): boolean {
+  return destination === 'zip';
+}
+
+const ADOPT_DEST = /^generated-projects\/adopt-[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export function isAdoptDest(dest: string): boolean {
+  return ADOPT_DEST.test(dest.trim());
 }
 
 export function shouldAssembleZipLoopback(hostname: string): boolean {

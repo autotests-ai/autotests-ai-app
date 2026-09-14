@@ -438,6 +438,47 @@ paths:
         "503":
           description: ADOPT_URL missing or adopt stand down
 
+  /api/adopt/zip:
+    post:
+      operationId: adoptDestZip
+      summary: Zip of generated-projects/adopt-<id> after Home import. Same-origin. Never etalon render. Never POST /api/assemble. Catalog/cloud/user unchanged.
+      tags: [adopt]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dest]
+              properties:
+                dest:
+                  type: string
+                  example: generated-projects/adopt-takeaway-like
+              additionalProperties: false
+            example:
+              dest: generated-projects/adopt-takeaway-like
+      responses:
+        "200":
+          description: Zip bytes of the adopt dest tree. Filename adopt-<id>.zip.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: attachment; filename="adopt-takeaway-like.zip"
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: dest is not generated-projects/adopt-<id>
+        "503":
+          description: ADOPT_URL missing or adopt stand did not return a zip
+
 components:
   schemas:
     HealthResponse:
@@ -678,4 +719,4 @@ tags:
   - name: oauth
     description: GitHub OAuth for dest user (login cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)
   - name: adopt
-    description: Home import URL/zip. Same dest as CLI adopt-fill. Never PAT. Never POST /api/assemble
+    description: Home import URL/zip and dest zip of adopt-<id>. Never PAT. Never POST /api/assemble
