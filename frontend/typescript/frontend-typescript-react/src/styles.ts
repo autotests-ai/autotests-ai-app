@@ -7,6 +7,7 @@ import '../vendor/ds/css/icon.css';
 import '../vendor/ds/css/icon-btn.css';
 import '../vendor/ds/css/lang-toggle.css';
 import '../vendor/ds/css/poll-toggle.css';
+import '../vendor/ds/css/help-info.css';
 import '../vendor/ds/css/header.css';
 import '../vendor/ds/css/button.css';
 import '../vendor/ds/css/panel.css';

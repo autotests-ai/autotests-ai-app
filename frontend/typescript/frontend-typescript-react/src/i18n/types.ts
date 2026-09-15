@@ -32,6 +32,21 @@ export interface Dictionary {
     importZip: string;
     importRun: string;
     importPlaceholder: string;
+    helpAria: string;
+    helpTitle: string;
+    helpProject: string;
+    helpAgents: string;
+    helpProtect: string;
+    helpImport: string;
+    helpDestination: string;
+    helpCloneCourse: string;
+    helpBuild: string;
+    helpAllure: string;
+    helpDriver: string;
+    helpRemote: string;
+    helpConsole: string;
+    helpTestops: string;
+    helpOutput: string;
   };
   stack: {
     loading: string;
