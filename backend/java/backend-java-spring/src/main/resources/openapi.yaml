@@ -430,6 +430,40 @@ paths:
         "503":
           description: ASSEMBLE_URL missing or assemble-zip stand did not return a zip
 
+  /api/clone:
+    post:
+      operationId: cloneAsStudentZip
+      summary: Course preset zip via ASSEMBLE_URL/clone. Empty body. Same-origin. Never a form dump, mill, PAT, or CLONE_URL.
+      tags: [clone]
+      requestBody:
+        required: false
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+            example: ""
+      responses:
+        "200":
+          description: Zip bytes of default cell plus course overlay. Filename clone-as-student.zip.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: attachment; filename="clone-as-student.zip"
+            Cache-Control:
+              schema:
+                type: string
+              description: no-store
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: YAML or JSON body present. Dump is POST /api/assemble.
+        "503":
+          description: ASSEMBLE_URL missing or assemble-zip /clone did not return a zip
+
   /api/adopt:
     post:
       operationId: adoptImport
@@ -766,3 +800,5 @@ tags:
       description: GitHub OAuth for dest user (login cookie) and private Home import (same cookie). School IdP for dest cloud (login cookie on /api/cloud, never a token in JSON)
   - name: adopt
     description: Home import URL/zip and dest zip of adopt-<id>. Never PAT. Never POST /api/assemble
+  - name: clone
+    description: Home course preset zip via ASSEMBLE_URL/clone. Empty body. Never form dump. Never CLONE_URL. Never mill.

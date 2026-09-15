@@ -16,6 +16,7 @@ export interface Dictionary {
     panelAgents: string;
     panelDestination: string;
     millProtect: string;
+    cloneCourse: string;
     outputFormat: string;
     reset: string;
     download: string;

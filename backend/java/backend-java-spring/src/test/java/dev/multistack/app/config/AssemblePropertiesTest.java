@@ -52,4 +52,29 @@ class AssemblePropertiesTest extends UnitTestBase {
         assertEquals("/assemble", new AssembleProperties(null).assembleEndpoint());
         assertEquals("/assemble", new AssembleProperties("").assembleEndpoint());
     }
+
+    @Test
+    @DisplayName("clone endpoint is POST /clone on the same ASSEMBLE_URL host")
+    void cloneEndpointJoinsPath() {
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032").cloneEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032/").cloneEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032///").cloneEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032/assemble").cloneEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032/assemble/").cloneEndpoint());
+        assertEquals(
+                "http://127.0.0.1:3032/clone",
+                new AssembleProperties("http://127.0.0.1:3032/clone").cloneEndpoint());
+        assertEquals("/clone", new AssembleProperties(null).cloneEndpoint());
+        assertEquals("/clone", new AssembleProperties("").cloneEndpoint());
+    }
 }

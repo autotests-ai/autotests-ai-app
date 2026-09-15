@@ -793,6 +793,10 @@ export function assembleApiUrl(): string {
   return apiUrl('/assemble');
 }
 
+export function cloneApiUrl(): string {
+  return apiUrl('/clone');
+}
+
 export function adoptApiUrl(): string {
   return apiUrl('/adopt');
 }
@@ -1085,6 +1089,51 @@ export async function postAssembleZip(
   } catch {
     return null;
   }
+}
+
+export async function postCloneZip(
+  url: string = cloneApiUrl(),
+): Promise<{ blob: Blob; filename: string } | null> {
+  try {
+    const response = await fetch(url, { method: 'POST' });
+    if (!response.ok) {
+      return null;
+    }
+    const type = (response.headers.get('content-type') || '').toLowerCase();
+    if (!type.includes('application/zip')) {
+      return null;
+    }
+    const blob = await response.blob();
+    if (blob.size === 0) {
+      return null;
+    }
+    return {
+      blob,
+      filename: zipFilenameFromDisposition(
+        response.headers.get('content-disposition'),
+        'clone-as-student.zip',
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function downloadCloneAsStudent(input: {
+  hostname: string;
+  origin?: string;
+  apiUrl?: string;
+}): Promise<'zip' | null> {
+  const cloned =
+    (await postCloneZip(input.apiUrl ?? cloneApiUrl())) ??
+    (shouldAssembleZipLoopback(input.hostname)
+      ? await postCloneZip(`${input.origin ?? ASSEMBLE_ZIP_ORIGIN}/clone`)
+      : null);
+  if (cloned) {
+    downloadBlob(cloned.blob, cloned.filename);
+    return 'zip';
+  }
+  return null;
 }
 
 export async function downloadLandingOutput(input: {

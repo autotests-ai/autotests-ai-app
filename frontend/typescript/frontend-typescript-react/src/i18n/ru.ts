@@ -16,6 +16,7 @@ export const ru: Dictionary = {
     panelAgents: 'Агенты',
     panelDestination: 'Назначение',
     millProtect: 'защитить',
+    cloneCourse: 'как на курсе',
     outputFormat: 'Формат вывода',
     reset: 'Сброс',
     download: 'Скачать',
