@@ -117,6 +117,13 @@ export type AgentModule = {
   module: string;
 };
 
+/** Home PlaqueFieldSeg «защитить»: true/false → write/none. Not a dest channel. */
+export type MillSlot = {
+  access: AgentAccess;
+  pack?: string;
+  generation?: string;
+};
+
 /** Load/jmeter is a /stack/ slot, not a pyramid @Layer. */
 export type LoadSurface = {
   access: 'none';
@@ -141,8 +148,12 @@ export type CoverageProfile = {
   load: LoadSurface;
   harness: {
     agents: Record<string, AgentModule>;
+    mill?: MillSlot;
   };
 };
+
+export const MILL_PACK = 'pack-v1';
+export const MILL_GENERATION = 'generation-v1';
 
 const AUTOMATION_LAYERS = [
   'unit',
@@ -351,6 +362,31 @@ export function toggleAgentAccess(profile: CoverageProfile, value: string): Cove
     return profile;
   }
   current.access = current.access === 'write' ? 'none' : 'write';
+  return next;
+}
+
+export function millAccess(profile: CoverageProfile): AgentAccess {
+  return profile.harness.mill?.access === 'write' ? 'write' : 'none';
+}
+
+export function millSegValue(profile: CoverageProfile): 'true' | 'false' {
+  return millAccess(profile) === 'write' ? 'true' : 'false';
+}
+
+export function setMillAccess(profile: CoverageProfile, value: string): CoverageProfile {
+  if (value !== 'true' && value !== 'false' && value !== 'write' && value !== 'none') {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  if (value === 'true' || value === 'write') {
+    next.harness.mill = {
+      access: 'write',
+      pack: MILL_PACK,
+      generation: MILL_GENERATION,
+    };
+    return next;
+  }
+  delete next.harness.mill;
   return next;
 }
 
@@ -639,6 +675,16 @@ function yamlCoverageProfile(profile: CoverageProfile): string[] {
     if (entry) {
       lines.push(`      ${agent.value}: ${yamlFlowMap(entry)}`);
     }
+  }
+  if (millAccess(profile) === 'write') {
+    const mill = profile.harness.mill;
+    lines.push(
+      `    mill: ${yamlFlowMap({
+        access: 'write',
+        pack: mill?.pack || MILL_PACK,
+        generation: mill?.generation || MILL_GENERATION,
+      })}`,
+    );
   }
   return lines;
 }

@@ -15,6 +15,7 @@ export interface Dictionary {
     panelProject: string;
     panelAgents: string;
     panelDestination: string;
+    millProtect: string;
     outputFormat: string;
     reset: string;
     download: string;

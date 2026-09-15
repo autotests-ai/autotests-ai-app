@@ -15,6 +15,7 @@ export const en: Dictionary = {
     panelProject: 'Project',
     panelAgents: 'Agents',
     panelDestination: 'Destination',
+    millProtect: 'protect',
     outputFormat: 'Output format',
     reset: 'Reset',
     download: 'Download',

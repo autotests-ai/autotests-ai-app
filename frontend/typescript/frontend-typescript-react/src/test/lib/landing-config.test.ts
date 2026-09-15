@@ -26,8 +26,13 @@ import {
   isLoopbackHostname,
   isPublicGithubUrl,
   type LandingConfig,
+  MILL_GENERATION,
+  MILL_PACK,
+  millAccess,
+  millSegValue,
   outputFilename,
   postAdoptDestZip,
+  setMillAccess,
   shouldAdoptDestZip,
   shouldAssembleZip,
   shouldAssembleZipLoopback,
@@ -123,6 +128,94 @@ describe('landing-config', () => {
     expect(toggleAgentAccess(toggled, 'cursor').harness.agents.cursor.access).toBe('write');
   });
 
+  it('omits harness.mill from the dump until protect is write', () => {
+    const yaml = toYaml(DEFAULTS, 'vector#zip');
+    expect(yaml).not.toContain('mill:');
+    expect(yaml).not.toContain('pack-v1');
+    expect(yaml).not.toContain('generation-v1');
+    expect(yaml).not.toContain('crystal');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    const json = JSON.parse(toJson(DEFAULTS, 'vector#zip')) as {
+      coverageProfile: { harness: { mill?: unknown } };
+    };
+    expect(json.coverageProfile.harness.mill).toBeUndefined();
+    expect(millAccess(DEFAULTS.coverageProfile)).toBe('none');
+    expect(millSegValue(DEFAULTS.coverageProfile)).toBe('false');
+    expect(setMillAccess(DEFAULTS.coverageProfile, 'crystal')).toBe(DEFAULTS.coverageProfile);
+  });
+
+  it('dumps harness.mill write with pack-v1 after PlaqueFieldSeg true', () => {
+    const profile = setMillAccess(cloneConfig(DEFAULTS).coverageProfile, 'true');
+    const config: LandingConfig = {
+      ...cloneConfig(DEFAULTS),
+      coverageProfile: profile,
+    };
+    expect(millAccess(profile)).toBe('write');
+    expect(millSegValue(profile)).toBe('true');
+    expect(profile.harness.mill).toEqual({
+      access: 'write',
+      pack: MILL_PACK,
+      generation: MILL_GENERATION,
+    });
+    const yaml = toYaml(config, 'vector#mill');
+    expect(yaml).toContain('mill: { access: write, pack: pack-v1, generation: generation-v1 }');
+    expect(yaml).not.toContain('crystal');
+    expect(yaml).not.toContain('--mode mill');
+    expect(yaml.toLowerCase()).not.toContain('pat');
+    const json = JSON.parse(toJson(config, 'vector#mill')) as {
+      coverageProfile: {
+        harness: { mill: { access: string; pack: string; generation: string } };
+      };
+    };
+    expect(json.coverageProfile.harness.mill).toEqual({
+      access: 'write',
+      pack: MILL_PACK,
+      generation: MILL_GENERATION,
+    });
+    const off = setMillAccess(profile, 'false');
+    expect(off.harness.mill).toBeUndefined();
+    expect(toYaml({ ...config, coverageProfile: off }, 'vector#mill')).not.toContain('mill:');
+  });
+
+  it('keeps dest catalog cloud user dumps when mill is write', () => {
+    const mill = setMillAccess(cloneConfig(DEFAULTS).coverageProfile, 'true');
+    const catalog = toYaml(
+      { ...cloneConfig(DEFAULTS), destination: 'catalog', coverageProfile: mill },
+      'vector#catalog',
+    );
+    expect(catalog).toContain('destination: catalog');
+    expect(catalog).toContain('catalog:');
+    expect(catalog).toContain('mill: { access: write, pack: pack-v1, generation: generation-v1 }');
+    expect(catalog).not.toContain('\ncloud:');
+    expect(catalog).not.toContain('\nuser:');
+    const cloud = toYaml(
+      { ...cloneConfig(DEFAULTS), destination: 'cloud', coverageProfile: mill },
+      'vector#cloud',
+    );
+    expect(cloud).toContain('destination: cloud');
+    expect(cloud).toContain('via: idp');
+    expect(cloud).toContain('created: false');
+    expect(cloud).toContain('mill: { access: write, pack: pack-v1, generation: generation-v1 }');
+    expect(cloud).not.toContain('via: oauth');
+    expect(cloud.toLowerCase()).not.toContain('pat');
+    const user = toYaml(
+      { ...cloneConfig(DEFAULTS), destination: 'user', coverageProfile: mill },
+      'vector#user',
+    );
+    expect(user).toContain('destination: user');
+    expect(user).toContain('via: oauth');
+    expect(user).toContain('mill: { access: write, pack: pack-v1, generation: generation-v1 }');
+    expect(user).not.toContain('\ncloud:');
+    expect(user.toLowerCase()).not.toContain('pat');
+    const zip = assembleZipYaml(
+      { ...cloneConfig(DEFAULTS), destination: 'user', coverageProfile: mill },
+      'vector#user',
+    );
+    expect(zip).toContain('destination: zip');
+    expect(zip).not.toContain('destination: user');
+    expect(zip).toContain('mill: { access: write, pack: pack-v1, generation: generation-v1 }');
+  });
+
   it('fingerprints the selection as vector# plus 8 hex chars', () => {
     const id = fingerprint(DEFAULTS);
     expect(id).toMatch(/^vector#[0-9a-f]{8}$/);
@@ -203,6 +296,7 @@ describe('landing-config', () => {
     expect(yaml).toContain('copilot: { access: none, module: .github/copilot-instructions.md }');
     expect(yaml).toContain('gigacode: { access: none, module: .gigacode }');
     expect(yaml).toContain('yandex: { access: none, module: .yandex-code }');
+    expect(yaml).not.toContain('mill:');
     expect(yaml).not.toContain('codeHost:');
     expect(yaml).not.toContain('backendLanguage:');
     expect(yaml.indexOf('destination: zip')).toBeGreaterThan(yaml.indexOf('testopsEnabled: false'));
@@ -584,6 +678,7 @@ describe('landing-config', () => {
     expect(json.coverageProfile.harness.agents.cursor.access).toBe('write');
     expect(json.coverageProfile.load.access).toBe('none');
     expect(json.coverageProfile.load.stack).toBe('slot');
+    expect(json.coverageProfile.harness).not.toHaveProperty('mill');
   });
 
   it('picks download names for YAML and JSON tabs', () => {
