@@ -7,6 +7,7 @@ import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oaut
 import { idpAssign, idpGate, writeIdpSession } from '../../lib/idp-login';
 import {
   assembleApiUrl,
+  cloneApiUrl,
   DEFAULTS,
   fingerprint,
   TAKEAWAY_TESTS_STACK,
@@ -434,6 +435,61 @@ describe('HomePage', () => {
       expect(click).toHaveBeenCalled();
     });
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
+  });
+
+  it('POSTs an empty body to /api/clone and downloads the course zip, not /api/assemble', async () => {
+    const user = userEvent.setup();
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:clone');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(cloneApiUrl());
+      expect(String(input)).not.toContain('/assemble');
+      expect(String(input)).not.toContain('/adopt');
+      expect(init?.method).toBe('POST');
+      expect(init?.body).toBeUndefined();
+      expect(String(init?.body ?? '')).not.toContain('mill');
+      expect(String(init?.body ?? '')).not.toContain('coverageProfile');
+      expect(String(init?.body ?? '')).not.toContain('destination');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="clone-as-student.zip"',
+        }),
+        blob: async () =>
+          new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], { type: 'application/zip' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<HomePage />);
+    expect(screen.getByTestId('landing-clone-course')).toHaveTextContent('as on the course');
+    expect(
+      within(screen.getByTestId('landing-seg-destination')).queryByRole('button', {
+        name: 'as on the course',
+      }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('landing-clone-course'));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+      expect(click).toHaveBeenCalled();
+    });
+    expect(anchors[0]?.download).toBe('clone-as-student.zip');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('POSTs dest zip YAML with harness.mill when protect is true', async () => {
@@ -964,6 +1020,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-destination-title')).toHaveTextContent(
       ru.home.panelDestination,
     );
+    expect(screen.getByTestId('landing-clone-course')).toHaveTextContent(ru.home.cloneCourse);
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent(ru.home.panelBuild);
     expect(screen.getByTestId('landing-allure-title')).toHaveTextContent(ru.home.panelAllure);
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent(ru.home.panelDriver);
@@ -1126,10 +1183,19 @@ describe('HomePage', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<HomePage />);
+    const zipInput = screen.getByTestId('landing-field-importZip');
+    const zipPlaque = zipInput.closest('.plaque-field');
+    expect(zipInput).not.toBeVisible();
+    expect(zipPlaque?.tagName).toBe('LABEL');
+    expect(zipPlaque).toHaveClass('plaque-field--divided', 'plaque-field--stretch');
+    expect(zipPlaque?.querySelector('.plaque-field__label')).toHaveTextContent('zip');
+    expect(zipPlaque?.querySelector('.plaque-field__value')).toHaveTextContent('…');
+    expect(zipPlaque?.querySelector('.plaque-field__value input[type="file"]')).toBe(zipInput);
     const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
       type: 'application/zip',
     });
-    await user.upload(screen.getByTestId('landing-field-importZip'), file);
+    await user.upload(zipInput, file);
+    expect(zipPlaque?.querySelector('.plaque-field__value')).toHaveTextContent('takeaway-like.zip');
     await user.click(screen.getByTestId('landing-import-run'));
 
     await waitFor(() => {

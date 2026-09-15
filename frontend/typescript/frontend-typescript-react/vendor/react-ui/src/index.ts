@@ -167,6 +167,11 @@ export type {
   PlaqueFieldLabelVariant,
   PlaqueFieldControlElement,
 } from './PlaqueField';
+export { PlaqueFieldValue } from './PlaqueFieldValue';
+export type {
+  PlaqueFieldValueProps,
+  PlaqueFieldValueAs,
+} from './PlaqueFieldValue';
 export { PlaqueSelect } from './PlaqueSelect';
 export type { PlaqueSelectProps, PlaqueSelectOption } from './PlaqueSelect';
 export { PlaqueNumber } from './PlaqueNumber';

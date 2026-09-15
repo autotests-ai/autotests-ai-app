@@ -11,10 +11,12 @@ import {
   catalogDocument,
   catalogHref,
   catalogProfileId,
+  cloneApiUrl,
   cloneConfig,
   cloudDocument,
   copyText,
   DEFAULTS,
+  downloadCloneAsStudent,
   downloadLandingOutput,
   downloadText,
   fingerprint,
@@ -719,6 +721,8 @@ describe('landing-config', () => {
 
   it('assembles dest zip via same-origin API; loopback CORS is fallback', () => {
     expect(assembleApiUrl()).toBe('/api/assemble');
+    expect(cloneApiUrl()).toBe('/api/clone');
+    expect(cloneApiUrl()).not.toBe(assembleApiUrl());
     expect(adoptApiUrl()).toBe('/api/adopt');
     expect(adoptZipApiUrl()).toBe('/api/adopt/zip');
     expect(adoptZipApiUrl()).not.toBe(assembleApiUrl());
@@ -751,6 +755,7 @@ describe('landing-config', () => {
     expect(zipFilenameFromDisposition('inline; filename="../../evil.zip"')).toBe('assemble.zip');
     expect(zipFilenameFromDisposition('attachment; filename="foo\\bar.zip"')).toBe('assemble.zip');
     expect(zipFilenameFromDisposition('attachment; filename="config.yaml"')).toBe('assemble.zip');
+    expect(zipFilenameFromDisposition(null, 'clone-as-student.zip')).toBe('clone-as-student.zip');
   });
 
   it('POSTs YAML to /api/assemble and downloads the zip body', async () => {
@@ -804,6 +809,99 @@ describe('landing-config', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/adopt');
     expect(anchors[0]?.download).toBe('assemble-java-default.zip');
     expect(click).toHaveBeenCalled();
+  });
+
+  it('POSTs an empty body to /api/clone and downloads clone-as-student.zip', async () => {
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:clone');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(cloneApiUrl());
+      expect(String(input)).not.toContain('/assemble');
+      expect(init?.method).toBe('POST');
+      expect(init?.body).toBeUndefined();
+      expect(String(init?.body ?? '')).not.toContain('mill');
+      expect(String(init?.body ?? '')).not.toContain('coverageProfile');
+      expect(String(init?.body ?? '')).not.toContain('destination');
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({
+          'content-type': 'application/zip',
+          'content-disposition': 'attachment; filename="clone-as-student.zip"',
+        }),
+        blob: async () => new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+      } as Response);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const kind = await downloadCloneAsStudent({ hostname: 'autotests.ai' });
+
+    expect(kind).toBe('zip');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(cloneApiUrl()).not.toContain('3032');
+    expect(String(fetchMock.mock.calls[0]?.[0])).not.toContain('/assemble');
+    expect(anchors[0]?.download).toBe('clone-as-student.zip');
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('falls back to loopback /clone when same-origin clone API is down', async () => {
+    const anchors: HTMLAnchorElement[] = [];
+    const createObjectURL = vi.fn(() => 'blob:clone-fallback');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+    const click = vi.fn();
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      const el = createElement(tagName);
+      if (tagName === 'a') {
+        el.click = click;
+        anchors.push(el as HTMLAnchorElement);
+      }
+      return el;
+    });
+    const zipOk = {
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'content-type': 'application/zip',
+        'content-disposition': 'attachment; filename="clone-as-student.zip"',
+      }),
+      blob: async () => new Blob([new Uint8Array([0x50, 0x4b])], { type: 'application/zip' }),
+    } as Response;
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(zipOk);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const kind = await downloadCloneAsStudent({ hostname: 'localhost' });
+
+    expect(kind).toBe('zip');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      cloneApiUrl(),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${ASSEMBLE_ZIP_ORIGIN}/clone`,
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body ?? '')).not.toContain('coverageProfile');
+    expect(String(fetchMock.mock.calls[1]?.[0])).not.toContain('/assemble');
+    expect(anchors[0]?.download).toBe('clone-as-student.zip');
   });
 
   it('imports a public GitHub URL via /api/adopt, never /api/assemble', async () => {

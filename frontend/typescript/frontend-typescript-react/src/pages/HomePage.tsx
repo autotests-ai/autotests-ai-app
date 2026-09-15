@@ -1,8 +1,7 @@
 import {
   Badge,
   Button,
-  type HighlightKind,
-  highlightOutput,
+  CodeHighlight,
   IconBtn,
   IconCopy,
   IconDownload,
@@ -13,8 +12,11 @@ import {
   PlaqueFieldGridStack,
   PlaqueFieldSeg,
   PlaqueFieldSegN,
+  PlaqueFieldValue,
   PlaqueSelect,
   PlaqueTagstrip,
+  Tab,
+  Tabs,
   usePlaqueFieldMagnet,
 } from '@zero-design-system/react';
 import { type ChangeEvent, type ReactNode, useState } from 'react';
@@ -54,6 +56,7 @@ import {
   DESTINATIONS,
   type DestinationId,
   downloadBlob,
+  downloadCloneAsStudent,
   downloadLandingOutput,
   fingerprint,
   IMAGES,
@@ -157,6 +160,7 @@ export function HomePage() {
   const [importZip, setImportZip] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<AdoptResult | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const [cloneBusy, setCloneBusy] = useState(false);
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
   const adoptDest =
@@ -183,8 +187,6 @@ export function HomePage() {
   const json = toJson(config, vectorId, emitOptions);
   const catalog = catalogDocument(config.coverageProfile);
   const activeOutput = activeTab === 'json' ? json : yaml;
-  const highlightKind: HighlightKind = activeTab === 'json' ? 'json' : 'plain';
-  const highlightedHtml = highlightOutput(activeOutput, highlightKind);
 
   const patch = (partial: Partial<LandingConfig>) => {
     setConfig((prev) => ({ ...prev, ...partial }));
@@ -265,6 +267,16 @@ export function HomePage() {
       .finally(() => {
         setImportBusy(false);
       });
+  };
+
+  const runCloneCourse = () => {
+    if (cloneBusy) {
+      return;
+    }
+    setCloneBusy(true);
+    void downloadCloneAsStudent({ hostname: window.location.hostname }).finally(() => {
+      setCloneBusy(false);
+    });
   };
 
   return (
@@ -366,18 +378,26 @@ export function HomePage() {
                 />
               </PlaqueFieldGrid>
               <PlaqueFieldGrid layout="solo" aria-label={copy.home.importZip}>
-                <PlaqueField
+                <PlaqueFieldValue
+                  as="label"
                   label={copy.home.importZip}
                   paramId="importZip"
-                  labelVariant="param"
-                  type="file"
-                  accept=".zip,application/zip"
-                  onChange={(event) => {
-                    const input = event.target as HTMLInputElement;
-                    setImportZip(input.files?.[0] ?? null);
-                  }}
-                  data-testid="landing-field-importZip"
-                />
+                  stretch
+                >
+                  {importZip?.name ?? '…'}
+                  <input
+                    id="importZip"
+                    name="importZip"
+                    type="file"
+                    accept=".zip,application/zip"
+                    hidden
+                    aria-label={copy.home.importZip}
+                    data-testid="landing-field-importZip"
+                    onChange={(event) => {
+                      setImportZip(event.target.files?.[0] ?? null);
+                    }}
+                  />
+                </PlaqueFieldValue>
               </PlaqueFieldGrid>
               <PlaqueFieldGrid layout="solo" aria-label={copy.home.importRun}>
                 <Button
@@ -390,9 +410,12 @@ export function HomePage() {
                 </Button>
               </PlaqueFieldGrid>
               {importResult ? (
-                <pre className="panel__code" data-testid="landing-import-output">
-                  {JSON.stringify(importResult, null, 2)}
-                </pre>
+                <CodeHighlight
+                  code={JSON.stringify(importResult, null, 2)}
+                  kind="json"
+                  className="panel__code"
+                  data-testid="landing-import-output"
+                />
               ) : null}
             </ConfigPanel>
 
@@ -497,6 +520,16 @@ export function HomePage() {
                   )}
                 </PlaqueFieldGrid>
               ) : null}
+              <PlaqueFieldGrid layout="solo" aria-label={copy.home.cloneCourse}>
+                <Button
+                  variant="secondary"
+                  data-testid="landing-clone-course"
+                  disabled={cloneBusy}
+                  onClick={runCloneCourse}
+                >
+                  {copy.home.cloneCourse}
+                </Button>
+              </PlaqueFieldGrid>
             </ConfigPanel>
 
             <ConfigPanel
@@ -933,27 +966,19 @@ export function HomePage() {
                 testId="landing-terminal-panel"
                 className="panel--sticky ch-theme--vscode"
                 trail={
-                  <div
-                    className="tabs"
-                    role="tablist"
-                    aria-label={copy.home.outputFormat}
-                    data-testid="landing-terminal-tabs"
-                  >
+                  <Tabs aria-label={copy.home.outputFormat} data-testid="landing-terminal-tabs">
                     {OUTPUT_TABS.map((tab) => (
-                      <button
+                      <Tab
                         key={tab.id}
-                        type="button"
-                        className={'tab' + (activeTab === tab.id ? ' tab--active' : '')}
-                        role="tab"
-                        aria-selected={activeTab === tab.id}
+                        active={activeTab === tab.id}
                         data-tab={tab.id}
                         data-testid={`landing-terminal-tab-${tab.id}`}
                         onClick={() => setActiveTab(tab.id)}
                       >
                         {tab.barLabel}
-                      </button>
+                      </Tab>
                     ))}
-                  </div>
+                  </Tabs>
                 }
                 barEnd={
                   <Badge variant="primary" data-testid="landing-terminal-vector">
@@ -995,12 +1020,11 @@ export function HomePage() {
                   },
                 ]}
               >
-                <pre
-                  className="panel__code ch-code"
+                <CodeHighlight
+                  code={activeOutput}
+                  kind={activeTab === 'json' ? 'json' : 'plain'}
+                  className="panel__code"
                   data-testid="landing-terminal-output"
-                  // highlightOutput escapes; same terminal mount as library ConfiguratorPanelScreen.
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: highlightOutput HTML
-                  dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                 />
               </Panel>
             </div>
