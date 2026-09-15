@@ -1,4 +1,4 @@
-/** Sibling of `help-info.js` — header configurator panel help. */
+/** Sibling of `help-info.js` — panel-bar configurator help. */
 export const HELP_INFO_SAMPLE_ITEMS: Array<{ title: string; body: string }>;
 export function createHelpInfo(options?: {
   items?: Array<{ title?: string; body?: string }>;

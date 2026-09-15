@@ -1,5 +1,5 @@
 /**
- * Help info — header icon + hover/pin popover with a title/body list.
+ * Help info — icon-btn + hover/pin popover with a title/body list.
  * Hover/focus/pin algorithm matches qg-info.js; classes and content do not.
  */
 
@@ -63,11 +63,11 @@ function placeHelpInfoPopover(trigger, popover) {
 
 /**
  * @param {HTMLElement} root
+ * @param {HTMLElement} popover
  * @returns {() => void}
  */
-function wireHelpInfoPopover(root) {
+function wireHelpInfoPopover(root, popover) {
   const trigger = root.querySelector(".help-info__trigger");
-  const popover = root.querySelector(".help-info__popover");
   if (!(trigger instanceof HTMLElement) || !(popover instanceof HTMLElement)) {
     return () => {};
   }
@@ -85,11 +85,13 @@ function wireHelpInfoPopover(root) {
     popover.style.removeProperty("visibility");
     popover.style.removeProperty("opacity");
     popover.style.removeProperty("pointer-events");
+    popover.classList.add("help-info__popover--open");
     root.classList.add("help-info--open");
   };
 
   const hide = () => {
     root.classList.remove("help-info--open");
+    popover.classList.remove("help-info__popover--open");
   };
 
   const cancelHoverClose = () => {
@@ -147,7 +149,10 @@ function wireHelpInfoPopover(root) {
     if (pinned) {
       return;
     }
-    if (event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) {
+    if (
+      event.relatedTarget instanceof Node &&
+      (root.contains(event.relatedTarget) || popover.contains(event.relatedTarget))
+    ) {
       return;
     }
     hide();
@@ -195,6 +200,7 @@ function wireHelpInfoPopover(root) {
     window.removeEventListener("scroll", reposition, true);
     document.removeEventListener("keydown", onKeyDown);
     root.classList.remove("help-info--open", "help-info--pinned");
+    popover.classList.remove("help-info__popover--open");
   };
 }
 
@@ -256,10 +262,17 @@ export function createHelpInfo(options = {}) {
     list.append(li);
   }
   popover.append(list);
-  root.append(trigger, popover);
+  root.append(trigger);
+  document.body.append(popover);
 
-  const disposeWire = wireHelpInfoPopover(root);
-  return { root, dispose: disposeWire };
+  const disposeWire = wireHelpInfoPopover(root, popover);
+  return {
+    root,
+    dispose: () => {
+      disposeWire();
+      popover.remove();
+    },
+  };
 }
 
 /**

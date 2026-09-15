@@ -57,7 +57,8 @@
     visibility var(--duration-fast) var(--ease-out);
 }
 
-.help-info--open .help-info__popover {
+.help-info--open .help-info__popover,
+.help-info__popover--open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -98,4 +99,24 @@
   font-weight: 400;
   line-height: 1.4;
   color: var(--color-text-muted);
+}
+
+/* Panel bar compose — same hit as `.panel__action`, not catalog 36×36. */
+.panel__bar .help-info__trigger {
+  width: var(--panel-action-size);
+  height: var(--panel-action-size);
+}
+
+.panel--terminal .panel__bar .help-info__trigger {
+  color: var(--panel-action-color);
+}
+
+.panel--terminal .panel__bar .help-info__trigger:hover,
+.panel--terminal .panel__bar .help-info:focus-within .help-info__trigger,
+.panel--terminal .panel__bar .help-info--open .help-info__trigger,
+.panel--terminal .panel__bar .help-info--pinned .help-info__trigger,
+.panel--terminal .panel__bar .help-info__trigger[aria-expanded="true"] {
+  color: var(--panel-action-hover-color);
+  background: var(--panel-action-hover-bg);
+  box-shadow: none;
 }

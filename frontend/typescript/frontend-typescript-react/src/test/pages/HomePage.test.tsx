@@ -12,6 +12,7 @@ import {
   fingerprint,
   TAKEAWAY_TESTS_STACK,
 } from '../../lib/landing-config';
+import { PANEL_HELP_IDS } from '../../lib/panel-help';
 import { AxisField, HomePage } from '../../pages/HomePage';
 
 describe('HomePage', () => {
@@ -149,6 +150,16 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('crystal');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('codeHost:');
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('backendLanguage:');
+  });
+
+  it('puts a help-info icon in each panel bar, not the site header', () => {
+    render(<HomePage />);
+    expect(screen.queryByTestId('header-help')).not.toBeInTheDocument();
+    for (const id of PANEL_HELP_IDS) {
+      const panelTestId = id === 'output' ? 'landing-terminal-panel' : `landing-${id}-panel`;
+      const helpBtn = id === 'output' ? 'landing-output-help-btn' : `landing-${id}-help-btn`;
+      expect(within(screen.getByTestId(panelTestId)).getByTestId(helpBtn)).toBeInTheDocument();
+    }
   });
 
   it('updates the terminal YAML when a seg is clicked', async () => {
@@ -1009,6 +1020,20 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-build-title')).toHaveTextContent('Build');
     expect(screen.getByTestId('landing-project-title')).toHaveTextContent('Project');
     expect(screen.getByTestId('landing-driver-title')).toHaveTextContent('Driver');
+    expect(
+      within(screen.getByTestId('landing-project-panel')).getByTestId('landing-project-help-btn'),
+    ).toHaveAttribute('aria-label', 'Project');
+    expect(
+      within(screen.getByTestId('landing-agents-panel')).getByTestId('landing-agents-help-btn'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-destination-panel')).getByTestId(
+        'landing-destination-help-btn',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-terminal-panel')).getByTestId('landing-output-help-btn'),
+    ).toBeInTheDocument();
 
     act(() => {
       document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang: 'ru' } }));
@@ -1016,6 +1041,9 @@ describe('HomePage', () => {
 
     expect(document.documentElement.lang).toBe('ru');
     expect(screen.getByTestId('landing-project-title')).toHaveTextContent(ru.home.panelProject);
+    expect(
+      within(screen.getByTestId('landing-project-panel')).getByTestId('landing-project-help-btn'),
+    ).toHaveAttribute('aria-label', ru.home.panelProject);
     expect(screen.getByTestId('landing-agents-title')).toHaveTextContent(ru.home.panelAgents);
     expect(screen.getByTestId('landing-seg-mill')).toHaveTextContent(ru.home.millProtect);
     expect(screen.getByTestId('landing-import-title')).toHaveTextContent(ru.home.panelImport);

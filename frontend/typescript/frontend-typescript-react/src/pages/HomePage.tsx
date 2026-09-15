@@ -86,6 +86,7 @@ import {
   toYaml,
   writeAgentIds,
 } from '../lib/landing-config';
+import { PanelHelp, type PanelHelpId, panelHelpItems } from '../lib/panel-help';
 import { GITHUB_MARK_PATH } from '../lib/stack-matrix';
 
 type AxisChoice = { value: string; label: string };
@@ -131,6 +132,7 @@ export function AxisField({
 }
 
 function ConfigPanel({
+  helpId,
   title,
   testId,
   titleTestId,
@@ -138,6 +140,7 @@ function ConfigPanel({
   magnetSyncKey,
   children,
 }: {
+  helpId: PanelHelpId;
   title: string;
   testId: string;
   titleTestId: string;
@@ -145,8 +148,20 @@ function ConfigPanel({
   magnetSyncKey: string;
   children: ReactNode;
 }) {
+  const { copy } = useI18n();
   return (
-    <Panel title={title} testId={testId} titleTestId={titleTestId}>
+    <Panel
+      title={title}
+      testId={testId}
+      titleTestId={titleTestId}
+      barEnd={
+        <PanelHelp
+          items={panelHelpItems(copy)[helpId]}
+          ariaLabel={title}
+          testId={`landing-${helpId}-help`}
+        />
+      }
+    >
       <PlaqueFieldGridStack align="magnet" syncKey={magnetSyncKey} data-testid={stackTestId}>
         {children}
       </PlaqueFieldGridStack>
@@ -298,6 +313,7 @@ export function HomePage() {
           <div className="stack stack--lg">
             <ConfigPanel
               title={copy.home.panelProject}
+              helpId="project"
               testId="landing-project-panel"
               titleTestId="landing-project-title"
               stackTestId="landing-project-stack"
@@ -339,6 +355,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelAgents}
+              helpId="agents"
               testId="landing-agents-panel"
               titleTestId="landing-agents-title"
               stackTestId="landing-agents-stack"
@@ -367,6 +384,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelImport}
+              helpId="import"
               testId="landing-import-panel"
               titleTestId="landing-import-title"
               stackTestId="landing-import-stack"
@@ -449,6 +467,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelDestination}
+              helpId="destination"
               testId="landing-destination-panel"
               titleTestId="landing-destination-title"
               stackTestId="landing-destination-stack"
@@ -562,6 +581,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelBuild}
+              helpId="build"
               testId="landing-build-panel"
               titleTestId="landing-build-title"
               stackTestId="landing-build-stack"
@@ -633,6 +653,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelAllure}
+              helpId="allure"
               testId="landing-allure-panel"
               titleTestId="landing-allure-title"
               stackTestId="landing-allure-stack"
@@ -760,6 +781,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelDriver}
+              helpId="driver"
               testId="landing-driver-panel"
               titleTestId="landing-driver-title"
               stackTestId="landing-driver-stack"
@@ -852,6 +874,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelRemote}
+              helpId="remote"
               testId="landing-remote-panel"
               titleTestId="landing-remote-title"
               stackTestId="landing-remote-stack"
@@ -927,6 +950,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelConsole}
+              helpId="console"
               testId="landing-console-panel"
               titleTestId="landing-console-title"
               stackTestId="landing-console-stack"
@@ -964,6 +988,7 @@ export function HomePage() {
 
             <ConfigPanel
               title={copy.home.panelTestops}
+              helpId="testops"
               testId="landing-testops-panel"
               titleTestId="landing-testops-title"
               stackTestId="landing-testops-stack"
@@ -1009,9 +1034,16 @@ export function HomePage() {
                   </Tabs>
                 }
                 barEnd={
-                  <Badge variant="primary" data-testid="landing-terminal-vector">
-                    {vectorId}
-                  </Badge>
+                  <>
+                    <Badge variant="primary" data-testid="landing-terminal-vector">
+                      {vectorId}
+                    </Badge>
+                    <PanelHelp
+                      items={panelHelpItems(copy).output}
+                      ariaLabel={copy.home.outputFormat}
+                      testId="landing-output-help"
+                    />
+                  </>
                 }
                 actions={[
                   {

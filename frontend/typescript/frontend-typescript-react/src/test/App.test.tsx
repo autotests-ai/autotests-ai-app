@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +46,21 @@ describe('App', { tags: ['smoke'] }, () => {
     expect(screen.getByTestId('landing-agents-panel')).toBeInTheDocument();
     expect(screen.getByTestId('landing-import-panel')).toBeInTheDocument();
     expect(screen.getByTestId('landing-destination-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('header-help')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-project-panel')).getByTestId('landing-project-help-btn'),
+    ).toHaveAttribute('aria-label', 'Project');
+    expect(
+      within(screen.getByTestId('landing-agents-panel')).getByTestId('landing-agents-help-btn'),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-destination-panel')).getByTestId(
+        'landing-destination-help-btn',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('landing-terminal-panel')).getByTestId('landing-output-help-btn'),
+    ).toHaveAttribute('aria-label', 'Output format');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('headless: false');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
   });
