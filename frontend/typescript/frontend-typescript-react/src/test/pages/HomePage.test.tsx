@@ -96,6 +96,8 @@ describe('HomePage', () => {
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
     );
+    expect(screen.getByTestId('landing-import-source')).toHaveClass('plaque-field-grid--duo');
+    expect(screen.getByTestId('landing-import-zip-icon')).toBeInTheDocument();
     expect(screen.getByTestId('landing-destination-stack')).toHaveClass(
       'plaque-field-grid-stack',
       'plaque-field-grid-stack--magnet',
@@ -1185,16 +1187,24 @@ describe('HomePage', () => {
     render(<HomePage />);
     const zipInput = screen.getByTestId('landing-field-importZip');
     const zipPlaque = zipInput.closest('.plaque-field');
+    const source = screen.getByTestId('landing-import-source');
+    expect(source).toHaveClass('plaque-field-grid--duo');
+    expect(source.contains(screen.getByTestId('landing-field-importUrl'))).toBe(true);
+    expect(source.contains(zipInput)).toBe(true);
     expect(zipInput).not.toBeVisible();
     expect(zipPlaque?.tagName).toBe('LABEL');
     expect(zipPlaque).toHaveClass('plaque-field--divided', 'plaque-field--stretch');
     expect(zipPlaque?.querySelector('.plaque-field__label')).toHaveTextContent('zip');
-    expect(zipPlaque?.querySelector('.plaque-field__value')).toHaveTextContent('…');
+    expect(screen.getByTestId('landing-import-zip-icon')).toBeInTheDocument();
+    expect(zipPlaque?.querySelector('.plaque-field__value')).not.toHaveTextContent('…');
     expect(zipPlaque?.querySelector('.plaque-field__value input[type="file"]')).toBe(zipInput);
     const file = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'takeaway-like.zip', {
       type: 'application/zip',
     });
+    await user.type(screen.getByTestId('landing-field-importUrl'), 'https://github.com/org/repo');
     await user.upload(zipInput, file);
+    expect(screen.getByTestId('landing-field-importUrl')).toHaveValue('');
+    expect(screen.queryByTestId('landing-import-zip-icon')).not.toBeInTheDocument();
     expect(zipPlaque?.querySelector('.plaque-field__value')).toHaveTextContent('takeaway-like.zip');
     await user.click(screen.getByTestId('landing-import-run'));
 

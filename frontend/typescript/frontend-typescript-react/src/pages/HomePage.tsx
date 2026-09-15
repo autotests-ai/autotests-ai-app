@@ -2,10 +2,12 @@ import {
   Badge,
   Button,
   CodeHighlight,
+  Icon,
   IconBtn,
   IconCopy,
   IconDownload,
   IconReset,
+  IconUpload,
   Panel,
   PlaqueField,
   PlaqueFieldGrid,
@@ -19,7 +21,7 @@ import {
   Tabs,
   usePlaqueFieldMagnet,
 } from '@zero-design-system/react';
-import { type ChangeEvent, type ReactNode, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import {
   githubOAuthClientId,
@@ -160,6 +162,7 @@ export function HomePage() {
   const [importZip, setImportZip] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<AdoptResult | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const zipInputRef = useRef<HTMLInputElement>(null);
   const [cloneBusy, setCloneBusy] = useState(false);
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
@@ -234,6 +237,9 @@ export function HomePage() {
     setImportUrl('');
     setImportZip(null);
     setImportResult(null);
+    if (zipInputRef.current) {
+      zipInputRef.current.value = '';
+    }
   };
 
   const runImport = () => {
@@ -366,26 +372,44 @@ export function HomePage() {
               stackTestId="landing-import-stack"
               magnetSyncKey={magnetSyncKey}
             >
-              <PlaqueFieldGrid layout="solo" aria-label={copy.home.importUrl}>
+              <PlaqueFieldGrid
+                layout="duo"
+                aria-label={`${copy.home.importUrl} ${copy.home.importZip}`}
+                data-testid="landing-import-source"
+              >
                 <PlaqueField
                   label={copy.home.importUrl}
                   paramId="importUrl"
                   labelVariant="param"
                   value={importUrl}
                   placeholder={copy.home.importPlaceholder}
-                  onChange={(event) => setImportUrl(event.target.value)}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setImportUrl(next);
+                    if (next.trim()) {
+                      setImportZip(null);
+                      if (zipInputRef.current) {
+                        zipInputRef.current.value = '';
+                      }
+                    }
+                  }}
                   data-testid="landing-field-importUrl"
                 />
-              </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" aria-label={copy.home.importZip}>
                 <PlaqueFieldValue
                   as="label"
                   label={copy.home.importZip}
                   paramId="importZip"
                   stretch
                 >
-                  {importZip?.name ?? '…'}
+                  {importZip ? (
+                    importZip.name
+                  ) : (
+                    <Icon data-testid="landing-import-zip-icon">
+                      <IconUpload />
+                    </Icon>
+                  )}
                   <input
+                    ref={zipInputRef}
                     id="importZip"
                     name="importZip"
                     type="file"
@@ -394,7 +418,11 @@ export function HomePage() {
                     aria-label={copy.home.importZip}
                     data-testid="landing-field-importZip"
                     onChange={(event) => {
-                      setImportZip(event.target.files?.[0] ?? null);
+                      const file = event.target.files?.[0] ?? null;
+                      setImportZip(file);
+                      if (file) {
+                        setImportUrl('');
+                      }
                     }}
                   />
                 </PlaqueFieldValue>
