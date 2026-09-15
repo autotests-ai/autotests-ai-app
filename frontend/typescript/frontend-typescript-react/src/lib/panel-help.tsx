@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { mountHelpInfo } from '../../vendor/ds/js/help-info.js';
-import type { Dictionary } from '../i18n';
+import { type Dictionary, formatCopy } from '../i18n';
+import { AGENT_CATALOG, DESTINATIONS } from './landing-config';
 
 export type HelpInfoItem = { title: string; body: string };
 
@@ -31,18 +32,27 @@ export const PANEL_HELP_IDS: PanelHelpId[] = [
   'output',
 ];
 
-/** Per-panel popover rows. Agents includes protect; Destination includes clone-course. */
+/** Per-panel popover rows. Dest/import/agents follow the form chips; protect and clone stay. */
 export function panelHelpItems(copy: Dictionary): Record<PanelHelpId, HelpInfoItem[]> {
   const home = copy.home;
   return {
     project: [{ title: home.panelProject, body: home.helpProject }],
     agents: [
-      { title: home.panelAgents, body: home.helpAgents },
+      ...AGENT_CATALOG.map((agent) => ({
+        title: agent.value,
+        body: formatCopy(home.helpAgent, { module: agent.module }),
+      })),
       { title: home.millProtect, body: home.helpProtect },
     ],
-    import: [{ title: home.panelImport, body: home.helpImport }],
+    import: [
+      { title: home.importUrl, body: home.helpImportUrl },
+      { title: home.importZip, body: home.helpImportZip },
+    ],
     destination: [
-      { title: home.panelDestination, body: home.helpDestination },
+      ...DESTINATIONS.map((option) => ({
+        title: option.value,
+        body: home.helpDest[option.value],
+      })),
       { title: home.cloneCourse, body: home.helpCloneCourse },
     ],
     build: [{ title: home.panelBuild, body: home.helpBuild }],

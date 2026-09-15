@@ -35,10 +35,16 @@ export interface Dictionary {
     helpAria: string;
     helpTitle: string;
     helpProject: string;
-    helpAgents: string;
     helpProtect: string;
-    helpImport: string;
-    helpDestination: string;
+    helpAgent: string;
+    helpImportUrl: string;
+    helpImportZip: string;
+    helpDest: {
+      zip: string;
+      catalog: string;
+      cloud: string;
+      user: string;
+    };
     helpCloneCourse: string;
     helpBuild: string;
     helpAllure: string;
