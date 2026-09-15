@@ -83,5 +83,15 @@ export const en: Dictionary = {
     loadBoardTitle: 'load.autotests.ai',
     grafana: 'Grafana',
     grafanaTitle: 'Load SUT observer',
+    helpBackend:
+      'Which backend cell is in the pair. Icons open GitHub, Swagger, unit tests, and Allure.',
+    helpFrontend:
+      'Which frontend cell is in the pair. Open jumps to the cell; icons open GitHub, component tests, and Allure.',
+    helpTests:
+      'Unit tests in the backend module, component tests in the frontend, then product stacks with api and e2e layers. Icons open GitHub and Allure.',
+    helpPerformance:
+      'Load cells such as JMeter and Locust. Status is active or slot; GitHub is on the row.',
+    helpLoadBoard: 'Public load board at load.autotests.ai.',
+    helpGrafana: 'Grafana dashboard for the selected backend (Load SUT observer).',
   },
 };

@@ -5,9 +5,12 @@ import { en, ru } from '../../i18n';
 import { AGENT_CATALOG, DESTINATIONS } from '../../lib/landing-config';
 import {
   flattenPanelHelpItems,
+  flattenStackHelpItems,
   PANEL_HELP_IDS,
   PanelHelp,
   panelHelpItems,
+  STACK_HELP_IDS,
+  stackHelpItems,
 } from '../../lib/panel-help';
 
 const FORBIDDEN = /mill\.yml|\bADR\b|Box2|\bPAT\b|overlay|009/i;
@@ -63,6 +66,39 @@ describe('panel-help', () => {
         .map((item) => item.body)
         .join('\n'),
     ).not.toMatch(FORBIDDEN);
+  });
+
+  it('lists stack boards from stack.* without dest chips, mill.yml, or header copy', () => {
+    expect(STACK_HELP_IDS).toEqual(['backend', 'frontend', 'tests', 'performance']);
+    const enCatalog = stackHelpItems(en);
+    expect(enCatalog.backend).toEqual([
+      { title: en.stack.panelBackend, body: en.stack.helpBackend },
+    ]);
+    expect(enCatalog.frontend).toEqual([
+      { title: en.stack.panelFrontend, body: en.stack.helpFrontend },
+    ]);
+    expect(enCatalog.tests).toEqual([{ title: en.stack.panelTests, body: en.stack.helpTests }]);
+    expect(enCatalog.performance.map((item) => item.title)).toEqual([
+      en.stack.panelPerformance,
+      en.stack.loadBoard,
+      en.stack.grafana,
+    ]);
+    expect(flattenStackHelpItems(ru).map((item) => item.title)).toEqual([
+      ru.stack.panelBackend,
+      ru.stack.panelFrontend,
+      ru.stack.panelTests,
+      ru.stack.panelPerformance,
+      ru.stack.loadBoard,
+      ru.stack.grafana,
+    ]);
+    const blob = flattenStackHelpItems(en)
+      .concat(flattenStackHelpItems(ru))
+      .map((item) => `${item.title} ${item.body}`)
+      .join('\n');
+    expect(blob).not.toMatch(FORBIDDEN);
+    expect(blob.toLowerCase()).not.toMatch(/\bmill\b/);
+    expect(blob).not.toMatch(/\b(zip|catalog|cloud|user|protect|clone)\b/i);
+    expect(blob).not.toMatch(/header/i);
   });
 
   it('mounts a panel-bar trigger with the panel title as aria-label', () => {
@@ -125,5 +161,26 @@ describe('panel-help', () => {
     expect(titles).toContain('catalog');
     expect(popover?.textContent).toContain(en.home.helpDest.zip);
     expect(popover?.textContent).toContain(en.home.helpDest.catalog);
+  });
+
+  it('shows stack Performance load board and Grafana on hover', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <PanelHelp
+        items={stackHelpItems(en).performance}
+        ariaLabel={en.stack.panelPerformance}
+        testId="stack-performance-help"
+      />,
+    );
+    const trigger = container.querySelector('[data-testid="stack-performance-help-btn"]');
+    expect(trigger).toBeTruthy();
+    await user.hover(trigger as HTMLElement);
+    const popover = document.querySelector('.help-info__popover--open');
+    const titles = [...(popover?.querySelectorAll('.help-info__title') ?? [])].map(
+      (node) => node.textContent,
+    );
+    expect(titles).toEqual([en.stack.panelPerformance, en.stack.loadBoard, en.stack.grafana]);
+    expect(popover?.textContent).toContain(en.stack.helpLoadBoard);
+    expect(popover?.textContent).toContain(en.stack.helpGrafana);
   });
 });

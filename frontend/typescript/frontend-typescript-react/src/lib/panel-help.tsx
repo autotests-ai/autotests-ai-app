@@ -32,6 +32,10 @@ export const PANEL_HELP_IDS: PanelHelpId[] = [
   'output',
 ];
 
+export type StackHelpId = 'backend' | 'frontend' | 'tests' | 'performance';
+
+export const STACK_HELP_IDS: StackHelpId[] = ['backend', 'frontend', 'tests', 'performance'];
+
 /** Per-panel popover rows. Dest/import/agents follow the form chips; protect and clone stay. */
 export function panelHelpItems(copy: Dictionary): Record<PanelHelpId, HelpInfoItem[]> {
   const home = copy.home;
@@ -68,6 +72,26 @@ export function panelHelpItems(copy: Dictionary): Record<PanelHelpId, HelpInfoIt
 export function flattenPanelHelpItems(copy: Dictionary): HelpInfoItem[] {
   const catalog = panelHelpItems(copy);
   return PANEL_HELP_IDS.flatMap((id) => catalog[id]);
+}
+
+/** /stack/ board popovers. Load/Grafana stay as bar icons; listed here so hover names them. */
+export function stackHelpItems(copy: Dictionary): Record<StackHelpId, HelpInfoItem[]> {
+  const stack = copy.stack;
+  return {
+    backend: [{ title: stack.panelBackend, body: stack.helpBackend }],
+    frontend: [{ title: stack.panelFrontend, body: stack.helpFrontend }],
+    tests: [{ title: stack.panelTests, body: stack.helpTests }],
+    performance: [
+      { title: stack.panelPerformance, body: stack.helpPerformance },
+      { title: stack.loadBoard, body: stack.helpLoadBoard },
+      { title: stack.grafana, body: stack.helpGrafana },
+    ],
+  };
+}
+
+export function flattenStackHelpItems(copy: Dictionary): HelpInfoItem[] {
+  const catalog = stackHelpItems(copy);
+  return STACK_HELP_IDS.flatMap((id) => catalog[id]);
 }
 
 export function PanelHelp({

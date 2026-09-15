@@ -82,5 +82,14 @@ export const ru: Dictionary = {
     loadBoardTitle: 'load.autotests.ai',
     grafana: 'Grafana',
     grafanaTitle: 'Load SUT observer',
+    helpBackend:
+      'Какая ячейка бэкенда в паре. Иконки открывают GitHub, Swagger, unit-тесты и Allure.',
+    helpFrontend:
+      'Какая ячейка фронтенда в паре. «Открыть» ведёт в ячейку; иконки — GitHub, component-тесты и Allure.',
+    helpTests:
+      'Unit-тесты в модуле бэкенда, component — во фронтенде, затем продуктовые стеки со слоями api и e2e. Иконки открывают GitHub и Allure.',
+    helpPerformance: 'Ячейки нагрузки (JMeter, Locust). Статус active или slot; GitHub — в строке.',
+    helpLoadBoard: 'Публичный борд нагрузки load.autotests.ai.',
+    helpGrafana: 'Grafana-дашборд выбранного бэкенда (Load SUT observer).',
   },
 };

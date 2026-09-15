@@ -82,6 +82,11 @@ describe('App', { tags: ['smoke'] }, () => {
     await waitFor(() => {
       expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('header-help')).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('stack-backend-board')).getByTestId('stack-backend-help-btn'),
+    ).toHaveAttribute('aria-label', 'Backend');
+    expect(screen.getByTestId('stack-load-board')).toBeInTheDocument();
   });
 
   it('keeps the stack board on a cell URL instead of the router 404', async () => {

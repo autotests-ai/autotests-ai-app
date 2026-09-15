@@ -81,5 +81,11 @@ export interface Dictionary {
     loadBoardTitle: string;
     grafana: string;
     grafanaTitle: string;
+    helpBackend: string;
+    helpFrontend: string;
+    helpTests: string;
+    helpPerformance: string;
+    helpLoadBoard: string;
+    helpGrafana: string;
   };
 }
