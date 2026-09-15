@@ -25,8 +25,6 @@ export interface Dictionary {
     idpLogin: string;
     copy: string;
     remotePlaceholder: string;
-    driverWebdriver: string;
-    driverPlaywright: string;
     panelImport: string;
     importUrl: string;
     importZip: string;

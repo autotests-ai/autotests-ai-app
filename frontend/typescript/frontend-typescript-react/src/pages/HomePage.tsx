@@ -61,7 +61,6 @@ import {
   downloadCloneAsStudent,
   downloadLandingOutput,
   fingerprint,
-  IMAGES,
   importAdopt,
   isAdoptDest,
   LANGUAGE_VERSIONS,
@@ -76,8 +75,6 @@ import {
   PRODUCT_FRONTEND_STACKS,
   postAdoptDestZip,
   ROOT_LOG_LEVELS,
-  SCREEN_RESOLUTIONS,
-  SESSION_TIMEOUTS,
   setMillAccess,
   shouldAdoptDestZip,
   TESTS_STACKS,
@@ -188,7 +185,6 @@ export function HomePage() {
   const emitOptions = { githubUser, idpSession, adoptDest };
 
   const magnetSyncKey = [
-    config.images.length,
     config.buildTool,
     activeTab,
     config.destination,
@@ -216,7 +212,7 @@ export function HomePage() {
       patch({ [key]: value } as Pick<LandingConfig, K>);
     };
 
-  const setFromInput = (key: 'remoteUrl' | 'name') => (event: ChangeEvent<HTMLInputElement>) => {
+  const setFromInput = (key: 'remoteUrl') => (event: ChangeEvent<HTMLInputElement>) => {
     patch({ [key]: event.target.value });
   };
 
@@ -235,15 +231,6 @@ export function HomePage() {
     setConfig((prev) => ({
       ...prev,
       coverageProfile: setMillAccess(prev.coverageProfile, value),
-    }));
-  };
-
-  const toggleImage = (value: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      images: prev.images.includes(value)
-        ? prev.images.filter((item) => item !== value)
-        : [...prev.images, value],
     }));
   };
 
@@ -787,19 +774,6 @@ export function HomePage() {
               stackTestId="landing-driver-stack"
               magnetSyncKey={magnetSyncKey}
             >
-              <PlaqueFieldGrid layout="solo" aria-label="driverEngine">
-                <PlaqueFieldSeg
-                  label="driverEngine"
-                  paramId="driverEngine"
-                  value={config.driverEngine}
-                  onValueChange={setField('driverEngine')}
-                  options={[
-                    { value: 'webdriver', title: copy.home.driverWebdriver },
-                    { value: 'playwright', title: copy.home.driverPlaywright },
-                  ]}
-                  data-testid="landing-seg-driverEngine"
-                />
-              </PlaqueFieldGrid>
               <PlaqueFieldGrid
                 layout="duo"
                 cellSpan="lg"
@@ -842,16 +816,6 @@ export function HomePage() {
                   data-testid="landing-seg-headless"
                 />
               </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" aria-label="images">
-                <PlaqueTagstrip
-                  label="images"
-                  paramId="images"
-                  options={IMAGES}
-                  values={config.images}
-                  onToggle={toggleImage}
-                  data-testid="landing-tagstrip-images"
-                />
-              </PlaqueFieldGrid>
               <PlaqueFieldGrid layout="solo" aria-label="closeBrowserAfterEach">
                 <PlaqueFieldSeg
                   label="closeBrowserAfterEach"
@@ -889,34 +853,6 @@ export function HomePage() {
                   placeholder={copy.home.remotePlaceholder}
                   onChange={setFromInput('remoteUrl')}
                   data-testid="landing-field-remoteUrl"
-                />
-              </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="duo" aria-label="Session identity">
-                <PlaqueSelect
-                  label="sessionTimeout"
-                  paramId="sessionTimeout"
-                  value={config.sessionTimeout}
-                  options={SESSION_TIMEOUTS}
-                  onChange={setField('sessionTimeout')}
-                  data-testid="landing-select-sessionTimeout"
-                />
-                <PlaqueField
-                  label="name"
-                  paramId="name"
-                  labelVariant="param"
-                  value={config.name}
-                  onChange={setFromInput('name')}
-                  data-testid="landing-field-name"
-                />
-              </PlaqueFieldGrid>
-              <PlaqueFieldGrid layout="solo" aria-label="Screen resolution">
-                <PlaqueSelect
-                  label="screenResolution"
-                  paramId="screenResolution"
-                  value={config.screenResolution}
-                  options={SCREEN_RESOLUTIONS}
-                  onChange={setField('screenResolution')}
-                  data-testid="landing-select-screenResolution"
                 />
               </PlaqueFieldGrid>
               <PlaqueFieldGrid
