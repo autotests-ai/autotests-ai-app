@@ -1,7 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HEADER_LANG_CHANGE, ru } from '../../i18n';
+import { en, HEADER_LANG_CHANGE, ru } from '../../i18n';
+import { STACK_HELP_IDS } from '../../lib/panel-help';
 import type { StackMatrix } from '../../lib/stack-matrix';
 import * as stackMatrix from '../../lib/stack-matrix';
 import { StackPage } from '../../pages/StackPage';
@@ -121,6 +123,9 @@ describe('StackPage', () => {
     vi.clearAllMocks();
     localStorage.clear();
     document.documentElement.lang = 'en';
+    for (const node of document.body.querySelectorAll('.help-info__popover')) {
+      node.remove();
+    }
   });
 
   it('shows the loading state then the live board', async () => {
@@ -252,6 +257,57 @@ describe('StackPage', () => {
         ?.querySelector('.stack-page__open'),
     ).toBeNull();
     expect(bindStackHeaderPoll).toHaveBeenCalled();
+  });
+
+  it('puts help-info on each board bar and keeps load/Grafana on Performance', async () => {
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-board')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('header-help')).not.toBeInTheDocument();
+    for (const id of STACK_HELP_IDS) {
+      const helpBtn = within(screen.getByTestId(`stack-${id}-board`)).getByTestId(
+        `stack-${id}-help-btn`,
+      );
+      expect(helpBtn).toBeInTheDocument();
+    }
+    expect(
+      within(screen.getByTestId('stack-backend-board')).getByTestId('stack-backend-help-btn'),
+    ).toHaveAttribute('aria-label', 'Backend');
+    expect(screen.getByTestId('stack-load-board')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/',
+    );
+    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+      'href',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+    );
+  });
+
+  it('shows stack help bodies on hover without dest chips', async () => {
+    const user = userEvent.setup();
+    renderAt('/stack/');
+    await waitFor(() => {
+      expect(screen.getByTestId('stack-backend-help-btn')).toBeInTheDocument();
+    });
+    await user.hover(screen.getByTestId('stack-backend-help-btn'));
+    const backendPopover = document.querySelector(
+      `.help-info__popover[aria-label="${en.stack.panelBackend}"]`,
+    );
+    expect(backendPopover?.classList.contains('help-info__popover--open')).toBe(true);
+    expect(backendPopover?.querySelector('.help-info__body')?.textContent).toBe(
+      en.stack.helpBackend,
+    );
+    expect(backendPopover?.textContent).not.toMatch(/\b(zip|catalog)\b/i);
+
+    await user.hover(screen.getByTestId('stack-performance-help-btn'));
+    const performancePopover = document.querySelector(
+      `.help-info__popover[aria-label="${en.stack.panelPerformance}"]`,
+    );
+    expect(performancePopover?.classList.contains('help-info__popover--open')).toBe(true);
+    expect(performancePopover?.textContent).toContain(en.stack.loadBoard);
+    expect(performancePopover?.textContent).toContain(en.stack.grafana);
+    expect(performancePopover?.textContent).not.toMatch(/\bmill\b/i);
   });
 
   it('renders an error when matrix.json cannot be loaded', async () => {
@@ -562,6 +618,14 @@ describe('StackPage', () => {
       'aria-label',
       ru.stack.grafana,
     );
+    expect(
+      within(screen.getByTestId('stack-backend-board')).getByTestId('stack-backend-help-btn'),
+    ).toHaveAttribute('aria-label', ru.stack.panelBackend);
+    expect(
+      within(screen.getByTestId('stack-performance-board')).getByTestId(
+        'stack-performance-help-btn',
+      ),
+    ).toHaveAttribute('aria-label', ru.stack.panelPerformance);
     expect(screen.queryByTestId('stack-loading')).not.toBeInTheDocument();
     expect(screen.getByTestId('stack-backend-backend-java-spring')).toHaveTextContent(
       'backend-java-spring',

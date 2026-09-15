@@ -32,6 +32,27 @@ export interface Dictionary {
     importZip: string;
     importRun: string;
     importPlaceholder: string;
+    helpAria: string;
+    helpTitle: string;
+    helpProject: string;
+    helpProtect: string;
+    helpAgent: string;
+    helpImportUrl: string;
+    helpImportZip: string;
+    helpDest: {
+      zip: string;
+      catalog: string;
+      cloud: string;
+      user: string;
+    };
+    helpCloneCourse: string;
+    helpBuild: string;
+    helpAllure: string;
+    helpDriver: string;
+    helpRemote: string;
+    helpConsole: string;
+    helpTestops: string;
+    helpOutput: string;
   };
   stack: {
     loading: string;
@@ -60,5 +81,11 @@ export interface Dictionary {
     loadBoardTitle: string;
     grafana: string;
     grafanaTitle: string;
+    helpBackend: string;
+    helpFrontend: string;
+    helpTests: string;
+    helpPerformance: string;
+    helpLoadBoard: string;
+    helpGrafana: string;
   };
 }

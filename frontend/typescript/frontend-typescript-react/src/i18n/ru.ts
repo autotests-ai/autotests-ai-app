@@ -32,6 +32,27 @@ export const ru: Dictionary = {
     importZip: 'zip',
     importRun: 'Импорт',
     importPlaceholder: 'https://github.com/org/repo',
+    helpAria: 'Что значат панели конфигуратора',
+    helpTitle: 'Панели конфигуратора',
+    helpProject: 'Какие слои продукта попадут в репозиторий: бэкенд, фронтенд, тесты и нагрузка.',
+    helpProtect: 'Дополнительные проверки, чтобы сгенерированные тесты не врали.',
+    helpAgent: 'Когда чип включён, правила помощника попадают в {module}.',
+    helpImportUrl: 'Взять уже существующий публичный GitHub по URL, а не собирать с нуля.',
+    helpImportZip: 'Взять уже существующий проект из zip, а не собирать с нуля.',
+    helpDest: {
+      zip: 'Скачать сгенерированный проект zip-архивом на этот компьютер.',
+      catalog: 'Открыть замороженную GitHub-ячейку этого стека тестов.',
+      cloud: 'Положить репозиторий в облако школы после входа через школьный IdP.',
+      user: 'Создать репозиторий в своём GitHub после входа.',
+    },
+    helpCloneCourse: 'Тот же каркас, что у студентов на домашнем задании.',
+    helpBuild: 'ОС, язык и инструмент сборки для прогона тестов.',
+    helpAllure: 'Как после прогона собирается отчёт Allure.',
+    helpDriver: 'Движок браузера и размер окна для UI-тестов.',
+    helpRemote: 'Selenoid или другой хаб вместо локального браузера.',
+    helpConsole: 'Что печатать в консоль во время прогона.',
+    helpTestops: 'Отправлять ли результаты в TestOps.',
+    helpOutput: 'Живой YAML/JSON того, что уйдёт в генерацию; копирование и скачивание — отсюда.',
   },
   stack: {
     loading: '→ Загрузка matrix…',
@@ -61,5 +82,14 @@ export const ru: Dictionary = {
     loadBoardTitle: 'load.autotests.ai',
     grafana: 'Grafana',
     grafanaTitle: 'Load SUT observer',
+    helpBackend:
+      'Какая ячейка бэкенда в паре. Иконки открывают GitHub, Swagger, unit-тесты и Allure.',
+    helpFrontend:
+      'Какая ячейка фронтенда в паре. «Открыть» ведёт в ячейку; иконки — GitHub, component-тесты и Allure.',
+    helpTests:
+      'Unit-тесты в модуле бэкенда, component — во фронтенде, затем продуктовые стеки со слоями api и e2e. Иконки открывают GitHub и Allure.',
+    helpPerformance: 'Ячейки нагрузки (JMeter, Locust). Статус active или slot; GitHub — в строке.',
+    helpLoadBoard: 'Публичный борд нагрузки load.autotests.ai.',
+    helpGrafana: 'Grafana-дашборд выбранного бэкенда (Load SUT observer).',
   },
 };

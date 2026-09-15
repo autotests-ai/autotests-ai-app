@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { type Dictionary, formatCopy, useI18n } from '../i18n';
 import { appPath } from '../lib/appBase';
 import { bindStackHeaderPoll } from '../lib/header-poll';
+import { PanelHelp, type StackHelpId, stackHelpItems } from '../lib/panel-help';
 import {
   allureModuleHref,
   allureTestsHref,
@@ -341,6 +342,12 @@ function ModuleAllureCell({
   );
 }
 
+function StackBoardHelp({ id, title, copy }: { id: StackHelpId; title: string; copy: Dictionary }) {
+  return (
+    <PanelHelp items={stackHelpItems(copy)[id]} ariaLabel={title} testId={`stack-${id}-help`} />
+  );
+}
+
 export function StackPage() {
   const { copy } = useI18n();
   const location = useLocation();
@@ -472,6 +479,8 @@ export function StackPage() {
             titleTestId="stack-backend-title"
             bodyClassName="stack-page__board-body"
             className="stack-page__board"
+            testId="stack-backend-board"
+            barEnd={<StackBoardHelp id="backend" title={copy.stack.panelBackend} copy={copy} />}
           >
             <table className="stack-page__table stack-page__table--backend">
               <thead>
@@ -578,6 +587,8 @@ export function StackPage() {
             titleTestId="stack-frontend-title"
             bodyClassName="stack-page__board-body"
             className="stack-page__board"
+            testId="stack-frontend-board"
+            barEnd={<StackBoardHelp id="frontend" title={copy.stack.panelFrontend} copy={copy} />}
           >
             <table className="stack-page__table stack-page__table--frontend">
               <thead>
@@ -693,6 +704,7 @@ export function StackPage() {
             bodyClassName="stack-page__board-body"
             className="stack-page__board stack-page__board--tests"
             testId="stack-tests-board"
+            barEnd={<StackBoardHelp id="tests" title={copy.stack.panelTests} copy={copy} />}
           >
             <table className="stack-page__table stack-page__table--tests">
               <thead>
@@ -918,6 +930,7 @@ export function StackPage() {
             testId="stack-performance-board"
             barEnd={
               <>
+                <StackBoardHelp id="performance" title={copy.stack.panelPerformance} copy={copy} />
                 <IconBtn
                   as="a"
                   href={LOAD_BOARD_HREF}

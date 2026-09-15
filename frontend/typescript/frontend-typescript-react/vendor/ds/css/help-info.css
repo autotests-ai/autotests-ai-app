@@ -1,0 +1,122 @@
+/* Help info — header icon-btn 36×36 + hover/pin popover (title/body list).
+   Not qg-info: that trigger is 18px and shows JSON. */
+
+.help-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.help-info__trigger {
+  color: var(--color-text-muted);
+}
+
+.help-info__trigger:hover,
+.help-info:focus-within .help-info__trigger,
+.help-info--open .help-info__trigger {
+  position: relative;
+  z-index: 101;
+  color: var(--color-text);
+}
+
+.help-info--pinned .help-info__trigger,
+.help-info__trigger[aria-expanded="true"] {
+  position: relative;
+  z-index: 101;
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-surface-soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.help-info--pinned .help-info__trigger:hover,
+.help-info__trigger[aria-expanded="true"]:hover {
+  background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface-soft));
+}
+
+.help-info__popover {
+  position: fixed;
+  z-index: 100;
+  width: min(28rem, calc(100vw - 4rem));
+  max-height: calc(100vh - 4rem);
+  height: auto;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 16%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    visibility var(--duration-fast) var(--ease-out);
+}
+
+.help-info--open .help-info__popover,
+.help-info__popover--open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.help-info__heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.help-info__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help-info__item + .help-info__item {
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.help-info__title {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.help-info__body {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+/* Panel bar compose — same hit as `.panel__action`, not catalog 36×36. */
+.panel__bar .help-info__trigger {
+  width: var(--panel-action-size);
+  height: var(--panel-action-size);
+}
+
+.panel--terminal .panel__bar .help-info__trigger {
+  color: var(--panel-action-color);
+}
+
+.panel--terminal .panel__bar .help-info__trigger:hover,
+.panel--terminal .panel__bar .help-info:focus-within .help-info__trigger,
+.panel--terminal .panel__bar .help-info--open .help-info__trigger,
+.panel--terminal .panel__bar .help-info--pinned .help-info__trigger,
+.panel--terminal .panel__bar .help-info__trigger[aria-expanded="true"] {
+  color: var(--panel-action-hover-color);
+  background: var(--panel-action-hover-bg);
+  box-shadow: none;
+}

@@ -32,6 +32,28 @@ export const en: Dictionary = {
     importZip: 'zip',
     importRun: 'Import',
     importPlaceholder: 'https://github.com/org/repo',
+    helpAria: 'What the configurator panels mean',
+    helpTitle: 'Configurator panels',
+    helpProject: 'Which product layers go into the repo (backend, frontend, tests, load).',
+    helpProtect: 'Extra checks so generated tests do not lie.',
+    helpAgent: 'When this chip is on, assistant rules go into {module}.',
+    helpImportUrl:
+      'Adopt an existing public GitHub repo by URL, instead of assembling from scratch.',
+    helpImportZip: 'Adopt an existing project from a zip file, instead of assembling from scratch.',
+    helpDest: {
+      zip: 'Download the generated project as a zip on this computer.',
+      catalog: 'Open the frozen GitHub cell for this tests stack.',
+      cloud: 'Put the repo in the school cloud after school IdP login.',
+      user: 'Create the repo on your GitHub after GitHub login.',
+    },
+    helpCloneCourse: 'The same skeleton students use for homework.',
+    helpBuild: 'OS, language, and build tool for running tests.',
+    helpAllure: 'How the Allure report is produced after the run.',
+    helpDriver: 'Browser engine and viewport for UI tests.',
+    helpRemote: 'Selenoid or another hub instead of a local browser.',
+    helpConsole: 'What to print to the console while tests run.',
+    helpTestops: 'Whether to send results to TestOps.',
+    helpOutput: 'Live YAML/JSON of what will be generated; Copy and Download start here.',
   },
   stack: {
     loading: '→ Loading matrix…',
@@ -61,5 +83,15 @@ export const en: Dictionary = {
     loadBoardTitle: 'load.autotests.ai',
     grafana: 'Grafana',
     grafanaTitle: 'Load SUT observer',
+    helpBackend:
+      'Which backend cell is in the pair. Icons open GitHub, Swagger, unit tests, and Allure.',
+    helpFrontend:
+      'Which frontend cell is in the pair. Open jumps to the cell; icons open GitHub, component tests, and Allure.',
+    helpTests:
+      'Unit tests in the backend module, component tests in the frontend, then product stacks with api and e2e layers. Icons open GitHub and Allure.',
+    helpPerformance:
+      'Load cells such as JMeter and Locust. Status is active or slot; GitHub is on the row.',
+    helpLoadBoard: 'Public load board at load.autotests.ai.',
+    helpGrafana: 'Grafana dashboard for the selected backend (Load SUT observer).',
   },
 };
