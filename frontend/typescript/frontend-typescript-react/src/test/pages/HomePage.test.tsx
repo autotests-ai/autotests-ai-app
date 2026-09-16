@@ -152,6 +152,33 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('backendLanguage:');
   });
 
+  it('hides hub skip keys so they are not dest options', () => {
+    render(<HomePage />);
+    expect(screen.queryByTestId('landing-seg-driverEngine')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'playwright' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-tagstrip-images')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-select-sessionTimeout')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-field-name')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('landing-select-screenResolution')).not.toBeInTheDocument();
+    const yaml = screen.getByTestId('landing-terminal-output').textContent ?? '';
+    expect(yaml).not.toContain('driverEngine:');
+    expect(yaml).not.toContain('playwright');
+    expect(yaml).not.toContain('images:');
+    expect(yaml).not.toContain('sessionTimeout:');
+    expect(yaml).not.toMatch(/(^|\n)name:/);
+    expect(yaml).not.toContain('screenResolution:');
+    expect(yaml).toContain('browser: chrome');
+    expect(yaml).toContain('headless: false');
+    expect(yaml).toContain('closeBrowserAfterEach: false');
+    expect(yaml).toContain('remoteUrl: ""');
+    expect(yaml).toContain('enableVnc: false');
+    expect(screen.getByTestId('landing-seg-headless')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-field-remoteUrl')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-seg-enableVnc')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-seg-enableVideo')).toBeInTheDocument();
+    expect(screen.getByTestId('landing-seg-enableHar')).toBeInTheDocument();
+  });
+
   it('puts a help-info icon in each panel bar, not the site header', () => {
     render(<HomePage />);
     expect(screen.queryByTestId('header-help')).not.toBeInTheDocument();
@@ -301,22 +328,19 @@ describe('HomePage', () => {
       'remoteUrl: "http://hub:4444/wd/hub"',
     );
 
-    await user.clear(screen.getByTestId('landing-field-name'));
-    await user.type(screen.getByTestId('landing-field-name'), 'CI');
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('name: CI');
+    await user.click(
+      within(screen.getByTestId('landing-tagstrip-agents')).getByRole('button', {
+        name: 'cursor',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
+      'cursor: { access: none, module: .cursor/rules }',
+    );
 
     await user.click(
-      within(screen.getByTestId('landing-tagstrip-images')).getByRole('button', {
-        name: 'chrome:147',
-      }),
+      within(screen.getByTestId('landing-seg-enableVnc')).getByRole('button', { name: 'true' }),
     );
-    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('chrome:147');
-    await user.click(
-      within(screen.getByTestId('landing-tagstrip-images')).getByRole('button', {
-        name: 'chrome:148',
-      }),
-    );
-    expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('chrome:148');
+    expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('enableVnc: true');
 
     await user.click(screen.getByRole('tab', { name: 'JSON' }));
     expect(screen.getByRole('tab', { name: 'JSON' })).toHaveAttribute('aria-selected', 'true');

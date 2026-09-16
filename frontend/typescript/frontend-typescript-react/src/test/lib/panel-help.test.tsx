@@ -45,6 +45,8 @@ describe('panel-help', () => {
       .map((item) => `${item.title} ${item.body}`)
       .join('\n');
     expect(blob).not.toMatch(FORBIDDEN);
+    expect(enCatalog.driver[0]?.body).not.toMatch(/playwright|images|sessionTimeout/i);
+    expect(enCatalog.remote[0]?.body).not.toMatch(/playwright|sessionTimeout|screenResolution/i);
     expect(flattenPanelHelpItems(ru).map((item) => item.title)).toEqual([
       ru.home.panelProject,
       ...FORM_AGENT_TITLES,

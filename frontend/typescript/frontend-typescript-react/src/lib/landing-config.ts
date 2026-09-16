@@ -422,6 +422,21 @@ function isBoolKey(key: string): key is BoolKey {
   return (BOOL_KEYS as readonly string[]).includes(key);
 }
 
+/** Hub/Playwright keys: not in default Selenide dest. Hidden on Home; omit from dump. */
+export const DEST_SKIP_KEYS = [
+  'driverEngine',
+  'images',
+  'sessionTimeout',
+  'name',
+  'screenResolution',
+] as const;
+
+type DestSkipKey = (typeof DEST_SKIP_KEYS)[number];
+
+function isDestSkipKey(key: string): key is DestSkipKey {
+  return (DEST_SKIP_KEYS as readonly string[]).includes(key);
+}
+
 /** cfg-keys defaults; Build / Allure rows from configurator-option-presets. */
 export const DEFAULTS: LandingConfig = {
   buildOs: 'linux',
@@ -530,29 +545,6 @@ export const BROWSER_SIZES = [
   { value: '390x844', label: '390×844' },
 ];
 
-export const IMAGES = [
-  { value: 'chrome:148' },
-  { value: 'chrome:147' },
-  { value: 'firefox:latest' },
-  { value: 'edge:120' },
-  { value: 'opera:106' },
-];
-
-export const SESSION_TIMEOUTS = [
-  { value: '1m' },
-  { value: '5m' },
-  { value: '15m' },
-  { value: '30m' },
-  { value: '60m' },
-];
-
-export const SCREEN_RESOLUTIONS = [
-  { value: '1920x1080x24', label: '1920×1080×24' },
-  { value: '1280x1024x24', label: '1280×1024×24' },
-  { value: '1366x768x24', label: '1366×768×24' },
-  { value: '1920x1080', label: '1920×1080' },
-];
-
 export const ROOT_LOG_LEVELS = [
   { value: 'trace' },
   { value: 'debug' },
@@ -599,14 +591,10 @@ export function toDocument(
 ): Record<string, unknown> {
   const doc: Record<string, unknown> = {};
   for (const key of Object.keys(DEFAULTS) as (keyof LandingConfig)[]) {
-    if (key === 'destination' || key === 'coverageProfile') {
+    if (key === 'destination' || key === 'coverageProfile' || isDestSkipKey(key)) {
       continue;
     }
     const value = config[key];
-    if (key === 'images') {
-      doc[key] = [...config.images];
-      continue;
-    }
     if (isBoolKey(key)) {
       doc[key] = value === 'true';
       continue;

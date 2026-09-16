@@ -238,8 +238,13 @@ describe('landing-config', () => {
     expect(doc.testopsEnabled).toBe(false);
     expect(doc.allureQualityGate).toBe(false);
     expect(doc.remoteUrl).toBe('');
-    expect(doc.images).toEqual(['chrome:148']);
-    expect(doc.images).not.toBe(DEFAULTS.images);
+    expect(doc).not.toHaveProperty('images');
+    expect(doc).not.toHaveProperty('driverEngine');
+    expect(doc).not.toHaveProperty('sessionTimeout');
+    expect(doc).not.toHaveProperty('name');
+    expect(doc).not.toHaveProperty('screenResolution');
+    expect(doc.browser).toBe('chrome');
+    expect(doc.enableVnc).toBe(false);
     expect(doc.allureReportMode).toBe('allure3');
     expect(doc.allureAgentMode).toBe('none');
     expect(doc.allureRestAssuredListenerStyle).toBe('default');
@@ -264,20 +269,18 @@ describe('landing-config', () => {
     });
   });
 
-  it('prints live YAML with vector comment, quoted URL, and empty image list', () => {
+  it('prints live YAML with vector comment and quoted URL', () => {
     const config: LandingConfig = {
       ...cloneConfig(DEFAULTS),
       remoteUrl: 'http://selenoid:4444/wd/hub',
-      name: 'true',
-      images: [],
     };
     const yaml = toYaml(config, 'vector#deadbeef');
     expect(yaml).toContain('# vector#deadbeef');
     expect(yaml).toContain('headless: false');
     expect(yaml).toContain('closeBrowserAfterAll: true');
     expect(yaml).toContain('remoteUrl: "http://selenoid:4444/wd/hub"');
-    expect(yaml).toContain('name: "true"');
-    expect(yaml).toContain('images: []');
+    expect(yaml).not.toContain('name:');
+    expect(yaml).not.toContain('images:');
     expect(yaml).toContain('buildOs: linux');
     expect(yaml).toContain('buildTool: gradle');
     expect(yaml).toContain('buildWrapper: wrapper');
@@ -657,11 +660,27 @@ describe('landing-config', () => {
     expect(buildWrapperOptions('maven').map((option) => option.label)).toEqual(['./mvnw', 'mvn']);
   });
 
-  it('prints a YAML list when images are selected', () => {
+  it('omits hub skip keys from the dump so zip apply is a no-op', () => {
     const yaml = toYaml(DEFAULTS, 'vector#abcd1234');
-    expect(yaml).toContain('images:');
-    expect(yaml).toContain('  - "chrome:148"');
-    expect(yaml).not.toContain('images: []');
+    expect(yaml).not.toContain('driverEngine:');
+    expect(yaml).not.toContain('playwright');
+    expect(yaml).not.toContain('images:');
+    expect(yaml).not.toContain('sessionTimeout:');
+    expect(yaml).not.toContain('\nname:');
+    expect(yaml).not.toContain('screenResolution:');
+    expect(yaml).toContain('browser: chrome');
+    expect(yaml).toContain('headless: false');
+    expect(yaml).toContain('closeBrowserAfterEach: false');
+    expect(yaml).toContain('remoteUrl: ""');
+    expect(yaml).toContain('enableVnc: false');
+    expect(yaml).toContain('enableVideo: false');
+    expect(yaml).toContain('enableHar: false');
+    const playwrightDump = toYaml(
+      { ...cloneConfig(DEFAULTS), driverEngine: 'playwright' },
+      'vector#pw',
+    );
+    expect(playwrightDump).not.toContain('driverEngine:');
+    expect(playwrightDump).not.toContain('playwright');
   });
 
   it('prints JSON with the vector id', () => {
