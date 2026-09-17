@@ -155,7 +155,7 @@ function ConfigPanel({
         <PanelHelp
           items={panelHelpItems(copy)[helpId]}
           ariaLabel={title}
-          testId={`landing-${helpId}-help`}
+          data-testid={`landing-${helpId}-help`}
         />
       }
     >
@@ -977,7 +977,7 @@ export function HomePage() {
                     <PanelHelp
                       items={panelHelpItems(copy).output}
                       ariaLabel={copy.home.outputFormat}
-                      testId="landing-output-help"
+                      data-testid="landing-output-help"
                     />
                   </>
                 }

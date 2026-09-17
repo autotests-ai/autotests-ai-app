@@ -344,7 +344,11 @@ function ModuleAllureCell({
 
 function StackBoardHelp({ id, title, copy }: { id: StackHelpId; title: string; copy: Dictionary }) {
   return (
-    <PanelHelp items={stackHelpItems(copy)[id]} ariaLabel={title} testId={`stack-${id}-help`} />
+    <PanelHelp
+      items={stackHelpItems(copy)[id]}
+      ariaLabel={title}
+      data-testid={`stack-${id}-help`}
+    />
   );
 }
 

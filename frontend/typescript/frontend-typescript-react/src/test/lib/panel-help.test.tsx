@@ -108,7 +108,7 @@ describe('panel-help', () => {
       <PanelHelp
         items={panelHelpItems(en).project}
         ariaLabel={en.home.panelProject}
-        testId="landing-project-help"
+        data-testid="landing-project-help"
       />,
     );
     const trigger = container.querySelector('[data-testid="landing-project-help-btn"]');
@@ -118,7 +118,7 @@ describe('panel-help', () => {
       <PanelHelp
         items={panelHelpItems(ru).project}
         ariaLabel={ru.home.panelProject}
-        testId="landing-project-help"
+        data-testid="landing-project-help"
       />,
     );
     expect(container.querySelector('[data-testid="landing-project-help-btn"]')).toHaveAttribute(
@@ -133,7 +133,7 @@ describe('panel-help', () => {
       <PanelHelp
         items={panelHelpItems(en).project}
         ariaLabel={en.home.panelProject}
-        testId="landing-project-help"
+        data-testid="landing-project-help"
       />,
     );
     const trigger = container.querySelector('[data-testid="landing-project-help-btn"]');
@@ -149,7 +149,7 @@ describe('panel-help', () => {
       <PanelHelp
         items={panelHelpItems(en).destination}
         ariaLabel={en.home.panelDestination}
-        testId="landing-destination-help"
+        data-testid="landing-destination-help"
       />,
     );
     const trigger = container.querySelector('[data-testid="landing-destination-help-btn"]');
@@ -171,7 +171,7 @@ describe('panel-help', () => {
       <PanelHelp
         items={stackHelpItems(en).performance}
         ariaLabel={en.stack.panelPerformance}
-        testId="stack-performance-help"
+        data-testid="stack-performance-help"
       />,
     );
     const trigger = container.querySelector('[data-testid="stack-performance-help-btn"]');

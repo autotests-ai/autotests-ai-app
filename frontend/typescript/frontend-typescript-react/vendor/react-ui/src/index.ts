@@ -135,6 +135,8 @@ export type {
   TestsTableRow,
   TestsTableLang,
 } from './TestsTable';
+export { HelpInfo } from './HelpInfo';
+export type { HelpInfoProps, HelpInfoItem } from './HelpInfo';
 export { QgInfo } from './QgInfo';
 export type { QgInfoProps, QgInfoFileSource } from './QgInfo';
 export { QualityGate } from './QualityGate';
