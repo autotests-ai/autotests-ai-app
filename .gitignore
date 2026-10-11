@@ -19,3 +19,4 @@ tests-java/.gradle/
 
 # OS
 .DS_Store
+test-results/
