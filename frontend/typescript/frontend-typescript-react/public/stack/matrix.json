@@ -78,6 +78,108 @@
       "status": "active",
       "language": "rust",
       "module": "backend/rust/backend-rust-axum"
+    },
+    {
+      "id": "backend-java-quarkus",
+      "status": "slot",
+      "language": "java",
+      "module": "backend/java/backend-java-quarkus"
+    },
+    {
+      "id": "backend-java-micronaut",
+      "status": "slot",
+      "language": "java",
+      "module": "backend/java/backend-java-micronaut"
+    },
+    {
+      "id": "backend-kotlin-ktor",
+      "status": "active",
+      "language": "kotlin",
+      "module": "backend/kotlin/backend-kotlin-ktor"
+    },
+    {
+      "id": "backend-python-aiohttp",
+      "status": "slot",
+      "language": "python",
+      "module": "backend/python/backend-python-aiohttp"
+    },
+    {
+      "id": "backend-go-echo",
+      "status": "slot",
+      "language": "go",
+      "module": "backend/go/backend-go-echo"
+    },
+    {
+      "id": "backend-javascript-fastify",
+      "status": "slot",
+      "language": "javascript",
+      "module": "backend/javascript/backend-javascript-fastify"
+    },
+    {
+      "id": "backend-typescript-fastify",
+      "status": "slot",
+      "language": "typescript",
+      "module": "backend/typescript/backend-typescript-fastify"
+    },
+    {
+      "id": "backend-csharp-minimal",
+      "status": "slot",
+      "language": "csharp",
+      "module": "backend/csharp/backend-csharp-minimal"
+    },
+    {
+      "id": "backend-rust-actix",
+      "status": "slot",
+      "language": "rust",
+      "module": "backend/rust/backend-rust-actix"
+    },
+    {
+      "id": "backend-php-laravel",
+      "status": "slot",
+      "language": "php",
+      "module": "backend/php/backend-php-laravel"
+    },
+    {
+      "id": "backend-php-slim",
+      "status": "slot",
+      "language": "php",
+      "module": "backend/php/backend-php-slim"
+    },
+    {
+      "id": "backend-ruby-rails",
+      "status": "slot",
+      "language": "ruby",
+      "module": "backend/ruby/backend-ruby-rails"
+    },
+    {
+      "id": "backend-ruby-sinatra",
+      "status": "slot",
+      "language": "ruby",
+      "module": "backend/ruby/backend-ruby-sinatra"
+    },
+    {
+      "id": "backend-scala-play",
+      "status": "slot",
+      "language": "scala",
+      "module": "backend/scala/backend-scala-play"
+    },
+    {
+      "id": "backend-scala-http4s",
+      "status": "slot",
+      "language": "scala",
+      "module": "backend/scala/backend-scala-http4s"
+    },
+    {
+      "id": "backend-elixir-phoenix",
+      "status": "slot",
+      "language": "elixir",
+      "module": "backend/elixir/backend-elixir-phoenix"
+    },
+    {
+      "id": "backend-dart-shelf",
+      "status": "slot",
+      "language": "dart",
+      "module": "backend/dart/backend-dart-shelf"
     }
   ],
   "frontends": [
@@ -140,6 +242,66 @@
       "status": "active",
       "kind": "vite",
       "module": "frontend/typescript/frontend-typescript-jquery"
+    },
+    {
+      "id": "frontend-javascript-svelte",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-svelte"
+    },
+    {
+      "id": "frontend-javascript-solid",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-solid"
+    },
+    {
+      "id": "frontend-javascript-htmx",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/javascript/frontend-javascript-htmx"
+    },
+    {
+      "id": "frontend-typescript-svelte",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-svelte"
+    },
+    {
+      "id": "frontend-typescript-solid",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-solid"
+    },
+    {
+      "id": "frontend-typescript-htmx",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/typescript/frontend-typescript-htmx"
+    },
+    {
+      "id": "frontend-elm-elm",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/elm/frontend-elm-elm"
+    },
+    {
+      "id": "frontend-dart-flutter_web",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/dart/frontend-dart-flutter_web"
+    },
+    {
+      "id": "frontend-clojurescript-reagent",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/clojurescript/frontend-clojurescript-reagent"
+    },
+    {
+      "id": "frontend-rescript-react",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/rescript/frontend-rescript-react"
     }
   ],
   "tests": [
@@ -154,6 +316,16 @@
         "e2e"
       ],
       "role": "canon"
+    },
+    {
+      "id": "tests-java-junit5-rest_assured-selenide-appium",
+      "status": "active",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-rest_assured-selenide-appium",
+      "layers": [
+        "e2e"
+      ],
+      "role": "living"
     },
     {
       "id": "tests-java-junit5-rest_assured-selenium",
@@ -237,6 +409,38 @@
       "role": "slot"
     },
     {
+      "id": "tests-java-junit6-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit6-selenide",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-karate",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-karate",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-cucumber-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-cucumber-selenide",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-java-junit5-rest_assured",
       "status": "active",
       "language": "java",
@@ -285,6 +489,27 @@
         "performance"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-groovy-spock-rest_assured",
+      "status": "slot",
+      "language": "groovy",
+      "module": "tests/groovy/tests-groovy-spock-rest_assured",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-groovy-spock-selenium",
+      "status": "slot",
+      "language": "groovy",
+      "module": "tests/groovy/tests-groovy-spock-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-kotlin-junit5-ktor-selenide",
@@ -386,12 +611,55 @@
       "role": "living"
     },
     {
-      "id": "tests-scala-gatling",
+      "id": "tests-kotlin-espresso",
       "status": "slot",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-espresso",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-gatling",
+      "status": "active",
       "language": "scala",
       "module": "tests/scala/tests-scala-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-scala-scalatest-selenium",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-scalatest-sttp",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-sttp",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-scalatest-sttp-selenium",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-sttp-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -454,21 +722,42 @@
     },
     {
       "id": "tests-javascript-k6",
-      "status": "slot",
+      "status": "active",
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-k6",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-javascript-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-javascript-artillery",
+      "status": "active",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-artillery",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-javascript-webdriverio",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-webdriverio",
+      "layers": [
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -507,21 +796,53 @@
     },
     {
       "id": "tests-typescript-k6",
-      "status": "slot",
+      "status": "active",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-k6",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-typescript-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-typescript-artillery",
+      "status": "active",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-artillery",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-typescript-webdriverio",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-webdriverio",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-typescript-cypress",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-cypress",
+      "layers": [
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -616,23 +937,23 @@
     },
     {
       "id": "tests-python-yandex_tank",
-      "status": "slot",
+      "status": "active",
       "language": "python",
       "module": "tests/python/tests-python-yandex_tank",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-python-locust",
-      "status": "slot",
+      "status": "active",
       "language": "python",
       "module": "tests/python/tests-python-locust",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living"
     },
     {
       "id": "tests-go-testing-net_http",
@@ -677,6 +998,16 @@
       ],
       "in_stack": true,
       "role": "mill"
+    },
+    {
+      "id": "tests-go-vegeta",
+      "status": "active",
+      "language": "go",
+      "module": "tests/go/tests-go-vegeta",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
     },
     {
       "id": "tests-csharp-nunit-restsharp-selenium",
@@ -735,6 +1066,16 @@
       "role": "living"
     },
     {
+      "id": "tests-csharp-nbomber",
+      "status": "active",
+      "language": "csharp",
+      "module": "tests/csharp/tests-csharp-nbomber",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
       "id": "tests-rust-testing-reqwest",
       "status": "active",
       "language": "rust",
@@ -766,6 +1107,177 @@
         "e2e"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-rust-goose",
+      "status": "active",
+      "language": "rust",
+      "module": "tests/rust/tests-rust-goose",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-lua-wrk",
+      "status": "active",
+      "language": "lua",
+      "module": "tests/lua/tests-lua-wrk",
+      "layers": [
+        "performance"
+      ],
+      "role": "living"
+    },
+    {
+      "id": "tests-ruby-rspec-capybara",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-capybara",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-ruby-rspec-httparty",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-httparty",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-ruby-rspec-httparty-capybara",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-httparty-capybara",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-selenium",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-guzzle",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-guzzle",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-guzzle-selenium",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-guzzle-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-codeception",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-codeception",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-req",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-req",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-wallaby",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-wallaby",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-req-wallaby",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-req-wallaby",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-dart-test-http",
+      "status": "slot",
+      "language": "dart",
+      "module": "tests/dart/tests-dart-test-http",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-dart-flutter_test",
+      "status": "slot",
+      "language": "dart",
+      "module": "tests/dart/tests-dart-flutter_test",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-swift-xcuitest",
+      "status": "slot",
+      "language": "swift",
+      "module": "tests/swift/tests-swift-xcuitest",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-clojure-etaoin",
+      "status": "slot",
+      "language": "clojure",
+      "module": "tests/clojure/tests-clojure-etaoin",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     }
   ]
 }
