@@ -16,7 +16,7 @@ export const en: Dictionary = {
     panelAgents: 'Agents',
     panelDestination: 'Destination',
     millProtect: 'protect',
-    cloneCourse: 'as on the course',
+    cloneCourse: 'Ethalon project',
     outputFormat: 'Output format',
     reset: 'Reset',
     download: 'Download',

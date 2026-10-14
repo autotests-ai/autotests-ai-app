@@ -513,10 +513,10 @@ describe('HomePage', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<HomePage />);
-    expect(screen.getByTestId('landing-clone-course')).toHaveTextContent('as on the course');
+    expect(screen.getByTestId('landing-clone-course')).toHaveTextContent(en.home.cloneCourse);
     expect(
       within(screen.getByTestId('landing-seg-destination')).queryByRole('button', {
-        name: 'as on the course',
+        name: en.home.cloneCourse,
       }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByTestId('landing-clone-course'));
