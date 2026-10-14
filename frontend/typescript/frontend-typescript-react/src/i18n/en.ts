@@ -44,7 +44,8 @@ export const en: Dictionary = {
       cloud: 'Put the repo in the school cloud after school IdP login.',
       user: 'Create the repo on your GitHub after GitHub login.',
     },
-    helpCloneCourse: 'The same skeleton students use for homework.',
+    helpCloneCourse:
+      'Fixed course cell: Java Spring + TypeScript React + JUnit 5 / REST Assured / Selenide. Selected stacks do not apply; the button is disabled when they differ from the course cell. Use Download for your configuration.',
     helpBuild: 'OS, language, and build tool for running tests.',
     helpAllure: 'How the Allure report is produced after the run.',
     helpDriver: 'Browser, viewport, headless, and close flags for UI tests.',

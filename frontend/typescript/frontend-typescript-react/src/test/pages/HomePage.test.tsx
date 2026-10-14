@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { HEADER_LANG_CHANGE, ru } from '../../i18n';
+import { en, HEADER_LANG_CHANGE, LANG_STORAGE_KEY, ru } from '../../i18n';
 import { githubOAuthAssign, writeGithubUserSession } from '../../lib/github-oauth';
 import { idpAssign, idpGate, writeIdpSession } from '../../lib/idp-login';
 import {
@@ -527,6 +527,91 @@ describe('HomePage', () => {
     });
     expect(anchors[0]?.download).toBe('clone-as-student.zip');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    {
+      lang: 'en',
+      copy: en.home,
+      explanation: /Fixed course cell.*Selected stacks do not apply/,
+    },
+    {
+      lang: 'ru',
+      copy: ru.home,
+      explanation: /Фиксированная ячейка курса.*Выбранные стеки не применяются/,
+    },
+  ])(
+    'explains the fixed course cell in $lang next to the clone button',
+    async ({ lang, copy, explanation }) => {
+      const user = userEvent.setup();
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
+      render(<HomePage />);
+
+      const cloneButton = screen.getByTestId('landing-clone-course');
+      expect(cloneButton).toBeEnabled();
+      expect(cloneButton).toHaveClass('btn--secondary');
+      expect(cloneButton).toHaveAttribute('title', copy.helpCloneCourse);
+      expect(cloneButton).toHaveAccessibleDescription(copy.helpCloneCourse);
+      await user.click(screen.getByTestId('landing-clone-course-help-btn'));
+      const help = screen.getByRole('dialog', { name: copy.cloneCourse });
+      expect(help).toHaveTextContent(copy.helpCloneCourse);
+      expect(help).toHaveTextContent(explanation);
+    },
+  );
+
+  it.each([
+    ['backend', 'python-fastapi', DEFAULTS.coverageProfile.product.backend.stack],
+    ['frontend', 'typescript-vue', DEFAULTS.coverageProfile.product.frontend.stack],
+    ['tests', 'python-pytest-api_request-playwright', TAKEAWAY_TESTS_STACK],
+  ])('disables course cloning when the %s stack differs from canon', async (axis, value, canon) => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    render(<HomePage />);
+
+    const cloneButton = screen.getByTestId('landing-clone-course');
+    expect(cloneButton).toBeEnabled();
+    await user.selectOptions(screen.getByRole('combobox', { name: axis }), value);
+    expect(cloneButton).toBeDisabled();
+    expect(screen.getByTestId('landing-terminal-download')).toBeEnabled();
+    await user.click(cloneButton);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const helpButton = screen.getByTestId('landing-clone-course-help-btn');
+    expect(helpButton).toBeEnabled();
+    await user.click(helpButton);
+    expect(screen.getByRole('dialog', { name: en.home.cloneCourse })).toHaveTextContent(
+      en.home.helpCloneCourse,
+    );
+    await user.selectOptions(screen.getByRole('combobox', { name: axis }), canon);
+    expect(cloneButton).toBeEnabled();
+  });
+
+  it('restores course cloning on reset after multiple stack mismatches', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'backend' }), 'python-fastapi');
+    await user.selectOptions(screen.getByRole('combobox', { name: 'frontend' }), 'typescript-vue');
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'tests' }),
+      'python-pytest-api_request-playwright',
+    );
+    const cloneButton = screen.getByTestId('landing-clone-course');
+    expect(cloneButton).toBeDisabled();
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'backend' }),
+      DEFAULTS.coverageProfile.product.backend.stack,
+    );
+    expect(cloneButton).toBeDisabled();
+    await user.click(screen.getByTestId('landing-terminal-reset'));
+    expect(cloneButton).toBeEnabled();
+  });
+
+  it('keeps course cloning available when only load changes', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'load' }), 'java-jmeter');
+    expect(screen.getByTestId('landing-clone-course')).toBeEnabled();
   });
 
   it('POSTs dest zip YAML with harness.mill when protect is true', async () => {

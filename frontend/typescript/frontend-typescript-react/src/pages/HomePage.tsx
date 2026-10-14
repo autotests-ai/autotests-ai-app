@@ -82,6 +82,9 @@ import {
   setMillAccess,
   setTestsStack,
   shouldAdoptDestZip,
+  TAKEAWAY_BACKEND_STACK,
+  TAKEAWAY_FRONTEND_STACK,
+  TAKEAWAY_TESTS_STACK,
   TESTS_STACKS,
   toggleAgentAccess,
   toJson,
@@ -181,6 +184,10 @@ export function HomePage() {
   const [importBusy, setImportBusy] = useState(false);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const [cloneBusy, setCloneBusy] = useState(false);
+  const courseStacksMatch =
+    config.coverageProfile.product.backend.stack === TAKEAWAY_BACKEND_STACK &&
+    config.coverageProfile.product.frontend.stack === TAKEAWAY_FRONTEND_STACK &&
+    config.coverageProfile.automation.api.stack === TAKEAWAY_TESTS_STACK;
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
   const adoptDest =
@@ -291,7 +298,7 @@ export function HomePage() {
   };
 
   const runCloneCourse = () => {
-    if (cloneBusy) {
+    if (cloneBusy || !courseStacksMatch) {
       return;
     }
     setCloneBusy(true);
@@ -571,15 +578,22 @@ export function HomePage() {
                   )}
                 </PlaqueFieldGrid>
               ) : null}
-              <PlaqueFieldGrid layout="solo" aria-label={copy.home.cloneCourse}>
+              <PlaqueFieldGrid layout="pair" aria-label={copy.home.cloneCourse}>
                 <Button
                   variant="secondary"
                   data-testid="landing-clone-course"
-                  disabled={cloneBusy}
+                  title={copy.home.helpCloneCourse}
+                  aria-description={copy.home.helpCloneCourse}
+                  disabled={cloneBusy || !courseStacksMatch}
                   onClick={runCloneCourse}
                 >
                   {copy.home.cloneCourse}
                 </Button>
+                <PanelHelp
+                  items={[{ title: copy.home.cloneCourse, body: copy.home.helpCloneCourse }]}
+                  ariaLabel={copy.home.cloneCourse}
+                  data-testid="landing-clone-course-help"
+                />
               </PlaqueFieldGrid>
             </ConfigPanel>
 
