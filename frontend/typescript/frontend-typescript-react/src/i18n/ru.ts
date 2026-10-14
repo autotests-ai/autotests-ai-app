@@ -67,6 +67,8 @@ export const ru: Dictionary = {
     colApi: 'API',
     colTests: 'Тесты',
     colAllure: 'Allure',
+    colReport: 'Отчёт',
+    colGrafana: 'Grafana',
     colStatus: 'Статус',
     colOpen: 'Открыть',
     colLayers: 'Слои',
@@ -78,7 +80,10 @@ export const ru: Dictionary = {
     allure: 'Отчёт Allure {id}',
     loadBoard: 'Борд нагрузки',
     loadBoardTitle: 'load.autotests.ai',
+    report: 'Отчёт {id}',
+    reportTitle: 'Последний нативный отчёт инжектора',
     grafana: 'Grafana',
+    grafanaModule: 'Grafana {id}',
     grafanaTitle: 'Load SUT observer',
     helpBackend:
       'Какая ячейка бэкенда в паре. Иконки открывают GitHub, Swagger, unit-тесты и Allure.',
@@ -86,7 +91,8 @@ export const ru: Dictionary = {
       'Какая ячейка фронтенда в паре. «Открыть» ведёт в ячейку; иконки — GitHub, component-тесты и Allure.',
     helpTests:
       'Unit-тесты в модуле бэкенда, component — во фронтенде, затем продуктовые стеки со слоями api и e2e. Иконки открывают GitHub и Allure.',
-    helpPerformance: 'Ячейки нагрузки (JMeter, Locust). Статус active или slot; GitHub — в строке.',
+    helpPerformance:
+      'Ячейки нагрузки (JMeter, Locust). Статус active или slot; иконки в строке открывают GitHub, последний нативный отчёт и Grafana выбранного бэкенда.',
     helpLoadBoard: 'Публичный борд нагрузки load.autotests.ai.',
     helpGrafana: 'Grafana-дашборд выбранного бэкенда (Load SUT observer).',
   },

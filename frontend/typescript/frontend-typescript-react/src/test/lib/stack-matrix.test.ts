@@ -31,6 +31,7 @@ import {
   grafanaLoadSutHref,
   isOpenable,
   LOAD_BOARD_HREF,
+  loadRunReportHref,
   localComponentTestsPath,
   PERFORMANCE_ROW_LAYERS,
   parseMount,
@@ -231,6 +232,45 @@ describe('stack-matrix helpers', () => {
     expect(grafanaLoadSutHref('backend-python-flask')).toBe(
       'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
     );
+    expect(grafanaLoadSutHref('backend-java-spring', 30)).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring&viewPanel=30',
+    );
+    expect(grafanaLoadSutHref('backend-java-spring', '65')).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring&viewPanel=65',
+    );
+    expect(grafanaLoadSutHref('backend-java-spring', 0)).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+    );
+    expect(grafanaLoadSutHref('backend-java-spring', 'x')).toBe(
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+    );
+  });
+
+  it('builds native report hrefs for the selected backend cell', () => {
+    const jmeter = {
+      id: 'tests-java-jmeter',
+      reports: {
+        'backend-java-spring':
+          'https://load.autotests.ai/runs/java-jmeter::backend-java-spring/injector-20260913T0913Z/',
+        'backend-python-flask': '/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/',
+      },
+    };
+    expect(loadRunReportHref(null, 'backend-java-spring')).toBe(null);
+    expect(loadRunReportHref(jmeter, null)).toBe(null);
+    expect(loadRunReportHref({ id: 'tests-x' }, 'backend-java-spring')).toBe(null);
+    expect(loadRunReportHref(jmeter, 'backend-go-gin')).toBe(null);
+    expect(loadRunReportHref(jmeter, 'backend-java-spring')).toBe(
+      'https://load.autotests.ai/runs/java-jmeter::backend-java-spring/injector-20260913T0913Z/',
+    );
+    expect(loadRunReportHref(jmeter, 'backend-python-flask')).toBe(
+      'https://load.autotests.ai/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/',
+    );
+    expect(
+      loadRunReportHref(
+        { id: 'tests-x', reports: { 'backend-java-spring': 'https://evil.example/x' } },
+        'backend-java-spring',
+      ),
+    ).toBe(null);
   });
 
   it('builds Allure awesome hrefs filtered by searchable tokens', () => {

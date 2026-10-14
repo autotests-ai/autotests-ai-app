@@ -80,6 +80,13 @@ const MATRIX: StackMatrix = {
       language: 'java',
       module: 'tests/java/tests-java-jmeter',
       layers: ['performance'],
+      grafanaPanel: 30,
+      reports: {
+        'backend-java-spring':
+          'https://load.autotests.ai/runs/java-jmeter::backend-java-spring/injector-20260913T0913Z/',
+        'backend-python-flask':
+          'https://load.autotests.ai/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/',
+      },
     },
     {
       id: 'tests-python-locust',
@@ -87,6 +94,7 @@ const MATRIX: StackMatrix = {
       language: 'python',
       module: 'tests/python/tests-python-locust',
       layers: ['performance'],
+      grafanaPanel: 41,
     },
   ],
 };
@@ -218,11 +226,26 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-load-board')).toHaveAttribute('target', '_blank');
     expect(screen.getByTestId('stack-load-board')).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+    expect(screen.queryByTestId('stack-load-grafana')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
-      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring&viewPanel=30',
     );
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute('target', '_blank');
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
+      'target',
+      '_blank',
+    );
+    expect(screen.getByTestId('stack-report-performance-tests-java-jmeter')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/runs/java-jmeter::backend-java-spring/injector-20260913T0913Z/',
+    );
+    expect(
+      screen.queryByTestId('stack-report-performance-tests-python-locust'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-grafana-performance-tests-python-locust')).toHaveAttribute(
+      'href',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring&viewPanel=41',
+    );
     expect(screen.getByTestId('stack-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
       'https://load.autotests.ai/',
@@ -259,7 +282,7 @@ describe('StackPage', () => {
     expect(bindStackHeaderPoll).toHaveBeenCalled();
   });
 
-  it('puts help-info on each board bar and keeps load/Grafana on Performance', async () => {
+  it('puts help-info on each board bar and keeps the load board on Performance', async () => {
     renderAt('/stack/');
     await waitFor(() => {
       expect(screen.getByTestId('stack-backend-board')).toBeInTheDocument();
@@ -278,9 +301,10 @@ describe('StackPage', () => {
       'href',
       'https://load.autotests.ai/',
     );
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+    expect(screen.queryByTestId('stack-load-grafana')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
-      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-java-spring&viewPanel=30',
     );
   });
 
@@ -377,9 +401,13 @@ describe('StackPage', () => {
     expect(screen.getByTestId('stack-backend-backend-go-slot').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-frontend-frontend-slot').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-tests-tests-slot').tagName).toBe('SPAN');
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
-      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask&viewPanel=30',
+    );
+    expect(screen.getByTestId('stack-report-performance-tests-java-jmeter')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/',
     );
     expect(screen.getByTestId('stack-performance-tests-python-locust').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-performance-tests-python-locust')).not.toHaveAttribute('href');
@@ -454,6 +482,12 @@ describe('StackPage', () => {
       'https://load.autotests.ai/',
     );
     expect(screen.queryByTestId('stack-load-grafana')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('stack-grafana-performance-tests-java-jmeter'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('stack-report-performance-tests-java-jmeter'),
+    ).not.toBeInTheDocument();
   });
 
   it('uses path pair hrefs off the hub', async () => {
@@ -469,9 +503,13 @@ describe('StackPage', () => {
     );
     expect(screen.getByTestId('stack-tests-unit')).toHaveTextContent('backend-python-flask/tests');
     expect(screen.queryByTestId('stack-allure-tests-unit')).not.toBeInTheDocument();
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
       'href',
-      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask',
+      'https://grafana.qa.guru/d/load-sut-observer?var-cell=backend-python-flask&viewPanel=30',
+    );
+    expect(screen.getByTestId('stack-report-performance-tests-java-jmeter')).toHaveAttribute(
+      'href',
+      'https://load.autotests.ai/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/',
     );
   });
 
@@ -614,9 +652,10 @@ describe('StackPage', () => {
       'aria-label',
       ru.stack.loadBoard,
     );
-    expect(screen.getByTestId('stack-load-grafana')).toHaveAttribute(
+    expect(screen.queryByTestId('stack-load-grafana')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stack-grafana-performance-tests-java-jmeter')).toHaveAttribute(
       'aria-label',
-      ru.stack.grafana,
+      'Grafana tests-java-jmeter',
     );
     expect(
       within(screen.getByTestId('stack-backend-board')).getByTestId('stack-backend-help-btn'),

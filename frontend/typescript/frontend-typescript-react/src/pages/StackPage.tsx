@@ -27,6 +27,7 @@ import {
   grafanaLoadSutHref,
   isOpenable,
   LOAD_BOARD_HREF,
+  loadRunReportHref,
   localComponentTestsPath,
   type ModuleStatus,
   parseTestsId,
@@ -138,6 +139,24 @@ function GrafanaMark() {
     >
       <path d="M16.5 4.8a8 8 0 1 0 1.2 10.7" />
       <path d="M12 12h8" />
+    </svg>
+  );
+}
+
+/** Native injector report — www/matrix.js ICON_DOC. */
+function ReportMark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7 3h8l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M15 3v5h5" />
+      <path d="M9 13h6M9 17h4" />
     </svg>
   );
 }
@@ -342,6 +361,48 @@ function ModuleAllureCell({
   );
 }
 
+function LoadReportCell({
+  item,
+  backendId,
+  copy,
+}: {
+  item: TestsModule;
+  backendId: string | null;
+  copy: Dictionary;
+}) {
+  return (
+    <IconHrefCell
+      href={loadRunReportHref(item, backendId)}
+      label={formatCopy(copy.stack.report, { id: item.id })}
+      title={copy.stack.reportTitle}
+      testId={`stack-report-performance-${item.id}`}
+    >
+      <ReportMark />
+    </IconHrefCell>
+  );
+}
+
+function LoadGrafanaCell({
+  item,
+  backendId,
+  copy,
+}: {
+  item: TestsModule;
+  backendId: string | null;
+  copy: Dictionary;
+}) {
+  return (
+    <IconHrefCell
+      href={grafanaLoadSutHref(backendId, item.grafanaPanel)}
+      label={formatCopy(copy.stack.grafanaModule, { id: item.id })}
+      title={copy.stack.grafanaTitle}
+      testId={`stack-grafana-performance-${item.id}`}
+    >
+      <GrafanaMark />
+    </IconHrefCell>
+  );
+}
+
 function StackBoardHelp({ id, title, copy }: { id: StackHelpId; title: string; copy: Dictionary }) {
   return (
     <PanelHelp
@@ -407,7 +468,6 @@ export function StackPage() {
   if (currentTests) labelParts.push(currentTests);
   const label = labelParts.join(' · ');
   const homeHref = stackHref(selection.backendId, selection.frontendId);
-  const grafanaHref = grafanaLoadSutHref(selection.backendId);
 
   function metaFor(kind: 'backend' | 'frontend', item: BackendModule | FrontendModule): string {
     const status = item.status || 'active';
@@ -946,19 +1006,6 @@ export function StackPage() {
                 >
                   <LoadBoardMark />
                 </IconBtn>
-                {grafanaHref ? (
-                  <IconBtn
-                    as="a"
-                    href={grafanaHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={copy.stack.grafana}
-                    title={copy.stack.grafanaTitle}
-                    data-testid="stack-load-grafana"
-                  >
-                    <GrafanaMark />
-                  </IconBtn>
-                ) : null}
               </>
             }
           >
@@ -968,6 +1015,12 @@ export function StackPage() {
                   <th>{copy.stack.colModule}</th>
                   <th className="stack-page__gh-cell" title={copy.stack.colGh}>
                     {copy.stack.colGh}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colReport}>
+                    {copy.stack.colReport}
+                  </th>
+                  <th className="stack-page__gh-cell" title={copy.stack.colGrafana}>
+                    {copy.stack.colGrafana}
                   </th>
                   <th className="stack-page__status-cell">{copy.stack.colStatus}</th>
                 </tr>
@@ -1009,6 +1062,12 @@ export function StackPage() {
                           id={item.id}
                           copy={copy}
                         />
+                      </td>
+                      <td className="stack-page__gh-cell">
+                        <LoadReportCell item={item} backendId={selection.backendId} copy={copy} />
+                      </td>
+                      <td className="stack-page__gh-cell">
+                        <LoadGrafanaCell item={item} backendId={selection.backendId} copy={copy} />
                       </td>
                       <td className="stack-page__status-cell">{statusBadge(item.status)}</td>
                     </tr>

@@ -66,6 +66,8 @@ export interface Dictionary {
     colApi: string;
     colTests: string;
     colAllure: string;
+    colReport: string;
+    colGrafana: string;
     colStatus: string;
     colOpen: string;
     colLayers: string;
@@ -77,7 +79,10 @@ export interface Dictionary {
     allure: string;
     loadBoard: string;
     loadBoardTitle: string;
+    report: string;
+    reportTitle: string;
     grafana: string;
+    grafanaModule: string;
     grafanaTitle: string;
     helpBackend: string;
     helpFrontend: string;

@@ -74,7 +74,7 @@ export function flattenPanelHelpItems(copy: Dictionary): HelpInfoItem[] {
   return PANEL_HELP_IDS.flatMap((id) => catalog[id]);
 }
 
-/** /stack/ board popovers. Load/Grafana stay as bar icons; listed here so hover names them. */
+/** /stack/ board popovers. Load board stays a bar icon; report/Grafana are row icons. */
 export function stackHelpItems(copy: Dictionary): Record<StackHelpId, HelpInfoItem[]> {
   const stack = copy.stack;
   return {
