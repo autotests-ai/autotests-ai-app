@@ -124,9 +124,9 @@ export type MillSlot = {
   generation?: string;
 };
 
-/** Load/jmeter is a /stack/ slot, not a pyramid @Layer. */
+/** Load/jmeter is a /stack/ slot, not a pyramid @Layer. `slot` keeps access `none`. */
 export type LoadSurface = {
-  access: 'none';
+  access: LayerAccess | 'none';
   stack: string;
   module: string;
 };
@@ -236,10 +236,198 @@ export const TAKEAWAY_COVERAGE_PROFILE: CoverageProfile = {
   },
 };
 
-export const PRODUCT_BACKEND_STACKS = [{ value: TAKEAWAY_BACKEND_STACK }] as const;
-export const PRODUCT_FRONTEND_STACKS = [{ value: TAKEAWAY_FRONTEND_STACK }] as const;
-export const TESTS_STACKS = [{ value: TAKEAWAY_TESTS_STACK }] as const;
-export const LOAD_STACKS = [{ value: TAKEAWAY_LOAD_STACK }] as const;
+/** Living cells — hub matrix.yaml `backends` rows with status: active (slots not emittable). */
+export const PRODUCT_BACKEND_STACKS = [
+  { value: 'java-spring', module: 'backend/java/backend-java-spring' },
+  { value: 'kotlin-spring', module: 'backend/kotlin/backend-kotlin-spring' },
+  { value: 'kotlin-ktor', module: 'backend/kotlin/backend-kotlin-ktor' },
+  { value: 'python-flask', module: 'backend/python/backend-python-flask' },
+  { value: 'python-fastapi', module: 'backend/python/backend-python-fastapi' },
+  { value: 'python-django', module: 'backend/python/backend-python-django' },
+  { value: 'go-gin', module: 'backend/go/backend-go-gin' },
+  { value: 'go-stdlib', module: 'backend/go/backend-go-stdlib' },
+  { value: 'javascript-express', module: 'backend/javascript/backend-javascript-express' },
+  { value: 'javascript-nest', module: 'backend/javascript/backend-javascript-nest' },
+  { value: 'typescript-express', module: 'backend/typescript/backend-typescript-express' },
+  { value: 'typescript-nest', module: 'backend/typescript/backend-typescript-nest' },
+  { value: 'csharp-aspnet', module: 'backend/csharp/backend-csharp-aspnet' },
+  { value: 'rust-axum', module: 'backend/rust/backend-rust-axum' },
+] as const;
+
+/** Hub matrix.yaml `frontends` rows with status: active. */
+export const PRODUCT_FRONTEND_STACKS = [
+  { value: 'javascript-vanilla', module: 'frontend/javascript/frontend-javascript-vanilla' },
+  { value: 'javascript-react', module: 'frontend/javascript/frontend-javascript-react' },
+  { value: 'javascript-angular', module: 'frontend/javascript/frontend-javascript-angular' },
+  { value: 'javascript-vue', module: 'frontend/javascript/frontend-javascript-vue' },
+  { value: 'javascript-jquery', module: 'frontend/javascript/frontend-javascript-jquery' },
+  { value: 'typescript-vanilla', module: 'frontend/typescript/frontend-typescript-vanilla' },
+  { value: 'typescript-react', module: 'frontend/typescript/frontend-typescript-react' },
+  { value: 'typescript-angular', module: 'frontend/typescript/frontend-typescript-angular' },
+  { value: 'typescript-vue', module: 'frontend/typescript/frontend-typescript-vue' },
+  { value: 'typescript-jquery', module: 'frontend/typescript/frontend-typescript-jquery' },
+] as const;
+
+/** Hub matrix.yaml `tests.profiles` — active, non-performance, product-agnostic modules. */
+export const TESTS_STACKS = [
+  {
+    value: 'java-junit5-rest_assured-selenide',
+    module: 'tests/java/tests-java-junit5-rest_assured-selenide',
+  },
+  {
+    value: 'java-junit5-rest_assured-selenide-appium',
+    module: 'tests/java/tests-java-junit5-rest_assured-selenide-appium',
+  },
+  {
+    value: 'java-junit5-rest_assured-selenium',
+    module: 'tests/java/tests-java-junit5-rest_assured-selenium',
+  },
+  {
+    value: 'java-junit5-api_request-playwright',
+    module: 'tests/java/tests-java-junit5-api_request-playwright',
+  },
+  { value: 'java-junit5-rest_assured', module: 'tests/java/tests-java-junit5-rest_assured' },
+  { value: 'java-junit5-retrofit2', module: 'tests/java/tests-java-junit5-retrofit2' },
+  {
+    value: 'python-pytest-requests-selenium',
+    module: 'tests/python/tests-python-pytest-requests-selenium',
+  },
+  {
+    value: 'python-pytest-requests-selene',
+    module: 'tests/python/tests-python-pytest-requests-selene',
+  },
+  {
+    value: 'python-pytest-api_request-playwright',
+    module: 'tests/python/tests-python-pytest-api_request-playwright',
+  },
+  { value: 'python-pytest-requests', module: 'tests/python/tests-python-pytest-requests' },
+  { value: 'python-pytest-httpx', module: 'tests/python/tests-python-pytest-httpx' },
+  {
+    value: 'javascript-api_request-playwright',
+    module: 'tests/javascript/tests-javascript-api_request-playwright',
+  },
+  { value: 'javascript-playwright', module: 'tests/javascript/tests-javascript-playwright' },
+  { value: 'javascript-axios', module: 'tests/javascript/tests-javascript-axios' },
+  {
+    value: 'typescript-api_request-playwright',
+    module: 'tests/typescript/tests-typescript-api_request-playwright',
+  },
+  { value: 'typescript-axios', module: 'tests/typescript/tests-typescript-axios' },
+  { value: 'go-testing-net_http', module: 'tests/go/tests-go-testing-net_http' },
+  {
+    value: 'go-testing-api_request-playwright',
+    module: 'tests/go/tests-go-testing-api_request-playwright',
+  },
+  {
+    value: 'kotlin-junit5-ktor-selenide',
+    module: 'tests/kotlin/tests-kotlin-junit5-ktor-selenide',
+  },
+  {
+    value: 'kotlin-junit5-ktor-selenium',
+    module: 'tests/kotlin/tests-kotlin-junit5-ktor-selenium',
+  },
+  {
+    value: 'kotlin-junit5-api_request-playwright',
+    module: 'tests/kotlin/tests-kotlin-junit5-api_request-playwright',
+  },
+  { value: 'kotlin-junit5-ktor', module: 'tests/kotlin/tests-kotlin-junit5-ktor' },
+  {
+    value: 'csharp-nunit-restsharp-selenium',
+    module: 'tests/csharp/tests-csharp-nunit-restsharp-selenium',
+  },
+  { value: 'csharp-nunit-restsharp', module: 'tests/csharp/tests-csharp-nunit-restsharp' },
+  {
+    value: 'csharp-xunit-api_request-playwright',
+    module: 'tests/csharp/tests-csharp-xunit-api_request-playwright',
+  },
+  { value: 'rust-testing-reqwest', module: 'tests/rust/tests-rust-testing-reqwest' },
+  { value: 'rust-testing-selenium', module: 'tests/rust/tests-rust-testing-selenium' },
+  {
+    value: 'rust-testing-reqwest-selenium',
+    module: 'tests/rust/tests-rust-testing-reqwest-selenium',
+  },
+] as const;
+
+/** `slot` = no load layer; rest — matrix `performance` profiles with status: active. */
+export const LOAD_STACKS = [
+  { value: 'slot', module: '' },
+  { value: 'java-jmeter', module: 'tests/java/tests-java-jmeter' },
+  { value: 'java-gatling', module: 'tests/java/tests-java-gatling' },
+  { value: 'kotlin-jmeter', module: 'tests/kotlin/tests-kotlin-jmeter' },
+  { value: 'kotlin-gatling', module: 'tests/kotlin/tests-kotlin-gatling' },
+  { value: 'scala-gatling', module: 'tests/scala/tests-scala-gatling' },
+  { value: 'groovy-jmeter', module: 'tests/groovy/tests-groovy-jmeter' },
+  { value: 'javascript-gatling', module: 'tests/javascript/tests-javascript-gatling' },
+  { value: 'javascript-k6', module: 'tests/javascript/tests-javascript-k6' },
+  { value: 'javascript-artillery', module: 'tests/javascript/tests-javascript-artillery' },
+  { value: 'typescript-gatling', module: 'tests/typescript/tests-typescript-gatling' },
+  { value: 'typescript-k6', module: 'tests/typescript/tests-typescript-k6' },
+  { value: 'typescript-artillery', module: 'tests/typescript/tests-typescript-artillery' },
+  { value: 'python-locust', module: 'tests/python/tests-python-locust' },
+  { value: 'python-yandex_tank', module: 'tests/python/tests-python-yandex_tank' },
+  { value: 'go-vegeta', module: 'tests/go/tests-go-vegeta' },
+  { value: 'csharp-nbomber', module: 'tests/csharp/tests-csharp-nbomber' },
+  { value: 'rust-goose', module: 'tests/rust/tests-rust-goose' },
+  { value: 'lua-wrk', module: 'tests/lua/tests-lua-wrk' },
+] as const;
+
+type StackOption = { value: string; module: string };
+
+function stackOption(catalog: ReadonlyArray<StackOption>, value: string): StackOption | undefined {
+  return catalog.find((option) => option.value === value);
+}
+
+/** backend select → product.backend + unit/integration layers live in the backend repo. */
+export function setBackendStack(profile: CoverageProfile, value: string): CoverageProfile {
+  const option = stackOption(PRODUCT_BACKEND_STACKS, value);
+  if (!option) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  next.product.backend = { stack: option.value, access: 'write' };
+  next.automation.unit = takeawayLayer(option.value, option.module);
+  next.automation.integration = takeawayLayer(option.value, option.module);
+  return next;
+}
+
+/** frontend select → product.frontend + component layer live in the frontend repo. */
+export function setFrontendStack(profile: CoverageProfile, value: string): CoverageProfile {
+  const option = stackOption(PRODUCT_FRONTEND_STACKS, value);
+  if (!option) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  next.product.frontend = { stack: option.value, access: 'write' };
+  next.automation.component = takeawayLayer(option.value, option.module);
+  return next;
+}
+
+/** tests select → api/ui/e2e/manual layers share one tests module (canonical takeaway cell). */
+export function setTestsStack(profile: CoverageProfile, value: string): CoverageProfile {
+  const option = stackOption(TESTS_STACKS, value);
+  if (!option) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  for (const layer of ['api', 'ui', 'e2e', 'manual'] as const) {
+    next.automation[layer] = takeawayLayer(option.value, option.module);
+  }
+  return next;
+}
+
+/** load select → `slot` clears the layer; a performance profile pins its module. */
+export function setLoadStack(profile: CoverageProfile, value: string): CoverageProfile {
+  const option = stackOption(LOAD_STACKS, value);
+  if (!option) {
+    return profile;
+  }
+  const next = cloneCoverageProfile(profile);
+  next.load =
+    option.value === TAKEAWAY_LOAD_STACK
+      ? { access: 'none', stack: TAKEAWAY_LOAD_STACK, module: '' }
+      : { access: 'write', stack: option.value, module: option.module };
+  return next;
+}
 
 export const DESTINATIONS = [
   { value: 'zip' },
