@@ -34,7 +34,11 @@ import {
   millSegValue,
   outputFilename,
   postAdoptDestZip,
+  setBackendStack,
+  setFrontendStack,
+  setLoadStack,
   setMillAccess,
+  setTestsStack,
   shouldAdoptDestZip,
   shouldAssembleZip,
   shouldAssembleZipLoopback,
@@ -177,6 +181,71 @@ describe('landing-config', () => {
     const off = setMillAccess(profile, 'false');
     expect(off.harness.mill).toBeUndefined();
     expect(toYaml({ ...config, coverageProfile: off }, 'vector#mill')).not.toContain('mill:');
+  });
+
+  it('setBackendStack moves product.backend and unit/integration layers to a living module', () => {
+    const profile = setBackendStack(cloneConfig(DEFAULTS).coverageProfile, 'kotlin-ktor');
+    expect(profile.product.backend).toEqual({ stack: 'kotlin-ktor', access: 'write' });
+    expect(profile.automation.unit).toEqual({
+      access: 'write',
+      stack: 'kotlin-ktor',
+      module: 'backend/kotlin/backend-kotlin-ktor',
+    });
+    expect(profile.automation.integration.module).toBe('backend/kotlin/backend-kotlin-ktor');
+    expect(profile.automation.component.stack).toBe('typescript-react');
+    expect(profile.automation.e2e.stack).toBe(TAKEAWAY_TESTS_STACK);
+    expect(setBackendStack(profile, 'backend-php-laravel')).toBe(profile);
+    expect(setBackendStack(profile, 'no-such-stack')).toBe(profile);
+  });
+
+  it('setFrontendStack moves product.frontend and component layer', () => {
+    const profile = setFrontendStack(cloneConfig(DEFAULTS).coverageProfile, 'javascript-vue');
+    expect(profile.product.frontend).toEqual({ stack: 'javascript-vue', access: 'write' });
+    expect(profile.automation.component).toEqual({
+      access: 'write',
+      stack: 'javascript-vue',
+      module: 'frontend/javascript/frontend-javascript-vue',
+    });
+    expect(profile.product.backend.stack).toBe('java-spring');
+    expect(setFrontendStack(profile, 'typescript-svelte')).toBe(profile);
+  });
+
+  it('setTestsStack pins api/ui/e2e/manual layers to the chosen tests module', () => {
+    const profile = setTestsStack(
+      cloneConfig(DEFAULTS).coverageProfile,
+      'python-pytest-requests-selene',
+    );
+    for (const layer of ['api', 'ui', 'e2e', 'manual'] as const) {
+      expect(profile.automation[layer]).toEqual({
+        access: 'write',
+        stack: 'python-pytest-requests-selene',
+        module: 'tests/python/tests-python-pytest-requests-selene',
+      });
+    }
+    expect(profile.product.backend.stack).toBe('java-spring');
+    expect(catalogProfileId(profile)).toBe('python-pytest-requests-selene');
+    expect(setTestsStack(profile, 'java-jmeter')).toBe(profile);
+    expect(setTestsStack(profile, 'python-pytest-aiohttp')).toBe(profile);
+  });
+
+  it('setLoadStack toggles slot none ↔ performance write', () => {
+    const off = cloneConfig(DEFAULTS).coverageProfile;
+    expect(setLoadStack(off, 'javascript-artillery')).toMatchObject({
+      load: {
+        access: 'write',
+        stack: 'javascript-artillery',
+        module: 'tests/javascript/tests-javascript-artillery',
+      },
+    });
+    const on = setLoadStack(off, 'java-gatling');
+    expect(on.load.access).toBe('write');
+    const back = setLoadStack(on, 'slot');
+    expect(back.load).toEqual({ access: 'none', stack: 'slot', module: '' });
+    expect(setLoadStack(on, 'python-pytest-requests')).toBe(on);
+    const yaml = toYaml({ ...cloneConfig(DEFAULTS), coverageProfile: on }, 'vector#load');
+    expect(yaml).toContain(
+      'load: { access: write, stack: java-gatling, module: tests/java/tests-java-gatling }',
+    );
   });
 
   it('keeps dest catalog cloud user dumps when mill is write', () => {

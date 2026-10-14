@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef } from 'react';
-import { mountHelpInfo } from '../../vendor/ds/js/help-info.js';
+import { HelpInfo, type HelpInfoItem } from '@zero-design-system/react';
 import { type Dictionary, formatCopy } from '../i18n';
 import { AGENT_CATALOG, DESTINATIONS } from './landing-config';
 
-export type HelpInfoItem = { title: string; body: string };
+export type { HelpInfoItem };
+export { HelpInfo as PanelHelp };
 
 export type PanelHelpId =
   | 'project'
@@ -74,7 +74,7 @@ export function flattenPanelHelpItems(copy: Dictionary): HelpInfoItem[] {
   return PANEL_HELP_IDS.flatMap((id) => catalog[id]);
 }
 
-/** /stack/ board popovers. Load/Grafana stay as bar icons; listed here so hover names them. */
+/** /stack/ board popovers. Load board stays a bar icon; report/Grafana are row icons. */
 export function stackHelpItems(copy: Dictionary): Record<StackHelpId, HelpInfoItem[]> {
   const stack = copy.stack;
   return {
@@ -92,31 +92,4 @@ export function stackHelpItems(copy: Dictionary): Record<StackHelpId, HelpInfoIt
 export function flattenStackHelpItems(copy: Dictionary): HelpInfoItem[] {
   const catalog = stackHelpItems(copy);
   return STACK_HELP_IDS.flatMap((id) => catalog[id]);
-}
-
-export function PanelHelp({
-  items,
-  ariaLabel,
-  testId,
-}: {
-  items: HelpInfoItem[];
-  ariaLabel: string;
-  testId: string;
-}) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const itemsKey = JSON.stringify(items);
-
-  useLayoutEffect(() => {
-    const host = hostRef.current;
-    if (!host) {
-      return;
-    }
-    return mountHelpInfo(host, {
-      items: JSON.parse(itemsKey) as HelpInfoItem[],
-      ariaLabel,
-      testid: testId,
-    });
-  }, [ariaLabel, itemsKey, testId]);
-
-  return <div ref={hostRef} />;
 }

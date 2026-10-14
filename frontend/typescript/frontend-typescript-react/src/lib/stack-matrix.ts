@@ -66,6 +66,10 @@ export interface TestsModule {
   /** Hub mill `in_stack: true` — crystal row in Tests. `false` hides mill/performance. */
   in_stack?: boolean;
   role?: string;
+  /** Latest archived injector HTML reports on load.autotests.ai, keyed by backend id. */
+  reports?: Record<string, string>;
+  /** Load SUT observer `viewPanel` of the module's tool (board schools.tools). */
+  grafanaPanel?: number;
 }
 
 export interface StackMatrix {
@@ -198,15 +202,36 @@ export const GRAFANA_LOAD_SUT_DASHBOARD = 'https://grafana.qa.guru/d/load-sut-ob
 
 /**
  * Load SUT observer filtered to a backend cell (`var-cell`), as www/matrix.js
- * `grafanaHref`. Invalid id → null.
+ * `grafanaHref`. `panel` pins the tool panel (`viewPanel`). Invalid id → null.
  */
-export function grafanaLoadSutHref(backendId: string | null | undefined): string | null {
+export function grafanaLoadSutHref(
+  backendId: string | null | undefined,
+  panel?: number | string | null,
+): string | null {
   if (!backendId) return null;
   const id = String(backendId);
   if (!id.startsWith('backend-') || /[/?#]/.test(id) || id.includes('..')) return null;
   const url = new URL(GRAFANA_LOAD_SUT_DASHBOARD);
   url.searchParams.set('var-cell', id);
+  const view = Number(panel);
+  if (Number.isInteger(view) && view > 0) url.searchParams.set('viewPanel', String(view));
   return url.toString();
+}
+
+/**
+ * Native injector HTML report for a performance module on the selected backend
+ * cell — same `/runs/{injector}::{backend}/{runId}/` contract as www/matrix.js
+ * `reportHref`. Unknown/dirty values → null (icon cell shows —).
+ */
+export function loadRunReportHref(
+  item: TestsModule | null | undefined,
+  backendId: string | null | undefined,
+): string | null {
+  if (!item?.reports || !backendId) return null;
+  const value = String(item.reports[backendId] || '').trim();
+  if (value.startsWith('/runs/')) return `https://load.autotests.ai${value}`;
+  if (value.startsWith('https://load.autotests.ai/runs/')) return value;
+  return null;
 }
 
 /** Latest merged Allure 3 awesome report (GitHub Pages). */

@@ -51,6 +51,7 @@ import {
   BUILD_TOOL_VERSIONS,
   BUILD_TOOLS,
   buildWrapperOptions,
+  type CoverageProfile,
   catalogDocument,
   cloneConfig,
   copyText,
@@ -75,7 +76,11 @@ import {
   PRODUCT_FRONTEND_STACKS,
   postAdoptDestZip,
   ROOT_LOG_LEVELS,
+  setBackendStack,
+  setFrontendStack,
+  setLoadStack,
   setMillAccess,
+  setTestsStack,
   shouldAdoptDestZip,
   TESTS_STACKS,
   toggleAgentAccess,
@@ -155,7 +160,7 @@ function ConfigPanel({
         <PanelHelp
           items={panelHelpItems(copy)[helpId]}
           ariaLabel={title}
-          testId={`landing-${helpId}-help`}
+          data-testid={`landing-${helpId}-help`}
         />
       }
     >
@@ -233,6 +238,14 @@ export function HomePage() {
       coverageProfile: setMillAccess(prev.coverageProfile, value),
     }));
   };
+
+  const setCoverageStack =
+    (apply: (profile: CoverageProfile, value: string) => CoverageProfile) => (value: string) => {
+      setConfig((prev) => ({
+        ...prev,
+        coverageProfile: apply(prev.coverageProfile, value),
+      }));
+    };
 
   const resetConfig = () => {
     setConfig(cloneConfig(DEFAULTS));
@@ -312,6 +325,7 @@ export function HomePage() {
                   paramId="backend"
                   value={config.coverageProfile.product.backend.stack}
                   options={PRODUCT_BACKEND_STACKS}
+                  onChange={setCoverageStack(setBackendStack)}
                   data-testid="landing-select-backend"
                 />
                 <PlaqueSelect
@@ -319,6 +333,7 @@ export function HomePage() {
                   paramId="frontend"
                   value={config.coverageProfile.product.frontend.stack}
                   options={PRODUCT_FRONTEND_STACKS}
+                  onChange={setCoverageStack(setFrontendStack)}
                   data-testid="landing-select-frontend"
                 />
               </PlaqueFieldGrid>
@@ -328,6 +343,7 @@ export function HomePage() {
                   paramId="tests"
                   value={config.coverageProfile.automation.api.stack}
                   options={TESTS_STACKS}
+                  onChange={setCoverageStack(setTestsStack)}
                   data-testid="landing-select-tests"
                 />
                 <PlaqueSelect
@@ -335,6 +351,7 @@ export function HomePage() {
                   paramId="load"
                   value={config.coverageProfile.load.stack}
                   options={LOAD_STACKS}
+                  onChange={setCoverageStack(setLoadStack)}
                   data-testid="landing-select-load"
                 />
               </PlaqueFieldGrid>
@@ -977,7 +994,7 @@ export function HomePage() {
                     <PanelHelp
                       items={panelHelpItems(copy).output}
                       ariaLabel={copy.home.outputFormat}
-                      testId="landing-output-help"
+                      data-testid="landing-output-help"
                     />
                   </>
                 }

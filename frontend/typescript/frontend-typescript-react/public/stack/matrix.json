@@ -78,6 +78,108 @@
       "status": "active",
       "language": "rust",
       "module": "backend/rust/backend-rust-axum"
+    },
+    {
+      "id": "backend-java-quarkus",
+      "status": "slot",
+      "language": "java",
+      "module": "backend/java/backend-java-quarkus"
+    },
+    {
+      "id": "backend-java-micronaut",
+      "status": "slot",
+      "language": "java",
+      "module": "backend/java/backend-java-micronaut"
+    },
+    {
+      "id": "backend-kotlin-ktor",
+      "status": "active",
+      "language": "kotlin",
+      "module": "backend/kotlin/backend-kotlin-ktor"
+    },
+    {
+      "id": "backend-python-aiohttp",
+      "status": "slot",
+      "language": "python",
+      "module": "backend/python/backend-python-aiohttp"
+    },
+    {
+      "id": "backend-go-echo",
+      "status": "slot",
+      "language": "go",
+      "module": "backend/go/backend-go-echo"
+    },
+    {
+      "id": "backend-javascript-fastify",
+      "status": "slot",
+      "language": "javascript",
+      "module": "backend/javascript/backend-javascript-fastify"
+    },
+    {
+      "id": "backend-typescript-fastify",
+      "status": "slot",
+      "language": "typescript",
+      "module": "backend/typescript/backend-typescript-fastify"
+    },
+    {
+      "id": "backend-csharp-minimal",
+      "status": "slot",
+      "language": "csharp",
+      "module": "backend/csharp/backend-csharp-minimal"
+    },
+    {
+      "id": "backend-rust-actix",
+      "status": "slot",
+      "language": "rust",
+      "module": "backend/rust/backend-rust-actix"
+    },
+    {
+      "id": "backend-php-laravel",
+      "status": "slot",
+      "language": "php",
+      "module": "backend/php/backend-php-laravel"
+    },
+    {
+      "id": "backend-php-slim",
+      "status": "slot",
+      "language": "php",
+      "module": "backend/php/backend-php-slim"
+    },
+    {
+      "id": "backend-ruby-rails",
+      "status": "slot",
+      "language": "ruby",
+      "module": "backend/ruby/backend-ruby-rails"
+    },
+    {
+      "id": "backend-ruby-sinatra",
+      "status": "slot",
+      "language": "ruby",
+      "module": "backend/ruby/backend-ruby-sinatra"
+    },
+    {
+      "id": "backend-scala-play",
+      "status": "slot",
+      "language": "scala",
+      "module": "backend/scala/backend-scala-play"
+    },
+    {
+      "id": "backend-scala-http4s",
+      "status": "slot",
+      "language": "scala",
+      "module": "backend/scala/backend-scala-http4s"
+    },
+    {
+      "id": "backend-elixir-phoenix",
+      "status": "slot",
+      "language": "elixir",
+      "module": "backend/elixir/backend-elixir-phoenix"
+    },
+    {
+      "id": "backend-dart-shelf",
+      "status": "slot",
+      "language": "dart",
+      "module": "backend/dart/backend-dart-shelf"
     }
   ],
   "frontends": [
@@ -140,6 +242,66 @@
       "status": "active",
       "kind": "vite",
       "module": "frontend/typescript/frontend-typescript-jquery"
+    },
+    {
+      "id": "frontend-javascript-svelte",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-svelte"
+    },
+    {
+      "id": "frontend-javascript-solid",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/javascript/frontend-javascript-solid"
+    },
+    {
+      "id": "frontend-javascript-htmx",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/javascript/frontend-javascript-htmx"
+    },
+    {
+      "id": "frontend-typescript-svelte",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-svelte"
+    },
+    {
+      "id": "frontend-typescript-solid",
+      "status": "slot",
+      "kind": "vite",
+      "module": "frontend/typescript/frontend-typescript-solid"
+    },
+    {
+      "id": "frontend-typescript-htmx",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/typescript/frontend-typescript-htmx"
+    },
+    {
+      "id": "frontend-elm-elm",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/elm/frontend-elm-elm"
+    },
+    {
+      "id": "frontend-dart-flutter_web",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/dart/frontend-dart-flutter_web"
+    },
+    {
+      "id": "frontend-clojurescript-reagent",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/clojurescript/frontend-clojurescript-reagent"
+    },
+    {
+      "id": "frontend-rescript-react",
+      "status": "slot",
+      "kind": "static",
+      "module": "frontend/rescript/frontend-rescript-react"
     }
   ],
   "tests": [
@@ -154,6 +316,16 @@
         "e2e"
       ],
       "role": "canon"
+    },
+    {
+      "id": "tests-java-junit5-rest_assured-selenide-appium",
+      "status": "active",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-rest_assured-selenide-appium",
+      "layers": [
+        "e2e"
+      ],
+      "role": "living"
     },
     {
       "id": "tests-java-junit5-rest_assured-selenium",
@@ -237,6 +409,38 @@
       "role": "slot"
     },
     {
+      "id": "tests-java-junit6-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit6-selenide",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-karate",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-karate",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-java-junit5-cucumber-selenide",
+      "status": "slot",
+      "language": "java",
+      "module": "tests/java/tests-java-junit5-cucumber-selenide",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
       "id": "tests-java-junit5-rest_assured",
       "status": "active",
       "language": "java",
@@ -264,7 +468,23 @@
       "layers": [
         "performance"
       ],
-      "role": "living"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/java-jmeter::backend-csharp-aspnet/injector-20260913T2214Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/java-jmeter::backend-go-gin/injector-20260913T1941Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/java-jmeter::backend-go-stdlib/injector-20260914T1249Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/java-jmeter::backend-java-spring/injector-20260913T0913Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/java-jmeter::backend-javascript-express/injector-20260913T2048Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/java-jmeter::backend-javascript-nest/injector-20260913T2137Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/java-jmeter::backend-kotlin-spring/injector-20260913T1428Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/java-jmeter::backend-python-django/injector-20260913T1847Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/java-jmeter::backend-python-fastapi/injector-20260913T1631Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/java-jmeter::backend-python-flask/injector-20260913T1605Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/java-jmeter::backend-rust-axum/injector-20260913T2233Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/java-jmeter::backend-typescript-express/injector-20260913T2148Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/java-jmeter::backend-typescript-nest/injector-20260913T2158Z/"
+      },
+      "grafanaPanel": 30
     },
     {
       "id": "tests-java-gatling",
@@ -274,7 +494,23 @@
       "layers": [
         "performance"
       ],
-      "role": "living"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/java-gatling::backend-csharp-aspnet/injector-20260914T1944Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/java-gatling::backend-go-gin/injector-20260914T1653Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/java-gatling::backend-go-stdlib/injector-20260914T1432Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/java-gatling::backend-java-spring/injector-20260913T1315Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/java-gatling::backend-javascript-express/injector-20260914T1707Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/java-gatling::backend-javascript-nest/injector-20260914T1717Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/java-gatling::backend-kotlin-spring/injector-20260913T1532Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/java-gatling::backend-python-django/injector-20260913T2325Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/java-gatling::backend-python-fastapi/injector-20260913T2317Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/java-gatling::backend-python-flask/injector-20260913T2306Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/java-gatling::backend-rust-axum/injector-20260914T2000Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/java-gatling::backend-typescript-express/injector-20260914T1753Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/java-gatling::backend-typescript-nest/injector-20260914T1831Z/"
+      },
+      "grafanaPanel": 33
     },
     {
       "id": "tests-groovy-jmeter",
@@ -284,7 +520,44 @@
       "layers": [
         "performance"
       ],
-      "role": "living"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/groovy-jmeter::backend-csharp-aspnet/injector-20260913T2222Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/groovy-jmeter::backend-go-gin/injector-20260913T1956Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/groovy-jmeter::backend-go-stdlib/injector-20260914T1253Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/groovy-jmeter::backend-java-spring/injector-20260913T1358Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/groovy-jmeter::backend-javascript-express/injector-20260913T2056Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/groovy-jmeter::backend-javascript-nest/injector-20260913T2145Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/groovy-jmeter::backend-kotlin-spring/injector-20260913T1522Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/groovy-jmeter::backend-python-django/injector-20260913T1922Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/groovy-jmeter::backend-python-fastapi/injector-20260913T1654Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/groovy-jmeter::backend-python-flask/injector-20260913T1620Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/groovy-jmeter::backend-rust-axum/injector-20260913T2240Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/groovy-jmeter::backend-typescript-express/injector-20260913T2154Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/groovy-jmeter::backend-typescript-nest/injector-20260913T2204Z/"
+      },
+      "grafanaPanel": 30
+    },
+    {
+      "id": "tests-groovy-spock-rest_assured",
+      "status": "slot",
+      "language": "groovy",
+      "module": "tests/groovy/tests-groovy-spock-rest_assured",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-groovy-spock-selenium",
+      "status": "slot",
+      "language": "groovy",
+      "module": "tests/groovy/tests-groovy-spock-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-kotlin-junit5-ktor-selenide",
@@ -373,7 +646,23 @@
       "layers": [
         "performance"
       ],
-      "role": "living"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/kotlin-gatling::backend-csharp-aspnet/injector-20260914T1946Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/kotlin-gatling::backend-go-gin/injector-20260914T1655Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/kotlin-gatling::backend-go-stdlib/injector-20260914T1434Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/kotlin-gatling::backend-java-spring/injector-20260913T1412Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/kotlin-gatling::backend-javascript-express/injector-20260914T1709Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/kotlin-gatling::backend-javascript-nest/injector-20260914T1745Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/kotlin-gatling::backend-kotlin-spring/injector-20260913T1548Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/kotlin-gatling::backend-python-django/injector-20260913T2330Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/kotlin-gatling::backend-python-fastapi/injector-20260913T2321Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/kotlin-gatling::backend-python-flask/injector-20260913T2312Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/kotlin-gatling::backend-rust-axum/injector-20260914T2002Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/kotlin-gatling::backend-typescript-express/injector-20260914T1824Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/kotlin-gatling::backend-typescript-nest/injector-20260914T1833Z/"
+      },
+      "grafanaPanel": 33
     },
     {
       "id": "tests-kotlin-jmeter",
@@ -383,15 +672,90 @@
       "layers": [
         "performance"
       ],
-      "role": "living"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/kotlin-jmeter::backend-csharp-aspnet/injector-20260913T2218Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/kotlin-jmeter::backend-go-gin/injector-20260913T1949Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/kotlin-jmeter::backend-go-stdlib/injector-20260914T1251Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/kotlin-jmeter::backend-java-spring/injector-20260913T1251Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/kotlin-jmeter::backend-javascript-express/injector-20260913T2053Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/kotlin-jmeter::backend-javascript-nest/injector-20260913T2142Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/kotlin-jmeter::backend-kotlin-spring/injector-20260913T1511Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/kotlin-jmeter::backend-python-django/injector-20260913T1914Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/kotlin-jmeter::backend-python-fastapi/injector-20260913T1647Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/kotlin-jmeter::backend-python-flask/injector-20260913T1612Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/kotlin-jmeter::backend-rust-axum/injector-20260913T2237Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/kotlin-jmeter::backend-typescript-express/injector-20260913T2152Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/kotlin-jmeter::backend-typescript-nest/injector-20260913T2201Z/"
+      },
+      "grafanaPanel": 30
+    },
+    {
+      "id": "tests-kotlin-espresso",
+      "status": "slot",
+      "language": "kotlin",
+      "module": "tests/kotlin/tests-kotlin-espresso",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
     },
     {
       "id": "tests-scala-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "scala",
       "module": "tests/scala/tests-scala-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/scala-gatling::backend-csharp-aspnet/injector-20260914T1947Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/scala-gatling::backend-go-gin/injector-20260914T1656Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/scala-gatling::backend-go-stdlib/injector-20260914T1436Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/scala-gatling::backend-java-spring/injector-20260914T0007Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/scala-gatling::backend-javascript-express/injector-20260914T1711Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/scala-gatling::backend-javascript-nest/injector-20260914T1747Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/scala-gatling::backend-kotlin-spring/injector-20260914T0529Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/scala-gatling::backend-python-django/injector-20260914T1912Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/scala-gatling::backend-python-fastapi/injector-20260914T1850Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/scala-gatling::backend-python-flask/injector-20260914T1841Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/scala-gatling::backend-rust-axum/injector-20260914T2003Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/scala-gatling::backend-typescript-express/injector-20260914T1825Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/scala-gatling::backend-typescript-nest/injector-20260914T1834Z/"
+      },
+      "grafanaPanel": 33
+    },
+    {
+      "id": "tests-scala-scalatest-selenium",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-scalatest-sttp",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-sttp",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-scala-scalatest-sttp-selenium",
+      "status": "slot",
+      "language": "scala",
+      "module": "tests/scala/tests-scala-scalatest-sttp-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -454,21 +818,90 @@
     },
     {
       "id": "tests-javascript-k6",
-      "status": "slot",
+      "status": "active",
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-k6",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/javascript-k6::backend-csharp-aspnet/injector-20260914T1952Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/javascript-k6::backend-go-gin/injector-20260914T1701Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/javascript-k6::backend-go-stdlib/injector-20260914T1452Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/javascript-k6::backend-java-spring/injector-20260914T1928Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/javascript-k6::backend-javascript-express/injector-20260914T0713Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/javascript-k6::backend-javascript-nest/injector-20260914T0716Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/javascript-k6::backend-kotlin-spring/injector-20260914T2023Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/javascript-k6::backend-python-django/injector-20260914T1917Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/javascript-k6::backend-python-fastapi/injector-20260914T1900Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/javascript-k6::backend-python-flask/injector-20260914T1845Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/javascript-k6::backend-rust-axum/injector-20260914T2008Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/javascript-k6::backend-typescript-express/injector-20260914T0718Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/javascript-k6::backend-typescript-nest/injector-20260914T0720Z/"
+      },
+      "grafanaPanel": 37
     },
     {
       "id": "tests-javascript-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "javascript",
       "module": "tests/javascript/tests-javascript-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/javascript-gatling::backend-csharp-aspnet/injector-20260914T1949Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/javascript-gatling::backend-go-gin/injector-20260914T1658Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/javascript-gatling::backend-go-stdlib/injector-20260914T1437Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/javascript-gatling::backend-java-spring/injector-20260914T1925Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/javascript-gatling::backend-javascript-express/injector-20260914T1051Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/javascript-gatling::backend-javascript-nest/injector-20260914T1055Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/javascript-gatling::backend-kotlin-spring/injector-20260914T1937Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/javascript-gatling::backend-python-django/injector-20260914T1914Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/javascript-gatling::backend-python-fastapi/injector-20260914T2049Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/javascript-gatling::backend-python-flask/injector-20260914T1842Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/javascript-gatling::backend-rust-axum/injector-20260914T2005Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/javascript-gatling::backend-typescript-express/injector-20260914T1057Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/javascript-gatling::backend-typescript-nest/injector-20260914T1100Z/"
+      },
+      "grafanaPanel": 33
+    },
+    {
+      "id": "tests-javascript-artillery",
+      "status": "active",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-artillery",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/javascript-artillery::backend-csharp-aspnet/injector-20260915T1619Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/javascript-artillery::backend-go-gin/injector-20260915T1552Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/javascript-artillery::backend-go-stdlib/injector-20260915T1556Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/javascript-artillery::backend-java-spring/injector-20260915T1529Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/javascript-artillery::backend-javascript-express/injector-20260915T1601Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/javascript-artillery::backend-javascript-nest/injector-20260915T1605Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/javascript-artillery::backend-kotlin-spring/injector-20260915T1534Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/javascript-artillery::backend-python-django/injector-20260915T1548Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/javascript-artillery::backend-python-fastapi/injector-20260915T1543Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/javascript-artillery::backend-python-flask/injector-20260915T1538Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/javascript-artillery::backend-rust-axum/injector-20260915T1514Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/javascript-artillery::backend-typescript-express/injector-20260915T1610Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/javascript-artillery::backend-typescript-nest/injector-20260915T1614Z/"
+      },
+      "grafanaPanel": 53
+    },
+    {
+      "id": "tests-javascript-webdriverio",
+      "status": "slot",
+      "language": "javascript",
+      "module": "tests/javascript/tests-javascript-webdriverio",
+      "layers": [
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -507,21 +940,101 @@
     },
     {
       "id": "tests-typescript-k6",
-      "status": "slot",
+      "status": "active",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-k6",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/typescript-k6::backend-csharp-aspnet/injector-20260914T1954Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/typescript-k6::backend-go-gin/injector-20260914T1702Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/typescript-k6::backend-go-stdlib/injector-20260914T1453Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/typescript-k6::backend-java-spring/injector-20260914T1930Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/typescript-k6::backend-javascript-express/injector-20260914T1003Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/typescript-k6::backend-javascript-nest/injector-20260914T1006Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/typescript-k6::backend-kotlin-spring/injector-20260914T2025Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/typescript-k6::backend-python-django/injector-20260914T1919Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/typescript-k6::backend-python-fastapi/injector-20260914T1901Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/typescript-k6::backend-python-flask/injector-20260914T1847Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/typescript-k6::backend-rust-axum/injector-20260914T2010Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/typescript-k6::backend-typescript-express/injector-20260914T1009Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/typescript-k6::backend-typescript-nest/injector-20260914T1011Z/"
+      },
+      "grafanaPanel": 37
     },
     {
       "id": "tests-typescript-gatling",
-      "status": "slot",
+      "status": "active",
       "language": "typescript",
       "module": "tests/typescript/tests-typescript-gatling",
       "layers": [
         "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/typescript-gatling::backend-csharp-aspnet/injector-20260914T1951Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/typescript-gatling::backend-go-gin/injector-20260914T1659Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/typescript-gatling::backend-go-stdlib/injector-20260914T1439Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/typescript-gatling::backend-java-spring/injector-20260914T1927Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/typescript-gatling::backend-javascript-express/injector-20260914T1122Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/typescript-gatling::backend-javascript-nest/injector-20260914T1125Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/typescript-gatling::backend-kotlin-spring/injector-20260914T1939Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/typescript-gatling::backend-python-django/injector-20260914T1915Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/typescript-gatling::backend-python-fastapi/injector-20260914T2050Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/typescript-gatling::backend-python-flask/injector-20260914T1844Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/typescript-gatling::backend-rust-axum/injector-20260914T2007Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/typescript-gatling::backend-typescript-express/injector-20260914T1127Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/typescript-gatling::backend-typescript-nest/injector-20260914T1129Z/"
+      },
+      "grafanaPanel": 33
+    },
+    {
+      "id": "tests-typescript-artillery",
+      "status": "active",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-artillery",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/typescript-artillery::backend-csharp-aspnet/injector-20260915T1620Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/typescript-artillery::backend-go-gin/injector-20260915T1553Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/typescript-artillery::backend-go-stdlib/injector-20260915T1558Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/typescript-artillery::backend-java-spring/injector-20260915T1531Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/typescript-artillery::backend-javascript-express/injector-20260915T1602Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/typescript-artillery::backend-javascript-nest/injector-20260915T1607Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/typescript-artillery::backend-kotlin-spring/injector-20260915T1535Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/typescript-artillery::backend-python-django/injector-20260915T1549Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/typescript-artillery::backend-python-fastapi/injector-20260915T1544Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/typescript-artillery::backend-python-flask/injector-20260915T1540Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/typescript-artillery::backend-rust-axum/injector-20260915T1515Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/typescript-artillery::backend-typescript-express/injector-20260915T1611Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/typescript-artillery::backend-typescript-nest/injector-20260915T1616Z/"
+      },
+      "grafanaPanel": 53
+    },
+    {
+      "id": "tests-typescript-webdriverio",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-webdriverio",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-typescript-cypress",
+      "status": "slot",
+      "language": "typescript",
+      "module": "tests/typescript/tests-typescript-cypress",
+      "layers": [
+        "ui",
+        "e2e"
       ],
       "role": "slot"
     },
@@ -616,23 +1129,55 @@
     },
     {
       "id": "tests-python-yandex_tank",
-      "status": "slot",
+      "status": "active",
       "language": "python",
       "module": "tests/python/tests-python-yandex_tank",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/python-yandex_tank::backend-csharp-aspnet/injector-20260914T1955Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/python-yandex_tank::backend-go-gin/injector-20260914T1704Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/python-yandex_tank::backend-go-stdlib/injector-20260914T1611Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/python-yandex_tank::backend-java-spring/injector-20260914T1931Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/python-yandex_tank::backend-javascript-express/injector-20260914T1712Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/python-yandex_tank::backend-javascript-nest/injector-20260914T1748Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/python-yandex_tank::backend-kotlin-spring/injector-20260914T2026Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/python-yandex_tank::backend-python-django/injector-20260914T0946Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/python-yandex_tank::backend-python-fastapi/injector-20260914T0941Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/python-yandex_tank::backend-python-flask/injector-20260914T0934Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/python-yandex_tank::backend-rust-axum/injector-20260914T2011Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/python-yandex_tank::backend-typescript-express/injector-20260914T1827Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/python-yandex_tank::backend-typescript-nest/injector-20260914T1836Z/"
+      },
+      "grafanaPanel": 45
     },
     {
       "id": "tests-python-locust",
-      "status": "slot",
+      "status": "active",
       "language": "python",
       "module": "tests/python/tests-python-locust",
       "layers": [
         "performance"
       ],
-      "role": "slot"
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/python-locust::backend-csharp-aspnet/injector-20260914T1957Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/python-locust::backend-go-gin/injector-20260914T1705Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/python-locust::backend-go-stdlib/injector-20260914T1505Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/python-locust::backend-java-spring/injector-20260914T1933Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/python-locust::backend-javascript-express/injector-20260914T1714Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/python-locust::backend-javascript-nest/injector-20260914T1750Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/python-locust::backend-kotlin-spring/injector-20260914T2043Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/python-locust::backend-python-django/injector-20260914T0758Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/python-locust::backend-python-fastapi/injector-20260914T0756Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/python-locust::backend-python-flask/injector-20260914T0754Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/python-locust::backend-rust-axum/injector-20260914T2013Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/python-locust::backend-typescript-express/injector-20260914T1828Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/python-locust::backend-typescript-nest/injector-20260914T1837Z/"
+      },
+      "grafanaPanel": 41
     },
     {
       "id": "tests-go-testing-net_http",
@@ -677,6 +1222,32 @@
       ],
       "in_stack": true,
       "role": "mill"
+    },
+    {
+      "id": "tests-go-vegeta",
+      "status": "active",
+      "language": "go",
+      "module": "tests/go/tests-go-vegeta",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/go-vegeta::backend-csharp-aspnet/injector-20260914T1958Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/go-vegeta::backend-go-gin/injector-20260914T1214Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/go-vegeta::backend-go-stdlib/injector-20260914T1217Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/go-vegeta::backend-java-spring/injector-20260914T1934Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/go-vegeta::backend-javascript-express/injector-20260914T1715Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/go-vegeta::backend-javascript-nest/injector-20260914T1751Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/go-vegeta::backend-kotlin-spring/injector-20260914T2027Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/go-vegeta::backend-python-django/injector-20260914T1920Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/go-vegeta::backend-python-fastapi/injector-20260914T1903Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/go-vegeta::backend-python-flask/injector-20260914T1848Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/go-vegeta::backend-rust-axum/injector-20260914T2014Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/go-vegeta::backend-typescript-express/injector-20260914T1829Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/go-vegeta::backend-typescript-nest/injector-20260914T1839Z/"
+      },
+      "grafanaPanel": 49
     },
     {
       "id": "tests-csharp-nunit-restsharp-selenium",
@@ -735,6 +1306,32 @@
       "role": "living"
     },
     {
+      "id": "tests-csharp-nbomber",
+      "status": "active",
+      "language": "csharp",
+      "module": "tests/csharp/tests-csharp-nbomber",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/csharp-nbomber::backend-csharp-aspnet/injector-20260915T0103Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/csharp-nbomber::backend-go-gin/injector-20260914T2346Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/csharp-nbomber::backend-go-stdlib/injector-20260914T2354Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/csharp-nbomber::backend-java-spring/injector-20260915T0046Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/csharp-nbomber::backend-javascript-express/injector-20260915T0004Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/csharp-nbomber::backend-javascript-nest/injector-20260915T0013Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/csharp-nbomber::backend-kotlin-spring/injector-20260915T0054Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/csharp-nbomber::backend-python-django/injector-20260914T2338Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/csharp-nbomber::backend-python-fastapi/injector-20260914T2225Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/csharp-nbomber::backend-python-flask/injector-20260914T2326Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/csharp-nbomber::backend-rust-axum/injector-20260915T0114Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/csharp-nbomber::backend-typescript-express/injector-20260915T0027Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/csharp-nbomber::backend-typescript-nest/injector-20260915T0037Z/"
+      },
+      "grafanaPanel": 61
+    },
+    {
       "id": "tests-rust-testing-reqwest",
       "status": "active",
       "language": "rust",
@@ -766,6 +1363,209 @@
         "e2e"
       ],
       "role": "living"
+    },
+    {
+      "id": "tests-rust-goose",
+      "status": "active",
+      "language": "rust",
+      "module": "tests/rust/tests-rust-goose",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/rust-goose::backend-csharp-aspnet/injector-20260915T0101Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/rust-goose::backend-go-gin/injector-20260914T2345Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/rust-goose::backend-go-stdlib/injector-20260914T2353Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/rust-goose::backend-java-spring/injector-20260915T0044Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/rust-goose::backend-javascript-express/injector-20260915T0002Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/rust-goose::backend-javascript-nest/injector-20260915T0012Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/rust-goose::backend-kotlin-spring/injector-20260915T0053Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/rust-goose::backend-python-django/injector-20260914T2337Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/rust-goose::backend-python-fastapi/injector-20260914T2211Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/rust-goose::backend-python-flask/injector-20260914T2325Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/rust-goose::backend-rust-axum/injector-20260915T0113Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/rust-goose::backend-typescript-express/injector-20260915T0025Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/rust-goose::backend-typescript-nest/injector-20260915T0035Z/"
+      },
+      "grafanaPanel": 57
+    },
+    {
+      "id": "tests-lua-wrk",
+      "status": "active",
+      "language": "lua",
+      "module": "tests/lua/tests-lua-wrk",
+      "layers": [
+        "performance"
+      ],
+      "role": "living",
+      "reports": {
+        "backend-csharp-aspnet": "https://load.autotests.ai/runs/lua-wrk::backend-csharp-aspnet/injector-20260915T1720Z/",
+        "backend-go-gin": "https://load.autotests.ai/runs/lua-wrk::backend-go-gin/injector-20260915T1710Z/",
+        "backend-go-stdlib": "https://load.autotests.ai/runs/lua-wrk::backend-go-stdlib/injector-20260915T1712Z/",
+        "backend-java-spring": "https://load.autotests.ai/runs/lua-wrk::backend-java-spring/injector-20260915T1701Z/",
+        "backend-javascript-express": "https://load.autotests.ai/runs/lua-wrk::backend-javascript-express/injector-20260915T1713Z/",
+        "backend-javascript-nest": "https://load.autotests.ai/runs/lua-wrk::backend-javascript-nest/injector-20260915T1715Z/",
+        "backend-kotlin-spring": "https://load.autotests.ai/runs/lua-wrk::backend-kotlin-spring/injector-20260915T1703Z/",
+        "backend-python-django": "https://load.autotests.ai/runs/lua-wrk::backend-python-django/injector-20260915T1708Z/",
+        "backend-python-fastapi": "https://load.autotests.ai/runs/lua-wrk::backend-python-fastapi/injector-20260915T1707Z/",
+        "backend-python-flask": "https://load.autotests.ai/runs/lua-wrk::backend-python-flask/injector-20260915T1705Z/",
+        "backend-rust-axum": "https://load.autotests.ai/runs/lua-wrk::backend-rust-axum/injector-20260915T1658Z/",
+        "backend-typescript-express": "https://load.autotests.ai/runs/lua-wrk::backend-typescript-express/injector-20260915T1717Z/",
+        "backend-typescript-nest": "https://load.autotests.ai/runs/lua-wrk::backend-typescript-nest/injector-20260915T1718Z/"
+      },
+      "grafanaPanel": 65
+    },
+    {
+      "id": "tests-ruby-rspec-capybara",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-capybara",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-ruby-rspec-httparty",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-httparty",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-ruby-rspec-httparty-capybara",
+      "status": "slot",
+      "language": "ruby",
+      "module": "tests/ruby/tests-ruby-rspec-httparty-capybara",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-selenium",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-selenium",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-guzzle",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-guzzle",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-phpunit-guzzle-selenium",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-phpunit-guzzle-selenium",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-php-codeception",
+      "status": "slot",
+      "language": "php",
+      "module": "tests/php/tests-php-codeception",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-req",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-req",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-wallaby",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-wallaby",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-elixir-exunit-req-wallaby",
+      "status": "slot",
+      "language": "elixir",
+      "module": "tests/elixir/tests-elixir-exunit-req-wallaby",
+      "layers": [
+        "api",
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-dart-test-http",
+      "status": "slot",
+      "language": "dart",
+      "module": "tests/dart/tests-dart-test-http",
+      "layers": [
+        "api"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-dart-flutter_test",
+      "status": "slot",
+      "language": "dart",
+      "module": "tests/dart/tests-dart-flutter_test",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-swift-xcuitest",
+      "status": "slot",
+      "language": "swift",
+      "module": "tests/swift/tests-swift-xcuitest",
+      "layers": [
+        "e2e"
+      ],
+      "role": "slot"
+    },
+    {
+      "id": "tests-clojure-etaoin",
+      "status": "slot",
+      "language": "clojure",
+      "module": "tests/clojure/tests-clojure-etaoin",
+      "layers": [
+        "ui",
+        "e2e"
+      ],
+      "role": "slot"
     }
   ]
 }

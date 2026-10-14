@@ -69,6 +69,8 @@ export const en: Dictionary = {
     colApi: 'API',
     colTests: 'Tests',
     colAllure: 'Allure',
+    colReport: 'Report',
+    colGrafana: 'Grafana',
     colStatus: 'Status',
     colOpen: 'Open',
     colLayers: 'Layers',
@@ -80,7 +82,10 @@ export const en: Dictionary = {
     allure: 'Allure report {id}',
     loadBoard: 'Load board',
     loadBoardTitle: 'load.autotests.ai',
+    report: 'Report {id}',
+    reportTitle: 'Latest native injector report',
     grafana: 'Grafana',
+    grafanaModule: 'Grafana {id}',
     grafanaTitle: 'Load SUT observer',
     helpBackend:
       'Which backend cell is in the pair. Icons open GitHub, Swagger, unit tests, and Allure.',
@@ -89,7 +94,7 @@ export const en: Dictionary = {
     helpTests:
       'Unit tests in the backend module, component tests in the frontend, then product stacks with api and e2e layers. Icons open GitHub and Allure.',
     helpPerformance:
-      'Load cells such as JMeter and Locust. Status is active or slot; GitHub is on the row.',
+      'Load cells such as JMeter and Locust. Status is active or slot; row icons open GitHub, the latest native report, and Grafana for the selected backend.',
     helpLoadBoard: 'Public load board at load.autotests.ai.',
     helpGrafana: 'Grafana dashboard for the selected backend (Load SUT observer).',
   },
