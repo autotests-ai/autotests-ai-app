@@ -43,6 +43,19 @@ export interface Dictionary {
       cloud: string;
       user: string;
     };
+    destLabel: {
+      zip: string;
+      catalog: string;
+      cloud: string;
+      user: string;
+    };
+    destAction: {
+      zip: string;
+      catalog: string;
+      cloud: string;
+      user: string;
+      config: string;
+    };
     helpCloneCourse: string;
     helpBuild: string;
     helpAllure: string;

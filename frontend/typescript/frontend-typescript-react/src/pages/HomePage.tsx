@@ -208,6 +208,15 @@ export function HomePage() {
     syncKey: magnetSyncKey,
   });
 
+  const destActionLabel =
+    config.destination === 'zip'
+      ? copy.home.destAction.zip
+      : config.destination === 'catalog'
+        ? copy.home.destAction.catalog
+        : (config.destination === 'cloud' ? idpSession : githubUser)
+          ? copy.home.destAction[config.destination]
+          : copy.home.destAction.config;
+
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId, emitOptions);
   const json = toJson(config, vectorId, emitOptions);
@@ -490,7 +499,11 @@ export function HomePage() {
                   paramId="destination"
                   value={config.destination}
                   onValueChange={setDestination}
-                  options={DESTINATIONS}
+                  options={DESTINATIONS.map((option) => ({
+                    value: option.value,
+                    label: copy.home.destLabel[option.value],
+                    title: copy.home.helpDest[option.value],
+                  }))}
                   data-testid="landing-seg-destination"
                 />
               </PlaqueFieldGrid>
@@ -1021,7 +1034,7 @@ export function HomePage() {
                   },
                   {
                     icon: <IconDownload />,
-                    label: copy.home.download,
+                    label: destActionLabel,
                     onClick: () =>
                       downloadLandingOutput({
                         destination: config.destination,

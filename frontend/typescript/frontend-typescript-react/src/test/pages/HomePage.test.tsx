@@ -298,7 +298,7 @@ describe('HomePage', () => {
 
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
@@ -385,7 +385,7 @@ describe('HomePage', () => {
     );
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'user',
+        name: 'GitHub',
       }),
     );
     await user.click(
@@ -614,6 +614,73 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-clone-course')).toBeEnabled();
   });
 
+  it('names destination chips by meaning and the terminal action says what it does', async () => {
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    const seg = screen.getByTestId('landing-seg-destination');
+    expect(within(seg).getByRole('button', { name: 'zip' })).toHaveAttribute(
+      'title',
+      en.home.helpDest.zip,
+    );
+    expect(within(seg).getByRole('button', { name: 'catalog' })).toHaveAttribute(
+      'data-value',
+      'catalog',
+    );
+    expect(within(seg).getByRole('button', { name: 'school cloud' })).toHaveAttribute(
+      'data-value',
+      'cloud',
+    );
+    expect(within(seg).getByRole('button', { name: 'GitHub' })).toHaveAttribute(
+      'data-value',
+      'user',
+    );
+
+    const download = screen.getByTestId('landing-terminal-download');
+    expect(download).toHaveAttribute('title', en.home.destAction.zip);
+    await user.click(within(seg).getByRole('button', { name: 'catalog' }));
+    expect(download).toHaveAttribute('title', en.home.destAction.catalog);
+    await user.click(within(seg).getByRole('button', { name: 'school cloud' }));
+    expect(download).toHaveAttribute('title', en.home.destAction.config);
+    await user.click(within(seg).getByRole('button', { name: 'GitHub' }));
+    expect(download).toHaveAttribute('title', en.home.destAction.config);
+  });
+
+  it('labels the terminal action as repo creation once the cloud session exists', async () => {
+    const user = userEvent.setup();
+    writeIdpSession({ login: 'qaguru' });
+    render(<HomePage />);
+    await user.click(
+      within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
+        name: 'school cloud',
+      }),
+    );
+    expect(screen.getByTestId('landing-terminal-download')).toHaveAttribute(
+      'title',
+      en.home.destAction.cloud,
+    );
+  });
+
+  it('localizes destination chips and the terminal action on header:lang-change', async () => {
+    render(<HomePage />);
+    act(() => {
+      document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang: 'ru' } }));
+    });
+    const seg = screen.getByTestId('landing-seg-destination');
+    expect(within(seg).getByRole('button', { name: ru.home.destLabel.cloud })).toHaveAttribute(
+      'data-value',
+      'cloud',
+    );
+    expect(within(seg).getByRole('button', { name: ru.home.destLabel.user })).toHaveAttribute(
+      'data-value',
+      'user',
+    );
+    expect(screen.getByTestId('landing-terminal-download')).toHaveAttribute(
+      'title',
+      ru.home.destAction.zip,
+    );
+  });
+
   it('POSTs dest zip YAML with harness.mill when protect is true', async () => {
     const user = userEvent.setup();
     const createObjectURL = vi.fn(() => 'blob:mill');
@@ -751,7 +818,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: cloud');
@@ -778,7 +845,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('via: idp');
@@ -798,7 +865,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     await user.click(screen.getByTestId('landing-cloud-idp'));
@@ -825,7 +892,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     const idp = screen.getByTestId('landing-cloud-idp');
@@ -865,7 +932,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'user',
+        name: 'GitHub',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: user');
@@ -904,7 +971,7 @@ describe('HomePage', () => {
     expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'user',
+        name: 'GitHub',
       }),
     );
     await user.click(screen.getByTestId('landing-user-oauth'));
@@ -929,7 +996,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'user',
+        name: 'GitHub',
       }),
     );
     const oauth = screen.getByTestId('landing-user-oauth');
@@ -988,7 +1055,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'user',
+        name: 'GitHub',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
@@ -1076,7 +1143,7 @@ describe('HomePage', () => {
     render(<HomePage />);
     await user.click(
       within(screen.getByTestId('landing-seg-destination')).getByRole('button', {
-        name: 'cloud',
+        name: 'school cloud',
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');

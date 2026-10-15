@@ -44,6 +44,19 @@ export const en: Dictionary = {
       cloud: 'Put the repo in the school cloud after school IdP login.',
       user: 'Create the repo on your GitHub after GitHub login.',
     },
+    destLabel: {
+      zip: 'zip',
+      catalog: 'catalog',
+      cloud: 'school cloud',
+      user: 'GitHub',
+    },
+    destAction: {
+      zip: 'Download zip',
+      catalog: 'Open catalog cell',
+      cloud: 'Create repo in school cloud',
+      user: 'Create repo on GitHub',
+      config: 'Download config (login required for repo)',
+    },
     helpCloneCourse:
       'Fixed course cell: Java Spring + TypeScript React + JUnit 5 / REST Assured / Selenide. Selected stacks do not apply; the button is disabled when they differ from the course cell. Use Download for your configuration.',
     helpBuild: 'OS, language, and build tool for running tests.',
