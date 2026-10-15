@@ -309,10 +309,7 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).not.toHaveTextContent('login:');
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
     expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
-    expect(screen.getByTestId('landing-cloud-idp')).toHaveAttribute(
-      'aria-label',
-      'Continue with school IdP',
-    );
+    expect(screen.getByTestId('landing-cloud-idp')).toHaveTextContent(en.home.idpLogin);
   });
 
   it('switches YAML/JSON tabs and drives select, text, and tagstrip', async () => {
@@ -419,7 +416,7 @@ describe('HomePage', () => {
     expect(writeText).toHaveBeenCalled();
     expect(String(writeText.mock.calls[0]?.[0])).toContain('headless: false');
 
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
@@ -465,7 +462,7 @@ describe('HomePage', () => {
 
     render(<HomePage />);
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: zip');
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
@@ -573,7 +570,7 @@ describe('HomePage', () => {
     expect(cloneButton).toBeEnabled();
     await user.selectOptions(screen.getByRole('combobox', { name: axis }), value);
     expect(cloneButton).toBeDisabled();
-    expect(screen.getByTestId('landing-terminal-download')).toBeEnabled();
+    expect(screen.getByTestId('landing-dest-action')).toBeEnabled();
     await user.click(cloneButton);
     expect(fetchMock).not.toHaveBeenCalled();
 
@@ -636,17 +633,17 @@ describe('HomePage', () => {
       'user',
     );
 
-    const download = screen.getByTestId('landing-terminal-download');
-    expect(download).toHaveAttribute('title', en.home.destAction.zip);
+    const action = screen.getByTestId('landing-dest-action');
+    expect(action).toHaveTextContent(en.home.destAction.zip);
     await user.click(within(seg).getByRole('button', { name: 'catalog' }));
-    expect(download).toHaveAttribute('title', en.home.destAction.catalog);
+    expect(action).toHaveTextContent(en.home.destAction.catalog);
     await user.click(within(seg).getByRole('button', { name: 'school cloud' }));
-    expect(download).toHaveAttribute('title', en.home.destAction.config);
+    expect(action).toHaveTextContent(en.home.destAction.config);
     await user.click(within(seg).getByRole('button', { name: 'GitHub' }));
-    expect(download).toHaveAttribute('title', en.home.destAction.config);
+    expect(action).toHaveTextContent(en.home.destAction.config);
   });
 
-  it('labels the terminal action as repo creation once the cloud session exists', async () => {
+  it('labels the destination action as repo creation once the cloud session exists', async () => {
     const user = userEvent.setup();
     writeIdpSession({ login: 'qaguru' });
     render(<HomePage />);
@@ -655,13 +652,10 @@ describe('HomePage', () => {
         name: 'school cloud',
       }),
     );
-    expect(screen.getByTestId('landing-terminal-download')).toHaveAttribute(
-      'title',
-      en.home.destAction.cloud,
-    );
+    expect(screen.getByTestId('landing-dest-action')).toHaveTextContent(en.home.destAction.cloud);
   });
 
-  it('localizes destination chips and the terminal action on header:lang-change', async () => {
+  it('localizes destination chips and the destination action on header:lang-change', async () => {
     render(<HomePage />);
     act(() => {
       document.dispatchEvent(new CustomEvent(HEADER_LANG_CHANGE, { detail: { lang: 'ru' } }));
@@ -675,10 +669,7 @@ describe('HomePage', () => {
       'data-value',
       'user',
     );
-    expect(screen.getByTestId('landing-terminal-download')).toHaveAttribute(
-      'title',
-      ru.home.destAction.zip,
-    );
+    expect(screen.getByTestId('landing-dest-action')).toHaveTextContent(ru.home.destAction.zip);
   });
 
   it('POSTs dest zip YAML with harness.mill when protect is true', async () => {
@@ -721,7 +712,7 @@ describe('HomePage', () => {
     await user.click(
       within(screen.getByTestId('landing-seg-mill')).getByRole('button', { name: 'true' }),
     );
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
@@ -750,15 +741,9 @@ describe('HomePage', () => {
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent(
       'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
     );
-    const href = screen.getByTestId('landing-catalog-href');
-    expect(href).toHaveAttribute(
-      'href',
-      'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
-    );
-    expect(href).toHaveAttribute('target', '_blank');
-    expect(href).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     expect(open).toHaveBeenCalledWith(
       'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
       '_blank',
@@ -787,7 +772,7 @@ describe('HomePage', () => {
       'mill: { access: write, pack: pack-v1, generation: generation-v1 }',
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('destination: catalog');
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     expect(open).toHaveBeenCalledWith(
       'https://github.com/autotests-ai/java-junit5-rest_assured-selenide',
       '_blank',
@@ -831,7 +816,7 @@ describe('HomePage', () => {
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
     expect(screen.queryByTestId('landing-user-oauth')).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
@@ -945,15 +930,12 @@ describe('HomePage', () => {
       'https://github.com/autotests-ai/',
     );
     expect(screen.queryByTestId('landing-catalog-href')).not.toBeInTheDocument();
-    expect(screen.getByTestId('landing-user-oauth')).toHaveAttribute(
-      'aria-label',
-      'Continue with GitHub',
-    );
+    expect(screen.getByTestId('landing-user-oauth')).toHaveTextContent(en.home.githubOauth);
     expect(screen.queryByLabelText(/token/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/pat/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /token/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
@@ -1059,7 +1041,7 @@ describe('HomePage', () => {
       }),
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
@@ -1148,7 +1130,7 @@ describe('HomePage', () => {
     );
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('created: false');
     expect(screen.getByTestId('landing-terminal-output')).toHaveTextContent('login: qaguru');
-    await user.click(screen.getByTestId('landing-terminal-download'));
+    await user.click(screen.getByTestId('landing-dest-action'));
     await waitFor(() => {
       expect(click).toHaveBeenCalled();
     });
