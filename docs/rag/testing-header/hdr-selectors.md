@@ -15,7 +15,7 @@ tags: [selectors, data-testid]
 | Brand | `header-brand-link` |
 | Nav | `header-nav`, `header-nav-home`, `header-nav-courses`, `header-nav-about` |
 | Search | `header-search`, `header-search-input` |
-| Tools | `header-tools`, `header-lang-toggle`, `header-lang-label`, `header-theme-toggle`, `header-github`, `header-github-pages` |
+| Tools | `header-tools`, `header-lang-toggle`, `header-lang-label`, `header-theme-toggle`, `header-github` |
 
 ## Don't (legacy one-page-form)
 
