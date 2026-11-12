@@ -4,8 +4,6 @@ export { Chip } from './Chip';
 export type { ChipProps } from './Chip';
 export { LangToggle, LangIcon, HEADER_LANG_CHANGE, LANG_STORAGE_KEY } from './LangToggle';
 export type { LangToggleProps, LangCode } from './LangToggle';
-export { PollToggle, PollIcon, formatPollLabel, POLL_DEFAULT_MS } from './PollToggle';
-export type { PollToggleProps } from './PollToggle';
 export { Link } from './Link';
 export type { LinkProps, LinkVariant } from './Link';
 export { AppHeader } from './AppHeader';
