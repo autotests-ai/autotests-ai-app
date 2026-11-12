@@ -3,9 +3,7 @@ import {
   Button,
   CodeHighlight,
   Icon,
-  IconBtn,
   IconCopy,
-  IconDownload,
   IconReset,
   IconUpload,
   Panel,
@@ -30,7 +28,6 @@ import {
   startGithubOAuth,
 } from '../lib/github-oauth';
 import {
-  IDP_MARK_PATH,
   idpAuthorizeUrl,
   idpClientId,
   idpGate,
@@ -82,6 +79,9 @@ import {
   setMillAccess,
   setTestsStack,
   shouldAdoptDestZip,
+  TAKEAWAY_BACKEND_STACK,
+  TAKEAWAY_FRONTEND_STACK,
+  TAKEAWAY_TESTS_STACK,
   TESTS_STACKS,
   toggleAgentAccess,
   toJson,
@@ -89,7 +89,6 @@ import {
   writeAgentIds,
 } from '../lib/landing-config';
 import { PanelHelp, type PanelHelpId, panelHelpItems } from '../lib/panel-help';
-import { GITHUB_MARK_PATH } from '../lib/stack-matrix';
 
 type AxisChoice = { value: string; label: string };
 
@@ -181,6 +180,10 @@ export function HomePage() {
   const [importBusy, setImportBusy] = useState(false);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const [cloneBusy, setCloneBusy] = useState(false);
+  const courseStacksMatch =
+    config.coverageProfile.product.backend.stack === TAKEAWAY_BACKEND_STACK &&
+    config.coverageProfile.product.frontend.stack === TAKEAWAY_FRONTEND_STACK &&
+    config.coverageProfile.automation.api.stack === TAKEAWAY_TESTS_STACK;
   const githubUser = readGithubUserSession();
   const idpSession = readIdpSession();
   const adoptDest =
@@ -200,6 +203,15 @@ export function HomePage() {
   usePlaqueFieldMagnet({
     syncKey: magnetSyncKey,
   });
+
+  const destActionLabel =
+    config.destination === 'zip'
+      ? copy.home.destAction.zip
+      : config.destination === 'catalog'
+        ? copy.home.destAction.catalog
+        : (config.destination === 'cloud' ? idpSession : githubUser)
+          ? copy.home.destAction[config.destination]
+          : copy.home.destAction.config;
 
   const vectorId = fingerprint(config);
   const yaml = toYaml(config, vectorId, emitOptions);
@@ -291,12 +303,29 @@ export function HomePage() {
   };
 
   const runCloneCourse = () => {
-    if (cloneBusy) {
+    if (cloneBusy || !courseStacksMatch) {
       return;
     }
     setCloneBusy(true);
     void downloadCloneAsStudent({ hostname: window.location.hostname }).finally(() => {
       setCloneBusy(false);
+    });
+  };
+
+  const runDestination = () => {
+    void downloadLandingOutput({
+      destination: config.destination,
+      hostname: window.location.hostname,
+      yaml,
+      text: activeOutput,
+      textFilename: outputFilename(activeTab),
+      catalogUrl: catalog.url,
+      githubUser: config.destination === 'user' ? githubUser : null,
+      idpSession: config.destination === 'cloud' ? idpSession : null,
+      landingConfig: config,
+      vectorId,
+      outputTab: activeTab,
+      adoptDest,
     });
   };
 
@@ -483,79 +512,58 @@ export function HomePage() {
                   paramId="destination"
                   value={config.destination}
                   onValueChange={setDestination}
-                  options={DESTINATIONS}
+                  options={DESTINATIONS.map((option) => ({
+                    value: option.value,
+                    label: copy.home.destLabel[option.value],
+                    title: copy.home.helpDest[option.value],
+                  }))}
                   data-testid="landing-seg-destination"
                 />
               </PlaqueFieldGrid>
-              {config.destination === 'catalog' ? (
-                <PlaqueFieldGrid layout="solo" aria-label={copy.home.catalogHref}>
-                  <IconBtn
-                    as="a"
-                    href={catalog.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={copy.home.catalogHref}
-                    title={catalog.url}
-                    data-testid="landing-catalog-href"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d={GITHUB_MARK_PATH} />
-                    </svg>
-                  </IconBtn>
-                </PlaqueFieldGrid>
-              ) : null}
+              <PlaqueFieldGrid layout="solo" aria-label={destActionLabel}>
+                <Button
+                  variant="primary"
+                  data-testid="landing-dest-action"
+                  onClick={runDestination}
+                >
+                  {destActionLabel}
+                </Button>
+              </PlaqueFieldGrid>
               {config.destination === 'cloud' && idpGate.configured() ? (
                 <PlaqueFieldGrid layout="solo" aria-label={copy.home.idpLogin}>
-                  {idpSession ? (
-                    <IconBtn
-                      aria-label={copy.home.idpLogin}
-                      title={idpSession.login}
-                      data-testid="landing-cloud-idp"
-                    >
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d={IDP_MARK_PATH} />
-                      </svg>
-                    </IconBtn>
-                  ) : (
-                    <IconBtn
-                      aria-label={copy.home.idpLogin}
-                      title={copy.home.idpLogin}
-                      data-testid="landing-cloud-idp"
-                      onClick={() =>
-                        startIdpLogin({
-                          clientId: idpClientId(),
-                          authorizeUrl: idpAuthorizeUrl(),
-                          origin: window.location.origin,
-                        })
-                      }
-                    >
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d={IDP_MARK_PATH} />
-                      </svg>
-                    </IconBtn>
-                  )}
+                  <Button
+                    variant="secondary"
+                    data-testid="landing-cloud-idp"
+                    disabled={Boolean(idpSession)}
+                    title={idpSession?.login}
+                    onClick={() =>
+                      startIdpLogin({
+                        clientId: idpClientId(),
+                        authorizeUrl: idpAuthorizeUrl(),
+                        origin: window.location.origin,
+                      })
+                    }
+                  >
+                    {idpSession ? idpSession.login : copy.home.idpLogin}
+                  </Button>
                 </PlaqueFieldGrid>
               ) : null}
               {config.destination === 'user' ? (
                 <PlaqueFieldGrid layout="solo" aria-label={copy.home.githubOauth}>
                   {githubUser ? (
-                    <IconBtn
+                    <Button
                       as="a"
+                      variant="secondary"
                       href={githubUserUrl(githubUser.login)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={copy.home.githubOauth}
-                      title={githubUserUrl(githubUser.login)}
                       data-testid="landing-user-oauth"
                     >
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d={GITHUB_MARK_PATH} />
-                      </svg>
-                    </IconBtn>
+                      {githubUser.login}
+                    </Button>
                   ) : (
-                    <IconBtn
-                      aria-label={copy.home.githubOauth}
-                      title={copy.home.githubOauth}
+                    <Button
+                      variant="secondary"
                       data-testid="landing-user-oauth"
                       onClick={() =>
                         startGithubOAuth({
@@ -564,22 +572,27 @@ export function HomePage() {
                         })
                       }
                     >
-                      <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d={GITHUB_MARK_PATH} />
-                      </svg>
-                    </IconBtn>
+                      {copy.home.githubOauth}
+                    </Button>
                   )}
                 </PlaqueFieldGrid>
               ) : null}
-              <PlaqueFieldGrid layout="solo" aria-label={copy.home.cloneCourse}>
+              <PlaqueFieldGrid layout="pair" aria-label={copy.home.cloneCourse}>
                 <Button
                   variant="secondary"
                   data-testid="landing-clone-course"
-                  disabled={cloneBusy}
+                  title={copy.home.helpCloneCourse}
+                  aria-description={copy.home.helpCloneCourse}
+                  disabled={cloneBusy || !courseStacksMatch}
                   onClick={runCloneCourse}
                 >
                   {copy.home.cloneCourse}
                 </Button>
+                <PanelHelp
+                  items={[{ title: copy.home.cloneCourse, body: copy.home.helpCloneCourse }]}
+                  ariaLabel={copy.home.cloneCourse}
+                  data-testid="landing-clone-course-help"
+                />
               </PlaqueFieldGrid>
             </ConfigPanel>
 
@@ -1004,26 +1017,6 @@ export function HomePage() {
                     label: copy.home.reset,
                     onClick: resetConfig,
                     'data-testid': 'landing-terminal-reset',
-                  },
-                  {
-                    icon: <IconDownload />,
-                    label: copy.home.download,
-                    onClick: () =>
-                      downloadLandingOutput({
-                        destination: config.destination,
-                        hostname: window.location.hostname,
-                        yaml,
-                        text: activeOutput,
-                        textFilename: outputFilename(activeTab),
-                        catalogUrl: catalog.url,
-                        githubUser: config.destination === 'user' ? githubUser : null,
-                        idpSession: config.destination === 'cloud' ? idpSession : null,
-                        landingConfig: config,
-                        vectorId,
-                        outputTab: activeTab,
-                        adoptDest,
-                      }),
-                    'data-testid': 'landing-terminal-download',
                   },
                   {
                     icon: <IconCopy />,

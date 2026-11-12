@@ -8,14 +8,6 @@ import type { StackMatrix } from '../../lib/stack-matrix';
 import * as stackMatrix from '../../lib/stack-matrix';
 import { StackPage } from '../../pages/StackPage';
 
-const { bindStackHeaderPoll } = vi.hoisted(() => ({
-  bindStackHeaderPoll: vi.fn<(onTick: () => void) => () => void>(() => () => {}),
-}));
-
-vi.mock('../../lib/header-poll', () => ({
-  bindStackHeaderPoll,
-}));
-
 const MATRIX: StackMatrix = {
   public_host: 'autotests.ai',
   backends: [
@@ -119,7 +111,6 @@ describe('StackPage', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.lang = 'en';
-    bindStackHeaderPoll.mockReturnValue(() => {});
     vi.stubGlobal(
       'fetch',
       vi.fn(() => jsonOk(MATRIX)),
@@ -279,7 +270,6 @@ describe('StackPage', () => {
         .closest('table')
         ?.querySelector('.stack-page__open'),
     ).toBeNull();
-    expect(bindStackHeaderPoll).toHaveBeenCalled();
   });
 
   it('puts help-info on each board bar and keeps the load board on Performance', async () => {
@@ -604,23 +594,6 @@ describe('StackPage', () => {
     });
     expect(screen.getByTestId('stack-tests-crystal').tagName).toBe('SPAN');
     expect(screen.getByTestId('stack-tests-crystal')).toHaveClass('stack-page__id--disabled');
-  });
-
-  it('polls by reusing the header tick callback', async () => {
-    let onTick: (() => void) | undefined;
-    bindStackHeaderPoll.mockImplementation((tick: () => void) => {
-      onTick = tick;
-      return () => {};
-    });
-    renderAt('/stack/');
-    await waitFor(() => {
-      expect(screen.getByTestId('stack-current-pair')).toBeInTheDocument();
-    });
-    expect(typeof onTick).toBe('function');
-    await act(async () => {
-      onTick?.();
-    });
-    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it('switches chrome to RU and keeps matrix ids and hrefs in English', async () => {

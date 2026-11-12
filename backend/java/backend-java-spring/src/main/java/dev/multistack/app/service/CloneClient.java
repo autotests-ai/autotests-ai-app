@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Home «как на курсе» zip via {@code ASSEMBLE_URL}/clone. Empty body is the
+ * Home «эталонный проект» zip via {@code ASSEMBLE_URL}/clone. Empty body is the
  * course preset. Never {@code AssembleTree.zip(yaml)}. Never a {@code CLONE_URL}.
  * Never mill. Never a PAT.
  */

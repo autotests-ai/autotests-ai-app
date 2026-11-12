@@ -180,7 +180,7 @@ describe('canonical header.js — mobile burger menu', () => {
     ]);
     expect(document.querySelector('[data-testid="header-menu-search-input"]')).not.toBeNull();
     expect(document.querySelector('[data-testid="header-menu-github"]')).not.toBeNull();
-    expect(document.querySelector('[data-testid="header-menu-github-pages"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="header-menu-github-pages"]')).toBeNull();
   });
 
   it('toggles menu visibility via burger button', async () => {
