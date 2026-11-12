@@ -3,7 +3,6 @@ import { type MouseEvent, type ReactNode, useEffect, useId, useState } from 'rea
 import { useLocation } from 'react-router-dom';
 import { type Dictionary, formatCopy, useI18n } from '../i18n';
 import { appPath } from '../lib/appBase';
-import { bindStackHeaderPoll } from '../lib/header-poll';
 import { PanelHelp, type StackHelpId, stackHelpItems } from '../lib/panel-help';
 import {
   allureModuleHref,
@@ -434,10 +433,8 @@ export function StackPage() {
     }
 
     loadMatrix();
-    const disposePoll = bindStackHeaderPoll(() => loadMatrix());
     return () => {
       active = false;
-      disposePoll();
     };
   }, []);
 
